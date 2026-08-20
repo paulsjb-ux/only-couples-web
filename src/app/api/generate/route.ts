@@ -41,9 +41,20 @@ async function zenUpload(key: string, bytes: ArrayBuffer, name: string) {
 }
 
 function bodyLine(p: any) {
-  const bits: string[] = [String(p.role || "").replace(/_/g, " ")];
-  if (p.age) bits.push(`in their ${p.age}`);
-  if (p.body_shape) bits.push(`${p.body_shape} body`);
+  const role = String(p.role || "").replace(/_/g, " ");
+  const male = role.includes("husband") || role.includes("male");
+  const bits: string[] = [role];
+  if (p.age) bits.push(`clearly in their ${p.age}, visible age on the face and body`);
+  if (p.body_shape) {
+    const shape = String(p.body_shape);
+    if (male && ["large", "heavy", "full", "curvy"].includes(shape)) {
+      bits.push(
+        `${shape} older-man body, thicker midsection, softer chest, not athletic, not slim, not a gym body`
+      );
+    } else {
+      bits.push(`${shape} body`);
+    }
+  }
   if (p.breasts) bits.push(`${p.breasts} breasts, natural, in proportion`);
   if (p.penis) bits.push(`${p.penis} penis, natural, in proportion`);
   return bits.join(", ");
@@ -125,7 +136,7 @@ export async function POST(req: NextRequest) {
     .map(bodyLine)
     .join(". ");
   const bodyLock = bodyNotes
-    ? `BODY LOCK: ${bodyNotes}. Match these ages, body shapes and sizes exactly.`
+    ? `BODY LOCK: ${bodyNotes}. These body settings OVERRIDE the body in the reference photos. Keep the faces. Change the body to match the settings.`
     : "";
 
   // 5) Look

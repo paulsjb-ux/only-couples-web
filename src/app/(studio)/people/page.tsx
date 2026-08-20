@@ -22,8 +22,8 @@ const ROLES = [
   { key: "male_lover", label: "Male lover", sex: "m" },
 ];
 
-const AGES = ["20s", "30s", "40s", "50s", "60s"];
-const SHAPES = ["slim", "athletic", "average", "curvy", "full"];
+const AGES = ["20s", "30s", "40s", "50s", "60s", "70s"];
+const SHAPES = ["slim", "athletic", "average", "curvy", "full", "large", "heavy"];
 const BREASTS = ["small", "medium", "full", "large"];
 const PENIS = ["average", "large", "very large"];
 
