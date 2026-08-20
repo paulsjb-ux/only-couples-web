@@ -78,6 +78,7 @@ function bodyLine(p: any) {
       bits.push("average realistic penis, not oversized");
     }
   }
+  if (p.look) bits.push(String(p.look));
   return bits.join(", ");
 }
 
@@ -117,8 +118,9 @@ export async function POST(req: NextRequest) {
     ? ["wife", "husband"]
     : [who].filter(Boolean);
 
-  const refs = (people || []).filter((p: any) => wanted.includes(p.role) && p.photo_path);
-  refs.sort((a: any, b: any) => wanted.indexOf(a.role) - wanted.indexOf(b.role));
+  const castPeople = (people || []).filter((p: any) => wanted.includes(p.role));
+  castPeople.sort((a: any, b: any) => wanted.indexOf(a.role) - wanted.indexOf(b.role));
+  const refs = castPeople.filter((p: any) => p.photo_path);
 
   // Build up to 3 Zen assets: every face first, then body, then angle
   type PathItem = { role: string; kind: string; path: string };
@@ -144,7 +146,9 @@ export async function POST(req: NextRequest) {
 
   // 1) Scene core from catalog
   let core = getSceneCore(sceneId, sceneName);
-  const labels = refs.map((p: any) => p.role.replace(/_/g, " "));
+  const labels = (castPeople.length ? castPeople : refs).map((p: any) =>
+    p.role.replace(/_/g, " ")
+  );
   core = core
     .replace(/\{p1\}/g, labels[0] || "the woman")
     .replace(/\{p2\}/g, labels[1] || "the man")

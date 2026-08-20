@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { WOMAN_PRESETS, MAN_PRESETS, type LoverPreset } from "@/lib/presets";
 
 const SCENE_NAMES: Record<string, string> = {
   "romance-undress": "Taking her clothes off",
@@ -26,6 +27,16 @@ const ALL_ROLES = [
   { key: "male_lover", label: "Male lover" },
 ];
 
+const SUGGESTED = [
+  { label: "Just us", roles: ["wife", "husband"] },
+  { label: "Her + her lover", roles: ["wife", "female_lover"] },
+  { label: "Him + his lover", roles: ["husband", "male_lover"] },
+  { label: "Two women + him", roles: ["wife", "female_lover", "husband"] },
+  { label: "Two men + her", roles: ["wife", "husband", "male_lover"] },
+  { label: "Wife only", roles: ["wife"] },
+  { label: "Husband only", roles: ["husband"] },
+];
+
 function CreateInner() {
   const params = useSearchParams();
   const sceneId = params.get("scene");
@@ -34,11 +45,12 @@ function CreateInner() {
     (sceneId ? SCENE_NAMES[sceneId] || sceneId.replace(/-/g, " ") : "Free play");
   const defaultCast = (params.get("cast") || "wife").split(",").filter(Boolean);
 
-  const [allFaces, setAllFaces] = useState<{ role: string; url: string | null }[]>([]);
+  const [allFaces, setAllFaces] = useState<{ role: string; url: string | null; look?: string | null; name?: string | null }[]>([]);
   const [selected, setSelected] = useState<string[]>(defaultCast);
   const [kind, setKind] = useState("image");
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
+  const [studioId, setStudioId] = useState<string | null>(null);
 
   useEffect(() => {
     load();
@@ -55,6 +67,7 @@ function CreateInner() {
       .limit(1);
     const sid = memberships?.[0]?.studio_id as string | undefined;
     if (!sid) return;
+    setStudioId(sid);
     const { data: people } = await supabase.from("people").select("*").eq("studio_id", sid);
     const next: { role: string; url: string | null }[] = [];
     for (const person of people || []) {
@@ -65,9 +78,46 @@ function CreateInner() {
           .createSignedUrl(person.photo_path, 60 * 60);
         url = signed?.signedUrl || null;
       }
-      next.push({ role: person.role, url });
+      next.push({ role: person.role, url, look: person.look, name: person.name });
     }
     setAllFaces(next);
+  }
+
+  async function applyPreset(preset: LoverPreset) {
+    if (!studioId) {
+      alert("Studio not ready");
+      return;
+    }
+    const role = preset.sex === "f" ? "female_lover" : "male_lover";
+    const supabase = createClient();
+    const existing = allFaces.find((f) => f.role === role);
+    const row = {
+      name: preset.name,
+      age: preset.age,
+      body_shape: preset.body_shape,
+      breasts: preset.breasts || null,
+      penis: preset.penis || null,
+      look: preset.look,
+    };
+    const { data: people } = await supabase.from("people").select("id,role").eq("studio_id", studioId);
+    const found = (people || []).find((p: { role: string }) => p.role === role);
+    if (found?.id) {
+      const { error } = await supabase.from("people").update(row).eq("id", found.id);
+      if (error) {
+        alert(error.message);
+        return;
+      }
+    } else {
+      const { error } = await supabase.from("people").insert({ studio_id: studioId, role, ...row });
+      if (error) {
+        alert(error.message);
+        return;
+      }
+    }
+    setSelected((prev) => (prev.includes(role) ? prev : [...prev, role]));
+    setNote(`Using ${preset.name} as ${role === "female_lover" ? "female lover" : "male lover"}`);
+    await load();
+    void existing;
   }
 
   function toggleRole(role: string) {
@@ -150,6 +200,69 @@ function CreateInner() {
         <p className="text-xs text-[var(--muted)] mt-3">
           Tap to add or remove. You need a photo on People for each person you select.
         </p>
+
+        <p className="text-sm font-semibold mt-5 mb-2">Suggested partners</p>
+        <div className="flex flex-wrap gap-2">
+          {SUGGESTED.map((s) => {
+            const on =
+              selected.length === s.roles.length && s.roles.every((r) => selected.includes(r));
+            const missing = s.roles.filter(
+              (r) => !allFaces.some((f) => f.role === r && f.url)
+            );
+            return (
+              <button
+                key={s.label}
+                type="button"
+                onClick={() => setSelected(s.roles)}
+                className={
+                  on
+                    ? "rounded-full px-3 py-1.5 text-xs font-bold bg-[var(--accent)] text-white"
+                    : "rounded-full px-3 py-1.5 text-xs font-bold bg-[#F7F0EA] border border-[var(--line)] text-[var(--text)]"
+                }
+              >
+                {s.label}
+                {missing.length ? " · add photo" : ""}
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-xs text-[var(--muted)] mt-2">
+          Or pick a look below. No extra photo needed for presets.
+        </p>
+
+        <p className="text-sm font-semibold mt-5 mb-2">6 women</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {WOMAN_PRESETS.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => applyPreset(p)}
+              className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-left"
+            >
+              <div className="text-sm font-semibold">{p.name}</div>
+              <div className="text-[11px] text-[var(--muted)]">
+                {p.age} · {p.body_shape}
+              </div>
+            </button>
+          ))}
+        </div>
+
+        <p className="text-sm font-semibold mt-5 mb-2">6 men</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {MAN_PRESETS.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => applyPreset(p)}
+              className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-left"
+            >
+              <div className="text-sm font-semibold">{p.name}</div>
+              <div className="text-[11px] text-[var(--muted)]">
+                {p.age} · {p.body_shape}
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="flex gap-3 mb-6 flex-wrap">
