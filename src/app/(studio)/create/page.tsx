@@ -28,7 +28,9 @@ const LABELS: Record<string, string> = {
 function CreateInner() {
   const params = useSearchParams();
   const sceneId = params.get("scene");
-  const sceneName = sceneId ? SCENE_NAMES[sceneId] || sceneId.replace(/-/g, " ") : "Free play";
+  const sceneName =
+  params.get("name") ||
+  (sceneId ? SCENE_NAMES[sceneId] || sceneId.replace(/-/g, " ") : "Free play");
   const wanted = (params.get("cast") || "wife").split(",").filter(Boolean);
 
   const [studioId, setStudioId] = useState<string | null>(null);
@@ -77,7 +79,7 @@ function CreateInner() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sceneName, who, kind }),
+        body: JSON.stringify({ sceneName, sceneId, who, kind }),
       });
       const data = await res.json();
       if (!res.ok) {
