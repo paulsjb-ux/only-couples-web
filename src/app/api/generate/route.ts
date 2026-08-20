@@ -68,18 +68,40 @@ function bodyLine(p: any) {
     const b = String(p.breasts);
     bits.push(`${b} natural breasts, in proportion to her body`);
   }
-  if (p.penis) {
+  if (p.penis && male) {
     const size = String(p.penis);
     if (size === "very large") {
-      bits.push("very large thick penis, visibly well endowed");
+      bits.push("very large thick penis, visibly well endowed, attached only to this man");
     } else if (size === "large") {
-      bits.push("large penis, above average, clearly visible");
+      bits.push("large penis, above average, clearly visible, attached only to this man");
     } else {
-      bits.push("average realistic penis, not oversized");
+      bits.push("average realistic penis, not oversized, attached only to this man");
     }
   }
   if (p.look) bits.push(String(p.look));
   return bits.join(", ");
+}
+
+function anatomyLock(cast: { role?: string }[]) {
+  const roles = cast.map((p) => String(p.role || ""));
+  const men = roles.filter((r) => r.includes("husband") || r.includes("male")).length;
+  const women = roles.filter((r) => r.includes("wife") || r.includes("female")).length;
+  const total = men + women || cast.length;
+
+  const penisRule =
+    men === 0
+      ? "no penis anywhere in the image"
+      : men === 1
+      ? "exactly one penis, attached only to the man, never attached to a woman, never coming from a chest or breasts, never floating"
+      : `exactly ${men} penises, one attached to each man, none attached to a woman, no extra or anonymous shafts, no floating genitals`;
+
+  return [
+    "ANATOMY LOCK:",
+    "correct adult human anatomy only.",
+    `exactly ${total} people, no extra people.`,
+    penisRule,
+    "no extra limbs, no extra hands, no fused bodies, no body parts on the wrong person.",
+  ].join(" ");
 }
 
 export async function POST(req: NextRequest) {
@@ -160,8 +182,8 @@ export async function POST(req: NextRequest) {
     .join("; ");
   const whoLine =
     refs.length <= 1
-      ? `WHO: exactly one adult — ${labels[0] || "the subject"}. ${refGuide}.`
-      : `WHO: exactly ${refs.length} adults — ${labels.join(" and ")}. ${refGuide}.`;
+      ? `WHO: exactly one adult — ${labels[0] || "the subject"}. ${refGuide}. Do not add anyone else.`
+      : `WHO: exactly ${refs.length} adults — ${labels.join(" and ")}. ${refGuide}. Do not add extra people or extra genitals.`;
 
   // 3) Face lock
   const faceLock =
@@ -176,11 +198,14 @@ export async function POST(req: NextRequest) {
     ? `BODY LOCK: ${bodyNotes}. These body settings OVERRIDE the body in the reference photos. Keep the faces. Change the body to match the settings.`
     : "";
 
-  // 5) Look
+  // 5) Anatomy lock
+  const anatomy = anatomyLock(castPeople.length ? castPeople : refs);
+
+  // 6) Look
   const look =
     "LOOK: vertical 3:4 frame, ultra high-resolution luxury photoshoot, 85mm f/1.4, soft cinematic light, glossy hydrated skin, tack-sharp faces, magazine grade, 8k, no watermark, no text.";
 
-  const prompt = [whoLine, faceLock, bodyLock, core, look].filter(Boolean).join(" ");
+  const prompt = [whoLine, faceLock, bodyLock, anatomy, core, look].filter(Boolean).join(" ");
 
   const tool = assetIds.length ? "image_editor" : "by_prompt";
   const input = assetIds.length
