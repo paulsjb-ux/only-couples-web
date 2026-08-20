@@ -156,7 +156,7 @@ export async function POST(req: NextRequest) {
   await supabase.from("generations").insert({
     studio_id: studioId,
     kind,
-    prompt: `${sceneName} (${who})`,
+    prompt: `${body.sceneId || ""} | ${sceneName} (${who})`,
     result_url: url,
   });
 
