@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getSceneCore } from "@/lib/scene-cores";
 
 const ZEN_BASE = "https://api.zencreator.pro/api/public/v1";
 
@@ -68,6 +69,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { data: people } = await supabase.from("people").select("*").eq("studio_id", studioId);
+
   const wanted =
     who === "wife"
       ? ["wife"]
@@ -76,7 +78,10 @@ export async function POST(req: NextRequest) {
       : who.includes(",")
       ? who.split(",").map((s: string) => s.trim()).filter(Boolean)
       : ["wife", "husband"];
+
   const refs = (people || []).filter((p: any) => wanted.includes(p.role) && p.photo_path);
+  // Keep role order from wanted
+  refs.sort((a: any, b: any) => wanted.indexOf(a.role) - wanted.indexOf(b.role));
 
   const assetIds: string[] = [];
   for (const person of refs) {
@@ -86,7 +91,34 @@ export async function POST(req: NextRequest) {
     assetIds.push(await zenUpload(key, bytes, `${person.role}.jpg`));
   }
 
-  const prompt = `Photorealistic intimate adult scene: ${sceneName}. Keep the exact faces from the reference photos. Tasteful, cinematic lighting, high detail.`;
+  // Locked scene wording from the old catalog
+  let core = getSceneCore(sceneId, sceneName);
+  const labels = refs.map((p: any) => p.role.replace(/_/g, " "));
+  core = core
+    .replace(/\{p1\}/g, labels[0] || "the woman")
+    .replace(/\{p2\}/g, labels[1] || "the man")
+    .replace(/\{p3\}/g, labels[2] || "the third person");
+
+  const faceLock =
+    " FACE LOCK: match the reference face photos exactly — same bone structure, eyes, nose, mouth, and hair. Do not invent a different person.";
+
+  function bodyLine(p: any) {
+    const bits: string[] = [p.role.replace(/_/g, " ")];
+    if (p.age) bits.push(`in their ${p.age}`);
+    if (p.body_shape) bits.push(`${p.body_shape} body`);
+    if (p.breasts) bits.push(`${p.breasts} breasts`);
+    if (p.penis) bits.push(`${p.penis} penis`);
+    return bits.join(", ");
+  }
+  const bodyNotes = (people || [])
+    .filter((p: any) => wanted.includes(p.role))
+    .map(bodyLine)
+    .join(". ");
+  const bodyLock = bodyNotes
+    ? ` BODY LOCK: ${bodyNotes}. Match these ages, body shapes, and sizes exactly.`
+    : "";
+
+  const prompt = `${core}${faceLock}${bodyLock} LOOK: ultra high-resolution luxury photoshoot, 85mm f/1.4, glossy hydrated skin, tack-sharp, magazine grade, 8k, no watermark.`;
 
   const tool = assetIds.length ? "image_editor" : "by_prompt";
   const input = assetIds.length
@@ -157,7 +189,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Timed out waiting for the image" }, { status: 504 });
   }
 
-  // Prefer storing in our private library bucket
   try {
     const img = await fetch(url);
     const bytes = await img.arrayBuffer();
@@ -171,7 +202,7 @@ export async function POST(req: NextRequest) {
       .createSignedUrl(path, 60 * 60 * 24 * 7);
     if (signed?.signedUrl) url = signed.signedUrl;
   } catch {
-    // keep original Zen URL if library upload fails
+    // keep Zen URL
   }
 
   await supabase.from("generations").insert({

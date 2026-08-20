@@ -9,14 +9,23 @@ type Person = {
   name: string | null;
   photo_path: string | null;
   photo_url?: string | null;
+  age?: string | null;
+  body_shape?: string | null;
+  breasts?: string | null;
+  penis?: string | null;
 };
 
 const ROLES = [
-  { key: "wife", label: "Wife" },
-  { key: "husband", label: "Husband" },
-  { key: "female_lover", label: "Female lover" },
-  { key: "male_lover", label: "Male lover" },
+  { key: "wife", label: "Wife", sex: "f" },
+  { key: "husband", label: "Husband", sex: "m" },
+  { key: "female_lover", label: "Female lover", sex: "f" },
+  { key: "male_lover", label: "Male lover", sex: "m" },
 ];
+
+const AGES = ["20s", "30s", "40s", "50s", "60s"];
+const SHAPES = ["slim", "athletic", "average", "curvy", "full"];
+const BREASTS = ["small", "medium", "full", "large"];
+const PENIS = ["average", "large", "very large"];
 
 export default function PeoplePage() {
   const [loading, setLoading] = useState(true);
@@ -60,7 +69,7 @@ export default function PeoplePage() {
 
     setStudioId(sid);
     await loadPeople(sid);
-    setMessage("Add the couple, then optional extra faces.");
+    setMessage("Photo plus age, shape, and size. These stay with that person.");
     setLoading(false);
   }
 
@@ -101,20 +110,74 @@ export default function PeoplePage() {
     }
 
     const existing = people.find((p) => p.role === role);
-    const label = ROLES.find((r) => r.key === role)?.label || role;
     if (existing?.id) {
       await supabase.from("people").update({ photo_path: path }).eq("id", existing.id);
     } else {
       await supabase.from("people").insert({
         studio_id: studioId,
         role,
-        name: label,
+        name: ROLES.find((r) => r.key === role)?.label || role,
         photo_path: path,
       });
     }
 
     await loadPeople(studioId);
     setBusyRole(null);
+  }
+
+  async function saveField(role: string, field: string, value: string) {
+    if (!studioId) return;
+    const supabase = createClient();
+    const existing = people.find((p) => p.role === role);
+    if (existing?.id) {
+      const { error } = await supabase.from("people").update({ [field]: value }).eq("id", existing.id);
+      if (error) {
+        alert(error.message);
+        return;
+      }
+    } else {
+      const { error } = await supabase.from("people").insert({
+        studio_id: studioId,
+        role,
+        name: ROLES.find((r) => r.key === role)?.label || role,
+        [field]: value,
+      });
+      if (error) {
+        alert(error.message);
+        return;
+      }
+    }
+    await loadPeople(studioId);
+  }
+
+  function Select({
+    label,
+    value,
+    options,
+    onChange,
+  }: {
+    label: string;
+    value?: string | null;
+    options: string[];
+    onChange: (v: string) => void;
+  }) {
+    return (
+      <label className="block text-left">
+        <span className="text-xs font-semibold text-[var(--muted)]">{label}</span>
+        <select
+          className="mt-1 w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm"
+          value={value || ""}
+          onChange={(e) => onChange(e.target.value)}
+        >
+          <option value="">Not set</option>
+          {options.map((o) => (
+            <option key={o} value={o}>
+              {o}
+            </option>
+          ))}
+        </select>
+      </label>
+    );
   }
 
   return (
@@ -132,42 +195,76 @@ export default function PeoplePage() {
       {loading ? (
         <p className="text-sm text-[var(--muted)]">Please wait…</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {ROLES.map((role) => {
             const person = people.find((p) => p.role === role.key);
             return (
-              <div key={role.key} className="card p-5 text-center">
-                <div className="mx-auto mb-4 aspect-[3/4] max-h-[260px] rounded-2xl overflow-hidden bg-gradient-to-br from-[#1C1917] to-[#5C2E36] flex items-center justify-center">
-                  {person?.photo_url ? (
-                    <img
-                      src={person.photo_url}
-                      alt={role.label}
-                      className="w-full h-full object-cover object-top"
+              <div key={role.key} className="card p-5">
+                <div className="flex gap-4">
+                  <div className="w-28 shrink-0">
+                    <div className="aspect-[3/4] rounded-2xl overflow-hidden bg-gradient-to-br from-[#1C1917] to-[#5C2E36] flex items-center justify-center">
+                      {person?.photo_url ? (
+                        <img
+                          src={person.photo_url}
+                          alt={role.label}
+                          className="w-full h-full object-cover object-top"
+                        />
+                      ) : (
+                        <span className="text-white/30 text-4xl">✦</span>
+                      )}
+                    </div>
+                    <label className="btn btn-primary w-full text-xs mt-2 cursor-pointer">
+                      {busyRole === role.key
+                        ? "Uploading…"
+                        : person?.photo_url
+                        ? "Change"
+                        : "Add face"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={busyRole !== null}
+                        onChange={(e) => upload(role.key, e.target.files?.[0])}
+                      />
+                    </label>
+                  </div>
+
+                  <div className="flex-1 space-y-2">
+                    <div
+                      className="text-xl font-medium"
+                      style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
+                    >
+                      {role.label}
+                    </div>
+                    <Select
+                      label="Age"
+                      value={person?.age}
+                      options={AGES}
+                      onChange={(v) => saveField(role.key, "age", v)}
                     />
-                  ) : (
-                    <span className="text-white/30 text-5xl">✦</span>
-                  )}
+                    <Select
+                      label="Body"
+                      value={person?.body_shape}
+                      options={SHAPES}
+                      onChange={(v) => saveField(role.key, "body_shape", v)}
+                    />
+                    {role.sex === "f" ? (
+                      <Select
+                        label="Breasts"
+                        value={person?.breasts}
+                        options={BREASTS}
+                        onChange={(v) => saveField(role.key, "breasts", v)}
+                      />
+                    ) : (
+                      <Select
+                        label="Penis"
+                        value={person?.penis}
+                        options={PENIS}
+                        onChange={(v) => saveField(role.key, "penis", v)}
+                      />
+                    )}
+                  </div>
                 </div>
-                <div
-                  className="text-xl font-medium mb-3"
-                  style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
-                >
-                  {role.label}
-                </div>
-                <label className="btn btn-primary w-full text-sm cursor-pointer">
-                  {busyRole === role.key
-                    ? "Uploading…"
-                    : person?.photo_url
-                    ? "Change photo"
-                    : "Add face"}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    disabled={busyRole !== null}
-                    onChange={(e) => upload(role.key, e.target.files?.[0])}
-                  />
-                </label>
               </div>
             );
           })}
