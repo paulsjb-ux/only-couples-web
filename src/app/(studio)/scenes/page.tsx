@@ -25,6 +25,33 @@ const SECTIONS = {
   },
 };
 
+const LAUNCH_IDS = new Set([
+  "soft-eye-contact",
+  "soft-aftercare",
+  "soft-slow-undress",
+  "romance-undress",
+  "romance-naked-together",
+  "romance-shower",
+  "zen-silent-desire",
+  "soft-her-choice",
+  "soft-for-her",
+  "erotic-missionary",
+  "erotic-doggy",
+  "erotic-cowgirl",
+  "erotic-wall",
+  "erotic-oral-her",
+  "erotic-oral-him",
+  "zen-nude-mirror-selfie",
+  "erotic-masturbation",
+  "spicy-anal",
+  "spicy-creampie",
+  "spicy-mmf",
+  "spicy-ffm",
+  "spicy-cuckold",
+  "zen-rope-bound-corset",
+  "zen-cum-face",
+]);
+
 const RAW = `
 romance-undress|Taking her clothes off|solo|soft|wife|✨|Keep the same pose, location and woman — make her naked
 romance-naked-together|Male + Female Undresser|couple|soft|wife,husband|🤍|Same couple, same pose — both fully nude
@@ -181,6 +208,7 @@ const TEMPLATES = RAW.split("\n").map((line) => {
 
 export default function ScenesPage() {
   const [showIntense, setShowIntense] = useState(false);
+  const [showAll, setShowAll] = useState(false);
   const [mood, setMood] = useState<Mood>("soft");
   const [inputs, setInputs] = useState<{ role: string; url: string }[]>([]);
   const [results, setResults] = useState<{ prompt: string; url: string }[]>([]);
@@ -242,7 +270,11 @@ export default function ScenesPage() {
     : ["soft", "playful"];
 
   const current = SECTIONS[mood];
-  const templates = TEMPLATES.filter((t) => t.mood === mood);
+  const templates = TEMPLATES.filter((t) => {
+    if (t.mood !== mood) return false;
+    if (!showAll && !LAUNCH_IDS.has(t.id)) return false;
+    return true;
+  });
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -269,6 +301,15 @@ export default function ScenesPage() {
           />
           <span className="text-sm font-semibold">Show intense scenes</span>
         </label>
+        <label className="flex items-center gap-2.5 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={showAll}
+            onChange={(e) => setShowAll(e.target.checked)}
+            className="h-4 w-4 rounded accent-[var(--accent)]"
+          />
+          <span className="text-sm font-semibold">Show all templates</span>
+        </label>
       </div>
 
       <div className="flex flex-wrap gap-2 mb-4">
@@ -289,14 +330,9 @@ export default function ScenesPage() {
       </div>
 
       <div className="card p-4 mb-6 text-sm text-[var(--muted)]">
-        <p className="font-semibold text-[var(--text)] mb-1">Fill several scenes</p>
-        <p className="mb-2">
-          One at a time. Open a scene, press Try scene, wait for it to finish, then come back.
-          Do not run the whole list.
-        </p>
-        <p className="text-[var(--text)]">
-          Start with: Taking her clothes off · Male + Female Undresser · Intimate Bed Scene ·
-          After Shower Couple · Eye contact in bed · Aftercare portrait · Folded Missionary · She leads
+        <p className="font-semibold text-[var(--text)] mb-1">Launch set</p>
+        <p>
+          A short shelf first. One scene at a time. Tick Show all templates only if you want the old full list.
         </p>
       </div>
 
