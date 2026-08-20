@@ -287,14 +287,14 @@ export default function ScenesPage() {
               <p className="text-sm text-[var(--muted)] mb-4">{tpl.desc}</p>
 
               <div className="flex gap-3 items-start">
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-2 shrink-0">
                   {needed.length === 0 ? (
                     <Link href="/people" className="text-xs underline">
                       Add faces
                     </Link>
                   ) : (
                     needed.map((face) => (
-                      <div key={face.role} className="relative w-20 h-24 rounded-xl overflow-hidden">
+                      <div key={face.role} className="relative w-24 h-32 rounded-xl overflow-hidden">
                         <img src={face.url} alt="" className="w-full h-full object-cover object-top" />
                         <span className="absolute bottom-1 left-1 text-[10px] bg-black/50 text-white px-1.5 py-0.5 rounded-full">
                           input
@@ -303,11 +303,11 @@ export default function ScenesPage() {
                     ))
                   )}
                 </div>
-                <div className="flex-1 grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2 w-[240px] shrink-0">
                   {[0, 1, 2, 3].map((n) => (
                     <div
                       key={n}
-                      className="aspect-[3/4] rounded-xl bg-gradient-to-br from-[#3A1F24] to-[#7A3E48] flex items-center justify-center text-white/30 text-xs"
+                      className="aspect-[3/4] rounded-xl bg-gradient-to-br from-[#3A1F24] to-[#7A3E48] flex items-center justify-center text-white/25 text-[10px]"
                     >
                       result
                     </div>
