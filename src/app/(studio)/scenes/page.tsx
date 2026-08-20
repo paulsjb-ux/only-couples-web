@@ -100,17 +100,17 @@ zen-cum-face|Soft finish, face|couple|intense|wife,husband|🤍|Finish on her fa
 zen-face-full|Soft finish|couple|intense|wife,husband|💦|Heavy facial, mouth open
 zen-cum-tits|On her chest|couple|intense|wife,husband|💗|Semen on her breasts, she lies back
 zen-cum-beauty|Covered beauty|solo|intense|wife|✨|Her face and lingerie streaked
-zen-glory|Through the wall|solo|intense|wife|🔘|She takes a penis through a glory hole
+zen-glory|Through the wall|solo|intense|wife|🔘|She takes a penis through a glory hole, the penis belongs to an unseen man, correct anatomy, no extra genitals
 zen-spread-open|Spread Wide Open|couple|intense|wife,husband|🦵|Legs held open, he is inside, she moans
 spicy-bbc|BBC|couple|intense|wife,male_lover|🖤|With a well-endowed black lover
-spicy-dp|Double penetration|three|intense|wife,husband,male_lover|🔥|Two men, both inside
-spicy-spitroast|Spit roast|three|intense|wife,husband,male_lover|⚡|Oral plus penetration
-spicy-cuckold|Cuckold|three|intense|wife,male_lover,husband|👁|He watches her with another
-spicy-mmf|MMF|three|intense|wife,husband,male_lover|🔥|Two men, one woman
-spicy-ffm|FFM|three|intense|husband,wife,female_lover|💜|Two women, one man
-zen-collar-three|Collar Threesome|three|intense|wife,husband,male_lover|⛓|She wears a collar, two men
-zen-double-facial|Two finishes|three|intense|wife,husband,male_lover|💦|She kneels between two men, finish on her face
-zen-cocks-around|Surrounded|three|intense|wife,husband,male_lover|⭕|She is surrounded — extra anonymous shafts allowed
+spicy-dp|Double penetration|three|intense|wife,husband,male_lover|🔥|Two men both penetrating the woman, each penis attached only to its own man, correct anatomy, no extra genitals
+spicy-spitroast|Spit roast|three|intense|wife,husband,male_lover|⚡|One man in her mouth, one man penetrating her, two penises only, each attached to its own man, correct anatomy
+spicy-cuckold|Cuckold|three|intense|wife,male_lover,husband|👁|Husband watches, the other man’s penis is the only one inside her, correct anatomy, no extra genitals
+spicy-mmf|MMF|three|intense|wife,husband,male_lover|🔥|Two men and one woman, only two penises each attached to its own man, no extra genitals, no body fusion
+spicy-ffm|FFM|three|intense|husband,wife,female_lover|💜|Two women and one man, women kissing or touching, only one penis attached solely to the man, correct anatomy, no extra genitals or floating body parts
+zen-collar-three|Collar Threesome|three|intense|wife,husband,male_lover|⛓|She wears a collar, two men, only two penises each belonging to one man, correct anatomy
+zen-double-facial|Two finishes|three|intense|wife,husband,male_lover|💦|She kneels between two men, two penises only, finish on her face, correct anatomy
+zen-cocks-around|Surrounded|three|intense|wife,husband,male_lover|⭕|She is surrounded by two men only — no extra or anonymous shafts, two penises total, correct anatomy
 zen-dominatrix|Dominatrix|solo|intense|wife|👠|Her in charge, latex or leather
 zen-fierce-dom|Fierce dominatrix|solo|intense|wife|🗡|Fierce, in-control portrait of her
 zen-pink-light|In pink light|couple|playful|wife,husband|💗|Pink practical light, his face and her body
@@ -128,19 +128,19 @@ zen-used-condoms|After, playful|solo|playful|wife|🫧|Close portrait with a use
 zen-black-dildo-ride|Riding Black Dildo On Bed|solo|playful|wife|🖤|Nude on the bed riding a black dildo
 zen-thong-anus|Thongs Over Anus|solo|playful|wife|🔥|Rear view, thong pulled aside over her anus
 zen-cum-selfie|After the first|solo|playful|wife|💦|Close selfie with fresh cum on her face
-zen-member-near-face|Close beside her|couple|playful|wife,husband|👄|Erect penis next to her face, beauty close-up
+zen-member-near-face|Close beside her|couple|playful|wife,husband|👄|Erect penis belonging only to the man next to her face, beauty close-up, correct anatomy
 zen-cum-on-clothes|On her clothes|couple|playful|wife,husband|🤍|Semen on her lingerie or clothes, mirror selfie mood
-zen-penis-against-face|Against her cheek|couple|playful|wife,husband|🔥|Large erect penis pressed against her face on the bed
-zen-armpit-job|Armpit Job|couple|playful|wife,husband|💪|His penis between her arm and side, beach or bright light
+zen-penis-against-face|Against her cheek|couple|playful|wife,husband|🔥|Large erect penis belonging only to the man pressed against her face on the bed, correct anatomy
+zen-armpit-job|Armpit Job|couple|playful|wife,husband|💪|His penis (attached only to him) between her arm and side, beach or bright light, correct anatomy
 zen-dildo-insertion|Dildo Insertion|solo|playful|wife|💗|Sitting, inserting a dildo into her vagina
 zen-pov-impregnation|Deep missionary|couple|intense|wife,husband|🤰|POV missionary, deep penetration, impregnation fantasy still
 zen-reverse-cowgirl-anal|Reverse Cowgirl Anal|couple|intense|wife,husband|🔥|Reverse cowgirl with anal penetration
 zen-anal-frontal|Anal Frontal View|couple|intense|wife,husband|🍑|She on all fours, anal penetration, face toward camera
 zen-cowgirl-anal-bbc|Cowgirl Anal Sex BBC|couple|intense|wife,male_lover|🖤|Cowgirl anal with a large dark-skinned partner
-zen-doggystyle-double|Doggystyle Double Penis|three|intense|wife,husband,male_lover|🔥|Doggy with two men, double penetration energy
+zen-doggystyle-double|Doggystyle Double Penis|three|intense|wife,husband,male_lover|🔥|Doggy with two men, two penises only, each attached to its own man, correct anatomy, no extra genitals
 zen-mounted-deepthroat|Deep from above|couple|intense|wife,husband|👅|She on her back, deepthroat from above
 zen-cheekbulge-tongue|Cheek and tongue|couple|intense|wife,male_lover|👅|Cheek bulge oral with tongue on the shaft
-zen-two-dicks-mouth|Two at her mouth|three|intense|wife,husband,male_lover|💋|Two erect penises at her mouth at once
+zen-two-dicks-mouth|Two at her mouth|three|intense|wife,husband,male_lover|💋|Two erect penises at her mouth, each belonging to one of the two men, no extras, correct anatomy
 zen-sloppy-v2|Messy kiss|couple|intense|wife,husband|💧|Messy oral, saliva and tears, selfie energy
 zen-rope-bound-corset|Rope Bound Corset|solo|intense|wife|🪢|Shibari rope and corset, bound portrait
 zen-harness-ballgag|Harness Ball Gag|solo|intense|wife|🔴|Red harness ball gag close portrait
