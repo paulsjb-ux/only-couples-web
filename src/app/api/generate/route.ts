@@ -120,12 +120,26 @@ export async function POST(req: NextRequest) {
   const refs = (people || []).filter((p: any) => wanted.includes(p.role) && p.photo_path);
   refs.sort((a: any, b: any) => wanted.indexOf(a.role) - wanted.indexOf(b.role));
 
-  const assetIds: string[] = [];
+  // Build up to 3 Zen assets: every face first, then body, then angle
+  type PathItem = { role: string; kind: string; path: string };
+  const candidates: PathItem[] = [];
   for (const person of refs) {
-    const { data: file, error } = await supabase.storage.from("people").download(person.photo_path);
+    if (person.photo_path) candidates.push({ role: person.role, kind: "face", path: person.photo_path });
+  }
+  for (const person of refs) {
+    if (person.photo_body) candidates.push({ role: person.role, kind: "body", path: person.photo_body });
+  }
+  for (const person of refs) {
+    if (person.photo_angle) candidates.push({ role: person.role, kind: "angle", path: person.photo_angle });
+  }
+  const chosen = candidates.slice(0, 3);
+
+  const assetIds: string[] = [];
+  for (const item of chosen) {
+    const { data: file, error } = await supabase.storage.from("people").download(item.path);
     if (error || !file) continue;
     const bytes = await file.arrayBuffer();
-    assetIds.push(await zenUpload(key, bytes, `${person.role}.jpg`));
+    assetIds.push(await zenUpload(key, bytes, `${item.role}-${item.kind}.jpg`));
   }
 
   // 1) Scene core from catalog
@@ -136,17 +150,18 @@ export async function POST(req: NextRequest) {
     .replace(/\{p2\}/g, labels[1] || "the man")
     .replace(/\{p3\}/g, labels[2] || "the third person");
 
-  // 2) Who
+  // 2) Who — map reference slots to people
+  const refGuide = chosen
+    .map((c, i) => `reference ${i + 1} is the ${c.role.replace(/_/g, " ")} ${c.kind} photo`)
+    .join("; ");
   const whoLine =
     refs.length <= 1
-      ? `WHO: exactly one adult — ${labels[0] || "the subject"} from reference photo 1.`
-      : `WHO: exactly ${refs.length} adults — ${labels
-          .map((l, i) => `${l} from reference photo ${i + 1}`)
-          .join("; ")}.`;
+      ? `WHO: exactly one adult — ${labels[0] || "the subject"}. ${refGuide}.`
+      : `WHO: exactly ${refs.length} adults — ${labels.join(" and ")}. ${refGuide}.`;
 
   // 3) Face lock
   const faceLock =
-    "FACE LOCK: match each reference face photo exactly — same bone structure, eyes, nose, mouth, hair colour and style. Do not invent a different person.";
+    "FACE LOCK: use the face photos as identity. Same bone structure, eyes, nose, mouth, hair colour and style as the face references. Body photos are only for body shape and posture — do not change the face from the face references. Do not invent a different person.";
 
   // 4) Body lock from People dropdowns
   const bodyNotes = (people || [])
