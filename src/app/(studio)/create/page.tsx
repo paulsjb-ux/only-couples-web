@@ -51,6 +51,7 @@ function CreateInner() {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
   const [studioId, setStudioId] = useState<string | null>(null);
+  const [picked, setPicked] = useState<string | null>(null);
 
   useEffect(() => {
     load();
@@ -91,7 +92,7 @@ function CreateInner() {
     const role = preset.sex === "f" ? "female_lover" : "male_lover";
     const supabase = createClient();
     const existing = allFaces.find((f) => f.role === role);
-    const row = {
+    const row: Record<string, string | null> = {
       name: preset.name,
       age: preset.age,
       body_shape: preset.body_shape,
@@ -101,19 +102,22 @@ function CreateInner() {
     };
     const { data: people } = await supabase.from("people").select("id,role").eq("studio_id", studioId);
     const found = (people || []).find((p: { role: string }) => p.role === role);
-    if (found?.id) {
-      const { error } = await supabase.from("people").update(row).eq("id", found.id);
-      if (error) {
-        alert(error.message);
-        return;
-      }
-    } else {
-      const { error } = await supabase.from("people").insert({ studio_id: studioId, role, ...row });
-      if (error) {
-        alert(error.message);
-        return;
-      }
+
+    async function save(payload: Record<string, string | null>) {
+      if (found?.id) return supabase.from("people").update(payload).eq("id", found.id);
+      return supabase.from("people").insert({ studio_id: studioId, role, ...payload });
     }
+
+    let { error } = await save(row);
+    if (error && String(error.message).toLowerCase().includes("look")) {
+      const { look: _look, ...without } = row;
+      ({ error } = await save(without));
+    }
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    setPicked(preset.id);
     setSelected((prev) => (prev.includes(role) ? prev : [...prev, role]));
     setNote(`Using ${preset.name} as ${role === "female_lover" ? "female lover" : "male lover"}`);
     await load();
@@ -231,34 +235,66 @@ function CreateInner() {
         </p>
 
         <p className="text-sm font-semibold mt-5 mb-2">6 women</p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           {WOMAN_PRESETS.map((p) => (
             <button
               key={p.id}
               type="button"
               onClick={() => applyPreset(p)}
-              className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-left"
+              className={
+                picked === p.id
+                  ? "rounded-xl overflow-hidden ring-2 ring-[var(--accent)] text-left bg-white"
+                  : "rounded-xl overflow-hidden border border-[var(--line)] text-left bg-white"
+              }
             >
-              <div className="text-sm font-semibold">{p.name}</div>
-              <div className="text-[11px] text-[var(--muted)]">
-                {p.age} · {p.body_shape}
+              <div className="aspect-[3/4] bg-gradient-to-br from-[#3A1F24] to-[#8B4A55]">
+                <img
+                  src={`/presets/${p.id}.jpg`}
+                  alt={p.name}
+                  className="w-full h-full object-cover object-top"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = "none";
+                  }}
+                />
+              </div>
+              <div className="px-2 py-1.5">
+                <div className="text-xs font-semibold leading-tight">{p.name}</div>
+                <div className="text-[10px] text-[var(--muted)]">
+                  {p.age} · {p.body_shape}
+                </div>
               </div>
             </button>
           ))}
         </div>
 
         <p className="text-sm font-semibold mt-5 mb-2">6 men</p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           {MAN_PRESETS.map((p) => (
             <button
               key={p.id}
               type="button"
               onClick={() => applyPreset(p)}
-              className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-left"
+              className={
+                picked === p.id
+                  ? "rounded-xl overflow-hidden ring-2 ring-[var(--accent)] text-left bg-white"
+                  : "rounded-xl overflow-hidden border border-[var(--line)] text-left bg-white"
+              }
             >
-              <div className="text-sm font-semibold">{p.name}</div>
-              <div className="text-[11px] text-[var(--muted)]">
-                {p.age} · {p.body_shape}
+              <div className="aspect-[3/4] bg-gradient-to-br from-[#1C1917] to-[#4A3B32]">
+                <img
+                  src={`/presets/${p.id}.jpg`}
+                  alt={p.name}
+                  className="w-full h-full object-cover object-top"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = "none";
+                  }}
+                />
+              </div>
+              <div className="px-2 py-1.5">
+                <div className="text-xs font-semibold leading-tight">{p.name}</div>
+                <div className="text-[10px] text-[var(--muted)]">
+                  {p.age} · {p.body_shape}
+                </div>
               </div>
             </button>
           ))}
