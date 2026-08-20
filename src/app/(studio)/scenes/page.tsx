@@ -245,7 +245,7 @@ export default function ScenesPage() {
   const templates = TEMPLATES.filter((t) => t.mood === mood);
 
   return (
-    <div>
+    <div className="max-w-5xl mx-auto">
       <div className={cn("hero mb-6", current.heroClass)}>
         <h1
           className="text-2xl font-medium mb-1"
@@ -256,7 +256,7 @@ export default function ScenesPage() {
         <p className="text-white/90 text-sm">{current.blurb}</p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-4 mb-6">
+      <div className="flex flex-wrap items-center gap-4 mb-4">
         <label className="flex items-center gap-2.5 cursor-pointer select-none">
           <input
             type="checkbox"
@@ -271,7 +271,7 @@ export default function ScenesPage() {
         </label>
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-8">
+      <div className="flex flex-wrap gap-2 mb-4">
         {availableMoods.map((m) => (
           <button
             key={m}
@@ -288,7 +288,19 @@ export default function ScenesPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div className="card p-4 mb-6 text-sm text-[var(--muted)]">
+        <p className="font-semibold text-[var(--text)] mb-1">Fill several scenes</p>
+        <p className="mb-2">
+          One at a time. Open a scene, press Try scene, wait for it to finish, then come back.
+          Do not run the whole list.
+        </p>
+        <p className="text-[var(--text)]">
+          Start with: Taking her clothes off · Male + Female Undresser · Intimate Bed Scene ·
+          After Shower Couple · Eye contact in bed · Aftercare portrait · Folded Missionary · She leads
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {templates.map((tpl) => {
           const needed = tpl.prefer
             .map((role) => inputs.find((i) => i.role === role))
@@ -296,49 +308,49 @@ export default function ScenesPage() {
           const pic = picFor(tpl.id, tpl.name);
 
           return (
-            <div key={tpl.id} className="card p-5">
-              <div className="flex items-start justify-between gap-3 mb-3">
+            <div key={tpl.id} className="card p-4 sm:p-5">
+              <div className="flex items-start justify-between gap-3 mb-2">
                 <h2
-                  className="text-2xl leading-tight"
+                  className="text-xl sm:text-2xl leading-tight pr-2"
                   style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
                 >
                   {tpl.name}
                 </h2>
                 <Link
                   href={`/create?scene=${tpl.id}&cast=${tpl.prefer.join(",")}&name=${encodeURIComponent(tpl.name)}`}
-                  className="btn btn-primary shrink-0 text-sm"
+                  className="btn btn-primary shrink-0 text-sm px-3 py-2"
                 >
                   Try scene
                 </Link>
               </div>
-              <p className="text-sm text-[var(--muted)] mb-4">{tpl.desc}</p>
+              <p className="text-sm text-[var(--muted)] mb-4 leading-snug">{tpl.desc}</p>
 
-              <div className="flex gap-3 items-start">
-                <div className="flex flex-col gap-2 shrink-0">
+              <div className="flex gap-3 items-end">
+                <div className="flex gap-2 shrink-0">
                   {needed.length === 0 ? (
-                    <Link href="/people" className="text-xs underline">
+                    <Link href="/people" className="text-xs underline self-center">
                       Add faces
                     </Link>
                   ) : (
                     needed.map((face) => (
-                      <div key={face.role} className="relative w-20 h-28 rounded-xl overflow-hidden">
+                      <div key={face.role} className="relative w-[72px] h-[96px] rounded-xl overflow-hidden ring-1 ring-black/5">
                         <img src={face.url} alt="" className="w-full h-full object-cover object-top" />
-                        <span className="absolute bottom-1 left-1 text-[10px] bg-black/50 text-white px-1.5 py-0.5 rounded-full">
+                        <span className="absolute bottom-1 left-1 text-[9px] bg-black/55 text-white px-1.5 py-0.5 rounded-full">
                           input
                         </span>
                       </div>
                     ))
                   )}
                 </div>
-                <div className="relative w-[200px] aspect-[3/4] rounded-xl overflow-hidden bg-gradient-to-br from-[#3A1F24] to-[#7A3E48] shrink-0">
+                <div className="relative w-[120px] sm:w-[140px] aspect-[3/4] rounded-xl overflow-hidden bg-gradient-to-br from-[#3A1F24] to-[#7A3E48] shrink-0 ring-1 ring-black/5">
                   {pic ? (
                     <img src={pic.url} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-white/25 text-xs">
+                    <div className="w-full h-full flex items-center justify-center text-white/25 text-[10px]">
                       result
                     </div>
                   )}
-                  <span className="absolute bottom-1 left-1 text-[10px] bg-black/50 text-white px-1.5 py-0.5 rounded-full">
+                  <span className="absolute bottom-1 left-1 text-[9px] bg-black/55 text-white px-1.5 py-0.5 rounded-full">
                     result
                   </span>
                 </div>

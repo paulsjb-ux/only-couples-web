@@ -40,6 +40,15 @@ async function zenUpload(key: string, bytes: ArrayBuffer, name: string) {
   return String(id);
 }
 
+function bodyLine(p: any) {
+  const bits: string[] = [String(p.role || "").replace(/_/g, " ")];
+  if (p.age) bits.push(`in their ${p.age}`);
+  if (p.body_shape) bits.push(`${p.body_shape} body`);
+  if (p.breasts) bits.push(`${p.breasts} breasts, natural, in proportion`);
+  if (p.penis) bits.push(`${p.penis} penis, natural, in proportion`);
+  return bits.join(", ");
+}
+
 export async function POST(req: NextRequest) {
   const key = process.env.ZENCREATOR_API_KEY;
   if (!key) {
@@ -80,7 +89,6 @@ export async function POST(req: NextRequest) {
       : ["wife", "husband"];
 
   const refs = (people || []).filter((p: any) => wanted.includes(p.role) && p.photo_path);
-  // Keep role order from wanted
   refs.sort((a: any, b: any) => wanted.indexOf(a.role) - wanted.indexOf(b.role));
 
   const assetIds: string[] = [];
@@ -91,7 +99,7 @@ export async function POST(req: NextRequest) {
     assetIds.push(await zenUpload(key, bytes, `${person.role}.jpg`));
   }
 
-  // Locked scene wording from the old catalog
+  // 1) Scene core from catalog
   let core = getSceneCore(sceneId, sceneName);
   const labels = refs.map((p: any) => p.role.replace(/_/g, " "));
   core = core
@@ -99,26 +107,32 @@ export async function POST(req: NextRequest) {
     .replace(/\{p2\}/g, labels[1] || "the man")
     .replace(/\{p3\}/g, labels[2] || "the third person");
 
-  const faceLock =
-    " FACE LOCK: match the reference face photos exactly — same bone structure, eyes, nose, mouth, and hair. Do not invent a different person.";
+  // 2) Who
+  const whoLine =
+    refs.length <= 1
+      ? `WHO: exactly one adult — ${labels[0] || "the subject"} from reference photo 1.`
+      : `WHO: exactly ${refs.length} adults — ${labels
+          .map((l, i) => `${l} from reference photo ${i + 1}`)
+          .join("; ")}.`;
 
-  function bodyLine(p: any) {
-    const bits: string[] = [p.role.replace(/_/g, " ")];
-    if (p.age) bits.push(`in their ${p.age}`);
-    if (p.body_shape) bits.push(`${p.body_shape} body`);
-    if (p.breasts) bits.push(`${p.breasts} breasts`);
-    if (p.penis) bits.push(`${p.penis} penis`);
-    return bits.join(", ");
-  }
+  // 3) Face lock
+  const faceLock =
+    "FACE LOCK: match each reference face photo exactly — same bone structure, eyes, nose, mouth, hair colour and style. Do not invent a different person.";
+
+  // 4) Body lock from People dropdowns
   const bodyNotes = (people || [])
     .filter((p: any) => wanted.includes(p.role))
     .map(bodyLine)
     .join(". ");
   const bodyLock = bodyNotes
-    ? ` BODY LOCK: ${bodyNotes}. Match these ages, body shapes, and sizes exactly.`
+    ? `BODY LOCK: ${bodyNotes}. Match these ages, body shapes and sizes exactly.`
     : "";
 
-  const prompt = `${core}${faceLock}${bodyLock} LOOK: ultra high-resolution luxury photoshoot, 85mm f/1.4, glossy hydrated skin, tack-sharp, magazine grade, 8k, no watermark.`;
+  // 5) Look
+  const look =
+    "LOOK: vertical 3:4 frame, ultra high-resolution luxury photoshoot, 85mm f/1.4, soft cinematic light, glossy hydrated skin, tack-sharp faces, magazine grade, 8k, no watermark, no text.";
+
+  const prompt = [whoLine, faceLock, bodyLock, core, look].filter(Boolean).join(" ");
 
   const tool = assetIds.length ? "image_editor" : "by_prompt";
   const input = assetIds.length
