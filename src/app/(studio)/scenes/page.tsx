@@ -183,12 +183,13 @@ export default function ScenesPage() {
   const [showIntense, setShowIntense] = useState(false);
   const [mood, setMood] = useState<Mood>("soft");
   const [inputs, setInputs] = useState<{ role: string; url: string }[]>([]);
+  const [results, setResults] = useState<{ prompt: string; url: string }[]>([]);
 
   useEffect(() => {
-    loadFaces();
+    load();
   }, []);
 
-  async function loadFaces() {
+  async function load() {
     const supabase = createClient();
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return;
@@ -199,6 +200,7 @@ export default function ScenesPage() {
       .limit(1);
     const sid = memberships?.[0]?.studio_id;
     if (!sid) return;
+
     const { data: people } = await supabase.from("people").select("*").eq("studio_id", sid);
     const next: { role: string; url: string }[] = [];
     for (const person of people || []) {
@@ -209,6 +211,23 @@ export default function ScenesPage() {
       if (signed?.signedUrl) next.push({ role: person.role, url: signed.signedUrl });
     }
     setInputs(next);
+
+    const { data: gens } = await supabase
+      .from("generations")
+      .select("prompt,result_url")
+      .eq("studio_id", sid)
+      .not("result_url", "is", null)
+      .order("created_at", { ascending: false });
+    setResults(
+      (gens || [])
+        .filter((g: any) => g.result_url)
+        .map((g: any) => ({ prompt: g.prompt || "", url: g.result_url }))
+    );
+  }
+
+  function picsFor(name: string) {
+    const needle = name.toLowerCase();
+    return results.filter((r) => r.prompt.toLowerCase().includes(needle)).slice(0, 4);
   }
 
   const availableMoods: Mood[] = showIntense
@@ -267,6 +286,7 @@ export default function ScenesPage() {
           const needed = tpl.prefer
             .map((role) => inputs.find((i) => i.role === role))
             .filter(Boolean) as { role: string; url: string }[];
+          const pics = picsFor(tpl.name);
 
           return (
             <div key={tpl.id} className="card p-5">
@@ -305,11 +325,14 @@ export default function ScenesPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-2 w-[240px] shrink-0">
                   {[0, 1, 2, 3].map((n) => (
-                    <div
-                      key={n}
-                      className="aspect-[3/4] rounded-xl bg-gradient-to-br from-[#3A1F24] to-[#7A3E48] flex items-center justify-center text-white/25 text-[10px]"
-                    >
-                      result
+                    <div key={n} className="relative aspect-[3/4] rounded-xl overflow-hidden bg-gradient-to-br from-[#3A1F24] to-[#7A3E48]">
+                      {pics[n] ? (
+                        <img src={pics[n].url} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-white/25 text-[10px]">
+                          result
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
