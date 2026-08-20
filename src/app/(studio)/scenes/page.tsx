@@ -136,6 +136,48 @@ zen-pussy-caress|Pussy Caress|solo|playful|wife|✋|On a sofa, touching herself
 zen-kilt-skirt-sex|Kilt Skirt|couple|playful|wife,husband|🎀|On the bed in a kilt
 zen-horseback-anal|Reverse cowgirl|couple|intense|wife,husband|🏇|She faces away
 zen-ahegao|Overwhelmed look|solo|intense|wife|😵|Overwhelmed expression
+zen-used-condoms|After, playful|solo|playful|wife|🫧|Close portrait after
+zen-cum-selfie|After the first|solo|playful|wife|💦|Close selfie after
+zen-member-near-face|Close beside her|couple|playful|wife,husband|👄|Beside her face
+zen-cum-on-clothes|On her clothes|couple|playful|wife,husband|🤍|On her lingerie
+zen-penis-against-face|Against her cheek|couple|playful|wife,husband|🔥|Pressed against her face
+zen-armpit-job|Armpit Job|couple|playful|wife,husband|💪|Between her arm and side
+zen-dildo-insertion|Dildo Insertion|solo|playful|wife|💗|Sitting, inserting a toy
+zen-pov-impregnation|Deep missionary|couple|intense|wife,husband|🤰|Deep missionary
+zen-reverse-cowgirl-anal|Reverse Cowgirl Anal|couple|intense|wife,husband|🔥|Reverse cowgirl
+zen-anal-frontal|Anal Frontal View|couple|intense|wife,husband|🍑|On all fours, face toward camera
+zen-cowgirl-anal-bbc|Cowgirl Anal BBC|couple|intense|wife,male_lover|🖤|Cowgirl with male lover
+zen-doggystyle-double|Doggystyle Double|three|intense|wife,husband,male_lover|🔥|Two men
+zen-mounted-deepthroat|Deep from above|couple|intense|wife,husband|👅|From above
+zen-cheekbulge-tongue|Cheek and tongue|couple|intense|wife,male_lover|👅|With male lover
+zen-two-dicks-mouth|Two at her mouth|three|intense|wife,husband,male_lover|💋|Two men at once
+zen-sloppy-v2|Messy kiss|couple|intense|wife,husband|💧|Messy oral
+zen-rope-bound-corset|Rope Bound Corset|solo|intense|wife|🪢|Shibari and corset
+zen-harness-ballgag|Harness Ball Gag|solo|intense|wife|🔴|Harness portrait
+zen-tape-bound|Tape Bound|solo|intense|wife|📼|Tape bondage in a chair
+zen-breast-rope|Breast Rope Harness|solo|intense|wife|🪢|Chest rope harness
+zen-dental-gag|Open mouth restraint|couple|intense|wife,husband|😬|Open-mouth restraint
+zen-ponytail-grab|Ponytail Grab|couple|intense|wife,husband|🎀|He holds her ponytail
+zen-pigtail-handles|Pigtails|couple|intense|wife,husband|🎀|Pigtails as handles
+zen-oral-cum-strings|Close after|couple|intense|wife,husband|💦|Close after
+zen-finger-on-mouth|Finger on Mouth|solo|soft|wife|🤫|Fashion portrait
+zen-licking-lips|Licking her lips|solo|playful|wife|👅|Close face
+zen-rural-sheer|Rural Sheer|solo|soft|wife|🌾|Sheer black top in a field
+zen-semen-bucket|Barn fantasy|solo|intense|wife|🪣|Barn pose
+zen-pussy-cover-selfie|Cover Selfie|solo|playful|wife|📱|Nude mirror selfie
+zen-blindfolded|Blindfolded|solo|intense|wife|🙈|Topless, seated
+zen-strapon|Strapon|solo|intense|wife|💗|Lingerie with a strap-on
+zen-cum-flooded|Afterglow, close|solo|intense|wife|🤍|Afterglow close-up
+zen-tied-belts|Tied with Belts|solo|intense|wife|🖤|Leather belt harness
+zen-park-facial|Night park|solo|intense|wife|🌳|Night park close-up
+zen-train-pussy|On the Train|solo|playful|wife|🚆|On a train seat
+zen-outdoor-chair|Outdoor Chair|solo|playful|wife|🪴|Patio chair
+zen-ruined-makeup|Ruined makeup|solo|intense|wife|💄|After a messy scene
+zen-knees-in-cum|On her knees|solo|intense|wife|💧|Kneeling outdoors
+zen-cum-on-ass|Along her back|solo|intense|wife|🍑|Rear view
+zen-candid-vagina-selfie|Candid Selfie|solo|playful|wife|📱|Couch selfie
+zen-backdoor-aesthetic|Backdoor Aesthetic|solo|playful|wife|🍑|Prone rear view
+zen-anal-plug-spread|Plug Spread|solo|intense|wife|💎|On the floor, plug in
 `.trim();
 
 const TEMPLATES = RAW.split("\n").map((line) => {
