@@ -55,6 +55,7 @@ export async function POST(req: NextRequest) {
   const sceneName = String(body.sceneName || "erotic couple scene");
   const who = String(body.who || "couple");
   const kind = String(body.kind || "image");
+  const sceneId = String(body.sceneId || "");
 
   const { data: memberships } = await supabase
     .from("studio_members")
@@ -67,7 +68,14 @@ export async function POST(req: NextRequest) {
   }
 
   const { data: people } = await supabase.from("people").select("*").eq("studio_id", studioId);
-  const wanted = who === "wife" ? ["wife"] : who === "husband" ? ["husband"] : ["wife", "husband"];
+  const wanted =
+    who === "wife"
+      ? ["wife"]
+      : who === "husband"
+      ? ["husband"]
+      : who.includes(",")
+      ? who.split(",").map((s: string) => s.trim()).filter(Boolean)
+      : ["wife", "husband"];
   const refs = (people || []).filter((p: any) => wanted.includes(p.role) && p.photo_path);
 
   const assetIds: string[] = [];
@@ -123,16 +131,24 @@ export async function POST(req: NextRequest) {
       });
       const polled = await poll.json().catch(() => ({}));
       const status = String(polled.status || polled.state || "").toLowerCase();
-      if (["succeeded", "completed", "complete", "success", "done", "partial"].includes(status)) {
-        const extra = await fetch(`${ZEN_BASE}/generations/${genId}/result`, {
-          headers: { Authorization: `Bearer ${key}` },
-        });
-        const extraJson = await extra.json().catch(() => ({}));
-        url = extractUrl(extraJson) || extractUrl(polled);
-        if (url) break;
+      url = extractUrl(polled);
+      if (!url) {
+        try {
+          const resultRes = await fetch(`${ZEN_BASE}/generations/${genId}/result`, {
+            headers: { Authorization: `Bearer ${key}` },
+          });
+          const resultBody = await resultRes.json().catch(() => ({}));
+          url = extractUrl(resultBody);
+        } catch {
+          // ignore
+        }
       }
+      if (url) break;
       if (["failed", "error", "cancelled"].includes(status)) {
-        return NextResponse.json({ error: polled.error || polled.message || "Generation failed" }, { status: 500 });
+        return NextResponse.json(
+          { error: polled.error || polled.message || "Generation failed" },
+          { status: 500 }
+        );
       }
     }
   }
@@ -141,22 +157,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Timed out waiting for the image" }, { status: 504 });
   }
 
-  const img = await fetch(url);
-  const bytes = await img.arrayBuffer();
-  const path = `${studioId}/${Date.now()}.jpg`;
-  await supabase.storage.from("library").upload(path, bytes, {
-    contentType: "image/jpeg",
-    upsert: true,
-  });
-  const { data: signed } = await supabase.storage
-    .from("library")
-    .createSignedUrl(path, 60 * 60 * 24 * 7);
-  if (signed?.signedUrl) url = signed.signedUrl;
+  // Prefer storing in our private library bucket
+  try {
+    const img = await fetch(url);
+    const bytes = await img.arrayBuffer();
+    const path = `${studioId}/${Date.now()}.jpg`;
+    await supabase.storage.from("library").upload(path, bytes, {
+      contentType: "image/jpeg",
+      upsert: true,
+    });
+    const { data: signed } = await supabase.storage
+      .from("library")
+      .createSignedUrl(path, 60 * 60 * 24 * 7);
+    if (signed?.signedUrl) url = signed.signedUrl;
+  } catch {
+    // keep original Zen URL if library upload fails
+  }
 
   await supabase.from("generations").insert({
     studio_id: studioId,
     kind,
-    prompt: `${body.sceneId || ""} | ${sceneName} (${who})`,
+    prompt: `${sceneId} | ${sceneName} (${who})`,
     result_url: url,
   });
 

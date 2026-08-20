@@ -228,14 +228,13 @@ export default function ScenesPage() {
     );
   }
 
-   function picFor(id: string, name: string) {
+  function picFor(id: string, name: string) {
     const a = id.toLowerCase();
     const b = name.toLowerCase();
     return results.find((r) => {
       const p = r.prompt.toLowerCase();
       return p.includes(a) || p.includes(b);
     });
-  }
   }
 
   const availableMoods: Mood[] = showIntense
@@ -306,186 +305,7 @@ export default function ScenesPage() {
                   {tpl.name}
                 </h2>
                 <Link
-                  const TEMPLATES = RAW.split("\n").map((line) => {
-  const [id, name, group, mood, prefer, emoji, desc] = line.split("|");
-  return {
-    id,
-    name,
-    group,
-    mood: mood as Mood,
-    prefer: prefer.split(","),
-    emoji,
-    desc,
-  };
-});
-
-export default function ScenesPage() {
-  const [showIntense, setShowIntense] = useState(false);
-  const [mood, setMood] = useState<Mood>("soft");
-  const [inputs, setInputs] = useState<{ role: string; url: string }[]>([]);
-  const [results, setResults] = useState<{ prompt: string; url: string }[]>([]);
-
-  useEffect(() => {
-    load();
-  }, []);
-
-  async function load() {
-    const supabase = createClient();
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return;
-    const { data: memberships } = await supabase
-      .from("studio_members")
-      .select("studio_id")
-      .eq("user_id", userData.user.id)
-      .limit(1);
-    const sid = memberships?.[0]?.studio_id;
-    if (!sid) return;
-
-    const { data: people } = await supabase.from("people").select("*").eq("studio_id", sid);
-    const next: { role: string; url: string }[] = [];
-    for (const person of people || []) {
-      if (!person.photo_path) continue;
-      const { data: signed } = await supabase.storage
-        .from("people")
-        .createSignedUrl(person.photo_path, 60 * 60);
-      if (signed?.signedUrl) next.push({ role: person.role, url: signed.signedUrl });
-    }
-    setInputs(next);
-
-    const { data: gens } = await supabase
-      .from("generations")
-      .select("prompt,result_url")
-      .eq("studio_id", sid)
-      .not("result_url", "is", null)
-      .order("created_at", { ascending: false });
-    setResults(
-      (gens || [])
-        .filter((g: { result_url?: string }) => g.result_url)
-        .map((g: { prompt?: string; result_url: string }) => ({
-          prompt: g.prompt || "",
-          url: g.result_url,
-        }))
-    );
-  }
-
-  function picFor(name: string) {
-    const needle = name.toLowerCase();
-    return results.find((r) => r.prompt.toLowerCase().includes(needle));
-  }
-
-  const availableMoods: Mood[] = showIntense
-    ? ["soft", "playful", "intense"]
-    : ["soft", "playful"];
-
-  const current = SECTIONS[mood];
-  const templates = TEMPLATES.filter((t) => t.mood === mood);
-
-  return (
-    <div>
-      <div className={cn("hero mb-6", current.heroClass)}>
-        <h1
-          className="text-2xl font-medium mb-1"
-          style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
-        >
-          {current.label}
-        </h1>
-        <p className="text-white/90 text-sm">{current.blurb}</p>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-4 mb-6">
-        <label className="flex items-center gap-2.5 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={showIntense}
-            onChange={(e) => {
-              setShowIntense(e.target.checked);
-              if (!e.target.checked && mood === "intense") setMood("soft");
-            }}
-            className="h-4 w-4 rounded accent-[var(--accent)]"
-          />
-          <span className="text-sm font-semibold">Show intense scenes</span>
-        </label>
-      </div>
-
-      <div className="flex flex-wrap gap-2 mb-8">
-        {availableMoods.map((m) => (
-          <button
-            key={m}
-            onClick={() => setMood(m)}
-            className={cn(
-              "rounded-full px-4 py-2 text-sm font-bold transition-all",
-              mood === m
-                ? "bg-[var(--accent)] text-white shadow-md"
-                : "bg-white border border-[var(--line)] text-[var(--text)]"
-            )}
-          >
-            {SECTIONS[m].label}
-          </button>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {templates.map((tpl) => {
-          const needed = tpl.prefer
-            .map((role) => inputs.find((i) => i.role === role))
-            .filter(Boolean) as { role: string; url: string }[];
-          const pic = picFor(tpl.name);
-
-          return (
-            <div key={tpl.id} className="card p-5">
-              <div className="flex items-start justify-between gap-3 mb-3">
-                <h2
-                  className="text-2xl leading-tight"
-                  style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
-                >
-                  {tpl.name}
-                </h2>
-                <Link
                   href={`/create?scene=${tpl.id}&cast=${tpl.prefer.join(",")}&name=${encodeURIComponent(tpl.name)}`}
-                  className="btn btn-primary shrink-0 text-sm"
-                >
-                  Try scene
-                </Link>
-              </div>
-              <p className="text-sm text-[var(--muted)] mb-4">{tpl.desc}</p>
-
-              <div className="flex gap-3 items-start">
-                <div className="flex flex-col gap-2 shrink-0">
-                  {needed.length === 0 ? (
-                    <Link href="/people" className="text-xs underline">
-                      Add faces
-                    </Link>
-                  ) : (
-                    needed.map((face) => (
-                      <div key={face.role} className="relative w-20 h-28 rounded-xl overflow-hidden">
-                        <img src={face.url} alt="" className="w-full h-full object-cover object-top" />
-                        <span className="absolute bottom-1 left-1 text-[10px] bg-black/50 text-white px-1.5 py-0.5 rounded-full">
-                          input
-                        </span>
-                      </div>
-                    ))
-                  )}
-                </div>
-                <div className="relative w-[200px] aspect-[3/4] rounded-xl overflow-hidden bg-gradient-to-br from-[#3A1F24] to-[#7A3E48] shrink-0">
-                  {pic ? (
-                    <img src={pic.url} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-white/25 text-xs">
-                      result
-                    </div>
-                  )}
-                  <span className="absolute bottom-1 left-1 text-[10px] bg-black/50 text-white px-1.5 py-0.5 rounded-full">
-                    result
-                  </span>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
                   className="btn btn-primary shrink-0 text-sm"
                 >
                   Try scene

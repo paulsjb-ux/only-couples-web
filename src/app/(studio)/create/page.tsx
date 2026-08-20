@@ -10,6 +10,7 @@ const SCENE_NAMES: Record<string, string> = {
   "romance-naked-together": "Male + Female Undresser",
   "romance-kiss": "Intimate Bed Scene",
   "romance-shower": "After Shower Couple",
+  "romance-morning": "Bedroom Smile",
   "erotic-missionary": "Missionary",
   "erotic-cowgirl": "Cowgirl",
   "spicy-ffm": "Two women + him",
@@ -29,13 +30,12 @@ function CreateInner() {
   const params = useSearchParams();
   const sceneId = params.get("scene");
   const sceneName =
-  params.get("name") ||
-  (sceneId ? SCENE_NAMES[sceneId] || sceneId.replace(/-/g, " ") : "Free play");
+    params.get("name") ||
+    (sceneId ? SCENE_NAMES[sceneId] || sceneId.replace(/-/g, " ") : "Free play");
   const wanted = (params.get("cast") || "wife").split(",").filter(Boolean);
 
-  const [studioId, setStudioId] = useState<string | null>(null);
   const [faces, setFaces] = useState<{ role: string; url: string | null }[]>([]);
-  const [who, setWho] = useState(wanted.join(","));
+  const [who, setWho] = useState(wanted.join(",") || "wife");
   const [kind, setKind] = useState("image");
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
@@ -55,7 +55,6 @@ function CreateInner() {
       .limit(1);
     const sid = memberships?.[0]?.studio_id as string | undefined;
     if (!sid) return;
-    setStudioId(sid);
     const { data: people } = await supabase.from("people").select("*").eq("studio_id", sid);
     const next = [];
     for (const person of people || []) {
@@ -87,10 +86,11 @@ function CreateInner() {
         alert(data.error || "Generation failed");
         return;
       }
-      setNote("Done. Open Library to see it.");
+      setNote("Done. Open Library or Scenes to see it.");
       if (data.url) window.open(data.url, "_blank");
-    } catch (err: any) {
-      alert(err.message || "Network error");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Network error";
+      alert(message);
     } finally {
       setBusy(false);
     }
