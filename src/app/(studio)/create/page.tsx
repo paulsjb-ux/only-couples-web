@@ -19,12 +19,12 @@ const SCENE_NAMES: Record<string, string> = {
   "spicy-anal": "Anal",
 };
 
-const LABELS: Record<string, string> = {
-  wife: "Wife",
-  husband: "Husband",
-  female_lover: "Female lover",
-  male_lover: "Male lover",
-};
+const ALL_ROLES = [
+  { key: "wife", label: "Wife" },
+  { key: "husband", label: "Husband" },
+  { key: "female_lover", label: "Female lover" },
+  { key: "male_lover", label: "Male lover" },
+];
 
 function CreateInner() {
   const params = useSearchParams();
@@ -32,10 +32,10 @@ function CreateInner() {
   const sceneName =
     params.get("name") ||
     (sceneId ? SCENE_NAMES[sceneId] || sceneId.replace(/-/g, " ") : "Free play");
-  const wanted = (params.get("cast") || "wife").split(",").filter(Boolean);
+  const defaultCast = (params.get("cast") || "wife").split(",").filter(Boolean);
 
-  const [faces, setFaces] = useState<{ role: string; url: string | null }[]>([]);
-  const [who, setWho] = useState(wanted.join(",") || "wife");
+  const [allFaces, setAllFaces] = useState<{ role: string; url: string | null }[]>([]);
+  const [selected, setSelected] = useState<string[]>(defaultCast);
   const [kind, setKind] = useState("image");
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
@@ -56,9 +56,8 @@ function CreateInner() {
     const sid = memberships?.[0]?.studio_id as string | undefined;
     if (!sid) return;
     const { data: people } = await supabase.from("people").select("*").eq("studio_id", sid);
-    const next = [];
+    const next: { role: string; url: string | null }[] = [];
     for (const person of people || []) {
-      if (wanted.length && !wanted.includes(person.role)) continue;
       let url: string | null = null;
       if (person.photo_path) {
         const { data: signed } = await supabase.storage
@@ -68,12 +67,27 @@ function CreateInner() {
       }
       next.push({ role: person.role, url });
     }
-    setFaces(next);
+    setAllFaces(next);
+  }
+
+  function toggleRole(role: string) {
+    setSelected((prev) => {
+      if (prev.includes(role)) {
+        if (prev.length === 1) return prev;
+        return prev.filter((r) => r !== role);
+      }
+      return [...prev, role];
+    });
   }
 
   async function generate() {
+    if (selected.length === 0) {
+      alert("Choose at least one person");
+      return;
+    }
     setBusy(true);
     setNote("Making the image. This can take a minute…");
+    const who = selected.join(",");
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
@@ -96,6 +110,8 @@ function CreateInner() {
     }
   }
 
+  const shown = allFaces.filter((f) => selected.includes(f.role));
+
   return (
     <div>
       <div className="hero mb-8">
@@ -105,23 +121,53 @@ function CreateInner() {
         >
           {sceneName}
         </h1>
-        <p className="text-white/90 text-sm">This scene will use the faces below.</p>
+        <p className="text-white/90 text-sm">Choose who is in this scene.</p>
       </div>
 
-      <div className="flex gap-3 mb-6">
-        {faces.length === 0 && (
+      <div className="card p-4 mb-6 max-w-2xl">
+        <p className="text-sm font-semibold mb-3">Cast</p>
+        <div className="flex flex-wrap gap-2">
+          {ALL_ROLES.map((r) => {
+            const on = selected.includes(r.key);
+            const hasFace = allFaces.some((f) => f.role === r.key && f.url);
+            return (
+              <button
+                key={r.key}
+                type="button"
+                onClick={() => toggleRole(r.key)}
+                className={
+                  on
+                    ? "rounded-full px-4 py-2 text-sm font-bold bg-[var(--accent)] text-white"
+                    : "rounded-full px-4 py-2 text-sm font-bold bg-white border border-[var(--line)] text-[var(--text)]"
+                }
+              >
+                {r.label}
+                {!hasFace ? " · no photo" : ""}
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-xs text-[var(--muted)] mt-3">
+          Tap to add or remove. You need a photo on People for each person you select.
+        </p>
+      </div>
+
+      <div className="flex gap-3 mb-6 flex-wrap">
+        {shown.length === 0 && (
           <Link href="/people" className="text-sm underline">
-            Add the faces this scene needs
+            Add faces on People first
           </Link>
         )}
-        {faces.map((f) => (
+        {shown.map((f) => (
           <div key={f.role} className="text-center">
             <div className="w-16 h-20 rounded-xl overflow-hidden bg-[#3A1F24]">
               {f.url && (
                 <img src={f.url} alt={f.role} className="w-full h-full object-cover object-top" />
               )}
             </div>
-            <div className="text-xs mt-1">{LABELS[f.role] || f.role}</div>
+            <div className="text-xs mt-1">
+              {ALL_ROLES.find((r) => r.key === f.role)?.label || f.role}
+            </div>
           </div>
         ))}
       </div>

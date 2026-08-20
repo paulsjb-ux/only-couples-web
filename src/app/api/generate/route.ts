@@ -43,20 +43,41 @@ async function zenUpload(key: string, bytes: ArrayBuffer, name: string) {
 function bodyLine(p: any) {
   const role = String(p.role || "").replace(/_/g, " ");
   const male = role.includes("husband") || role.includes("male");
+  const female = role.includes("wife") || role.includes("female");
   const bits: string[] = [role];
   if (p.age) bits.push(`clearly in their ${p.age}, visible age on the face and body`);
   if (p.body_shape) {
     const shape = String(p.body_shape);
-    if (male && ["large", "heavy", "full", "curvy"].includes(shape)) {
-      bits.push(
-        `${shape} older-man body, thicker midsection, softer chest, not athletic, not slim, not a gym body`
-      );
+    if (["large", "heavy", "full", "curvy"].includes(shape)) {
+      if (male) {
+        bits.push(
+          `${shape} body, thicker midsection, softer chest, not athletic, not slim, not a gym body`
+        );
+      } else if (female) {
+        bits.push(
+          `${shape} feminine body, soft curves, not skinny, not athletic model`
+        );
+      } else {
+        bits.push(`${shape} body`);
+      }
     } else {
       bits.push(`${shape} body`);
     }
   }
-  if (p.breasts) bits.push(`${p.breasts} breasts, natural, in proportion`);
-  if (p.penis) bits.push(`${p.penis} penis, natural, in proportion`);
+  if (p.breasts) {
+    const b = String(p.breasts);
+    bits.push(`${b} natural breasts, in proportion to her body`);
+  }
+  if (p.penis) {
+    const size = String(p.penis);
+    if (size === "very large") {
+      bits.push("very large thick penis, visibly well endowed");
+    } else if (size === "large") {
+      bits.push("large penis, above average, clearly visible");
+    } else {
+      bits.push("average realistic penis, not oversized");
+    }
+  }
   return bits.join(", ");
 }
 
@@ -90,14 +111,11 @@ export async function POST(req: NextRequest) {
 
   const { data: people } = await supabase.from("people").select("*").eq("studio_id", studioId);
 
-  const wanted =
-    who === "wife"
-      ? ["wife"]
-      : who === "husband"
-      ? ["husband"]
-      : who.includes(",")
-      ? who.split(",").map((s: string) => s.trim()).filter(Boolean)
-      : ["wife", "husband"];
+  const wanted = who.includes(",")
+    ? who.split(",").map((s: string) => s.trim()).filter(Boolean)
+    : who === "couple"
+    ? ["wife", "husband"]
+    : [who].filter(Boolean);
 
   const refs = (people || []).filter((p: any) => wanted.includes(p.role) && p.photo_path);
   refs.sort((a: any, b: any) => wanted.indexOf(a.role) - wanted.indexOf(b.role));
