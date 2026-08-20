@@ -98,6 +98,44 @@ zen-shibari-oral-pov|Shibari Oral|couple|intense|wife,husband|🪢|Rope, kneelin
 spicy-watch|He watches|three|intense|wife,husband,male_lover|👁|She with the male lover, he watches
 spicy-two-men|Two men|three|intense|wife,husband,male_lover|⚡|Both men with her
 spicy-two-women|Two women with him|three|intense|husband,wife,female_lover|⚡|Both women with him
+zen-bare-pussy|Bare, soft|solo|playful|wife|🖤|Same woman, nude on the desk
+zen-spread-jewel|Open, jewel light|solo|playful|wife|💎|On the floor, legs spread
+zen-spread-pussy|Open for you|solo|playful|wife|🌸|Close explicit spread, her face in frame
+zen-floor-spread|Floor Spread|couple|playful|wife,husband|🪵|On the floor, legs held open
+zen-squat-dt|Kneeling deep|couple|intense|wife,husband|⬇️|Overhead: she takes him deep
+zen-blonde-devotion|Blonde Devotion|couple|playful|wife,husband|🙏|Worshipful oral, eye contact
+zen-golden-oral|Golden Hour Oral|couple|playful|wife,husband|🌇|Sunset rooftop oral
+zen-sultry-oral|Sultry Oral|couple|playful|wife,husband|🔥|Slow oral close-up
+zen-parking-bj|Parking Lot|couple|playful|wife,husband|🚗|Outdoor oral
+zen-pov-anal|POV Anal|couple|intense|wife,husband|🍑|From behind
+zen-anal-bath|Anal Bathroom|couple|intense|wife,husband|🚿|Bathroom POV
+spicy-creampie|Filled|couple|intense|wife,male_lover|💦|After, with the male lover
+zen-cum-face|Soft finish, face|couple|intense|wife,husband|🤍|Finish on her face
+zen-face-full|Soft finish|couple|intense|wife,husband|💦|Heavy facial
+zen-cum-tits|On her chest|couple|intense|wife,husband|💗|On her breasts
+zen-glory|Through the wall|solo|intense|wife|🔘|Glory hole
+zen-spread-open|Spread Wide Open|couple|intense|wife,husband|🦵|Legs held open
+spicy-bbc|BBC|couple|intense|wife,male_lover|🖤|With a well-endowed male lover
+spicy-spitroast|Spit roast|three|intense|wife,husband,male_lover|⚡|Oral plus penetration
+zen-collar-three|Collar Threesome|three|intense|wife,husband,male_lover|⛓|She wears a collar, two men
+zen-double-facial|Two finishes|three|intense|wife,husband,male_lover|💦|Between two men
+zen-dominatrix|Dominatrix|solo|intense|wife|👠|Her in charge
+zen-fierce-dom|Fierce dominatrix|solo|intense|wife|🗡|In-control portrait
+zen-pink-light|In pink light|couple|playful|wife,husband|💗|Pink light, close bodies
+zen-flashing-tits|Flashing|solo|soft|wife|💚|Lift her top outdoors
+zen-elegant-bar|Elegant Bar|solo|soft|wife|🍸|Glamorous bar portrait
+zen-instapic-selfie|Instapic Selfie|solo|soft|wife|📱|Polished phone selfie
+zen-heart-hands|Heart Hands|solo|soft|wife|🖤|Heart shape with both hands
+zen-exposed-street|Exposed Street|solo|playful|wife|🌃|Night street editorial
+zen-grass-nude|Grass Sitting Nude|solo|playful|wife|🌿|Nude in grass
+zen-black-dildo-ride|Riding on the bed|solo|playful|wife|🖤|On the bed with a toy
+zen-thong-anus|Thong aside|solo|playful|wife|🔥|Rear view, thong pulled aside
+zen-chair-naked|Chair Relaxed Naked|solo|playful|wife|🪑|Nude in an armchair
+zen-red-panties|Red Panties|solo|soft|wife|❤️|Topless in red panties
+zen-pussy-caress|Pussy Caress|solo|playful|wife|✋|On a sofa, touching herself
+zen-kilt-skirt-sex|Kilt Skirt|couple|playful|wife,husband|🎀|On the bed in a kilt
+zen-horseback-anal|Reverse cowgirl|couple|intense|wife,husband|🏇|She faces away
+zen-ahegao|Overwhelmed look|solo|intense|wife|😵|Overwhelmed expression
 `.trim();
 
 const TEMPLATES = RAW.split("\n").map((line) => {
