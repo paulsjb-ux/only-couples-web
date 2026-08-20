@@ -92,16 +92,27 @@ function anatomyLock(cast: { role?: string }[]) {
     men === 0
       ? "no penis anywhere in the image"
       : men === 1
-      ? "exactly one penis, attached only to the man, never attached to a woman, never coming from a chest or breasts, never floating"
-      : `exactly ${men} penises, one attached to each man, none attached to a woman, no extra or anonymous shafts, no floating genitals`;
+      ? "exactly one penis, attached only to the man at his hips/groin, never attached to a woman, never growing from a chest or breasts, never floating, never between a woman's breasts as if it belongs to her"
+      : `exactly ${men} penises, one attached to each man at his hips/groin, none attached to a woman, no extra or anonymous shafts, no floating genitals`;
 
   return [
     "ANATOMY LOCK:",
     "correct adult human anatomy only.",
     `exactly ${total} people, no extra people.`,
     penisRule,
+    "women have only female genitals (vulva), men have only male genitals (penis).",
     "no extra limbs, no extra hands, no fused bodies, no body parts on the wrong person.",
   ].join(" ");
+}
+
+function refineAnatomyPrompt(men: number) {
+  if (men <= 0) {
+    return "Keep the same people, faces, pose and lighting. Fix anatomy only: remove any penis. Women must have only female anatomy. No extra limbs.";
+  }
+  if (men === 1) {
+    return "Keep the same people, faces, pose and lighting. Fix anatomy only: there must be exactly one penis and it must be attached only to the man at his hips. Remove any penis growing from a woman, from a chest, or floating. Women have only vulvas. No extra limbs or fused bodies.";
+  }
+  return `Keep the same people, faces, pose and lighting. Fix anatomy only: exactly ${men} penises, each attached only to a man at his hips. Remove any extra, anonymous, or floating penises. Women have only vulvas. No extra limbs or fused bodies.`;
 }
 
 export async function POST(req: NextRequest) {
@@ -274,6 +285,65 @@ export async function POST(req: NextRequest) {
 
   if (!url) {
     return NextResponse.json({ error: "Timed out waiting for the image" }, { status: 504 });
+  }
+
+  // Second-pass anatomy refine for 3-person scenes (Seedream often fuses genitals on groups)
+  const menCount = (castPeople.length ? castPeople : refs).filter((p: any) => {
+    const r = String(p.role || "");
+    return r.includes("husband") || r.includes("male");
+  }).length;
+  if ((castPeople.length || refs.length) >= 3) {
+    try {
+      const firstBytes = await (await fetch(url)).arrayBuffer();
+      const fixAsset = await zenUpload(key, firstBytes, "anatomy-fix.jpg");
+      const fixPrompt = refineAnatomyPrompt(menCount);
+      const fixSubmit = await fetch(`${ZEN_BASE}/generations`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${key}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          tool: "image_editor",
+          input: {
+            image_assets: [fixAsset],
+            prompt: fixPrompt,
+            ratio: "3:4",
+            number_of_images: 1,
+            model: "SEEDREAM_5_PRO",
+          },
+        }),
+      });
+      const fixBody = await fixSubmit.json().catch(() => ({}));
+      let fixedUrl = extractUrl(fixBody);
+      const fixId = fixBody.id || fixBody.generation_id || fixBody.data?.id;
+      if (!fixedUrl && fixId) {
+        for (let i = 0; i < 40; i++) {
+          await new Promise((r) => setTimeout(r, 3000));
+          const poll = await fetch(`${ZEN_BASE}/generations/${fixId}`, {
+            headers: { Authorization: `Bearer ${key}` },
+          });
+          const polled = await poll.json().catch(() => ({}));
+          fixedUrl = extractUrl(polled);
+          if (!fixedUrl) {
+            try {
+              const resultRes = await fetch(`${ZEN_BASE}/generations/${fixId}/result`, {
+                headers: { Authorization: `Bearer ${key}` },
+              });
+              fixedUrl = extractUrl(await resultRes.json().catch(() => ({})));
+            } catch {
+              // ignore
+            }
+          }
+          if (fixedUrl) break;
+          const status = String(polled.status || polled.state || "").toLowerCase();
+          if (["failed", "error", "cancelled"].includes(status)) break;
+        }
+      }
+      if (fixedUrl) url = fixedUrl;
+    } catch {
+      // keep first-pass URL if refine fails
+    }
   }
 
   try {

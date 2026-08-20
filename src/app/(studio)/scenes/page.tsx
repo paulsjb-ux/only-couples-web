@@ -107,7 +107,7 @@ spicy-dp|Double penetration|three|intense|wife,husband,male_lover|🔥|Two men b
 spicy-spitroast|Spit roast|three|intense|wife,husband,male_lover|⚡|One man in her mouth, one man penetrating her, two penises only, each attached to its own man, correct anatomy
 spicy-cuckold|Cuckold|three|intense|wife,male_lover,husband|👁|Husband watches, the other man’s penis is the only one inside her, correct anatomy, no extra genitals
 spicy-mmf|MMF|three|intense|wife,husband,male_lover|🔥|Two men and one woman, only two penises each attached to its own man, no extra genitals, no body fusion
-spicy-ffm|FFM|three|intense|husband,wife,female_lover|💜|Two women and one man, women kissing or touching, only one penis attached solely to the man, correct anatomy, no extra genitals or floating body parts
+spicy-ffm|FFM|three|intense|husband,wife,female_lover|💜|Two women kiss, man on the right — one penis at his hips only, hand on shaft near base, not between breasts, correct anatomy
 zen-collar-three|Collar Threesome|three|intense|wife,husband,male_lover|⛓|She wears a collar, two men, only two penises each belonging to one man, correct anatomy
 zen-double-facial|Two finishes|three|intense|wife,husband,male_lover|💦|She kneels between two men, two penises only, finish on her face, correct anatomy
 zen-cocks-around|Surrounded|three|intense|wife,husband,male_lover|⭕|She is surrounded by two men only — no extra or anonymous shafts, two penises total, correct anatomy
