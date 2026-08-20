@@ -220,14 +220,17 @@ export default function ScenesPage() {
       .order("created_at", { ascending: false });
     setResults(
       (gens || [])
-        .filter((g: any) => g.result_url)
-        .map((g: any) => ({ prompt: g.prompt || "", url: g.result_url }))
+        .filter((g: { result_url?: string }) => g.result_url)
+        .map((g: { prompt?: string; result_url: string }) => ({
+          prompt: g.prompt || "",
+          url: g.result_url,
+        }))
     );
   }
 
-  function picsFor(name: string) {
+  function picFor(name: string) {
     const needle = name.toLowerCase();
-    return results.filter((r) => r.prompt.toLowerCase().includes(needle)).slice(0, 4);
+    return results.find((r) => r.prompt.toLowerCase().includes(needle));
   }
 
   const availableMoods: Mood[] = showIntense
@@ -286,7 +289,7 @@ export default function ScenesPage() {
           const needed = tpl.prefer
             .map((role) => inputs.find((i) => i.role === role))
             .filter(Boolean) as { role: string; url: string }[];
-          const pics = picsFor(tpl.name);
+          const pic = picFor(tpl.name);
 
           return (
             <div key={tpl.id} className="card p-5">
@@ -314,7 +317,7 @@ export default function ScenesPage() {
                     </Link>
                   ) : (
                     needed.map((face) => (
-                      <div key={face.role} className="relative w-24 h-32 rounded-xl overflow-hidden">
+                      <div key={face.role} className="relative w-20 h-28 rounded-xl overflow-hidden">
                         <img src={face.url} alt="" className="w-full h-full object-cover object-top" />
                         <span className="absolute bottom-1 left-1 text-[10px] bg-black/50 text-white px-1.5 py-0.5 rounded-full">
                           input
@@ -323,18 +326,17 @@ export default function ScenesPage() {
                     ))
                   )}
                 </div>
-                <div className="grid grid-cols-2 gap-2 w-[240px] shrink-0">
-                  {[0, 1, 2, 3].map((n) => (
-                    <div key={n} className="relative aspect-[3/4] rounded-xl overflow-hidden bg-gradient-to-br from-[#3A1F24] to-[#7A3E48]">
-                      {pics[n] ? (
-                        <img src={pics[n].url} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-white/25 text-[10px]">
-                          result
-                        </div>
-                      )}
+                <div className="relative w-[200px] aspect-[3/4] rounded-xl overflow-hidden bg-gradient-to-br from-[#3A1F24] to-[#7A3E48] shrink-0">
+                  {pic ? (
+                    <img src={pic.url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-white/25 text-xs">
+                      result
                     </div>
-                  ))}
+                  )}
+                  <span className="absolute bottom-1 left-1 text-[10px] bg-black/50 text-white px-1.5 py-0.5 rounded-full">
+                    result
+                  </span>
                 </div>
               </div>
             </div>
