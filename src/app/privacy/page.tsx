@@ -2,12 +2,12 @@ import { MarketingFooter, MarketingNav } from "@/components/marketing/nav";
 
 export default function PrivacyPage() {
   return (
-    <div className="oc-page-dark">
+    <div >
       <MarketingNav />
       <article className="mx-auto max-w-2xl px-5 py-10 space-y-10">
         <header>
           <h1
-            className="text-4xl mb-4 oc-serif text-[var(--oc-cream)]"
+            className="text-4xl mb-4" style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
           >
             Your studio stays yours
           </h1>
@@ -17,7 +17,7 @@ export default function PrivacyPage() {
         </header>
 
         <section>
-          <h2 className="text-2xl mb-2 oc-serif text-[var(--oc-cream)]">
+          <h2 className="text-2xl mb-2" style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}>
             Photos
           </h2>
           <p className="text-[var(--oc-cream-muted)] leading-relaxed">
@@ -26,7 +26,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-2xl mb-2 oc-serif text-[var(--oc-cream)]">
+          <h2 className="text-2xl mb-2" style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}>
             What we don’t do
           </h2>
           <ul className="text-[var(--oc-cream-muted)] leading-relaxed space-y-1">
@@ -37,7 +37,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-2xl mb-2 oc-serif text-[var(--oc-cream)]">
+          <h2 className="text-2xl mb-2" style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}>
             Delete
           </h2>
           <p className="text-[var(--oc-cream-muted)] leading-relaxed">
@@ -48,7 +48,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-2xl mb-2 oc-serif text-[var(--oc-cream)]">
+          <h2 className="text-2xl mb-2" style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}>
             Adults
           </h2>
           <p className="text-[var(--oc-cream-muted)] leading-relaxed">
@@ -57,7 +57,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-2xl mb-2 oc-serif text-[var(--oc-cream)]">
+          <h2 className="text-2xl mb-2" style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}>
             Access
           </h2>
           <p className="text-[var(--oc-cream-muted)] leading-relaxed">

@@ -2,12 +2,12 @@ import { MarketingFooter, MarketingNav } from "@/components/marketing/nav";
 
 export default function HowItWorksPage() {
   return (
-    <div className="oc-page-dark">
+    <div >
       <MarketingNav />
       <article className="mx-auto max-w-2xl px-5 py-10 space-y-10">
         <header>
           <h1
-            className="text-4xl mb-4 oc-serif text-[var(--oc-cream)]"
+            className="text-4xl mb-4" style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
           >
             How the studio works
           </h1>
@@ -17,7 +17,7 @@ export default function HowItWorksPage() {
         </header>
 
         <section>
-          <h2 className="text-2xl mb-2 oc-serif text-[var(--oc-cream)]">
+          <h2 className="text-2xl mb-2" style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}>
             Faces
           </h2>
           <p className="text-[var(--oc-cream-muted)] leading-relaxed">
@@ -26,7 +26,7 @@ export default function HowItWorksPage() {
         </section>
 
         <section>
-          <h2 className="text-2xl mb-2 oc-serif text-[var(--oc-cream)]">
+          <h2 className="text-2xl mb-2" style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}>
             Together or apart
           </h2>
           <p className="text-[var(--oc-cream-muted)] leading-relaxed">
@@ -35,7 +35,7 @@ export default function HowItWorksPage() {
         </section>
 
         <section>
-          <h2 className="text-2xl mb-2 oc-serif text-[var(--oc-cream)]">
+          <h2 className="text-2xl mb-2" style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}>
             Scenes
           </h2>
           <p className="text-[var(--oc-cream-muted)] leading-relaxed">
@@ -44,7 +44,7 @@ export default function HowItWorksPage() {
         </section>
 
         <section>
-          <h2 className="text-2xl mb-2 oc-serif text-[var(--oc-cream)]">
+          <h2 className="text-2xl mb-2" style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}>
             Preview, keep, delete
           </h2>
           <p className="text-[var(--oc-cream-muted)] leading-relaxed">
@@ -53,7 +53,7 @@ export default function HowItWorksPage() {
         </section>
 
         <section>
-          <h2 className="text-2xl mb-2 oc-serif text-[var(--oc-cream)]">
+          <h2 className="text-2xl mb-2" style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}>
             Video
           </h2>
           <p className="text-[var(--oc-cream-muted)] leading-relaxed">
@@ -62,7 +62,7 @@ export default function HowItWorksPage() {
         </section>
 
         <section>
-          <h2 className="text-2xl mb-2 oc-serif text-[var(--oc-cream)]">
+          <h2 className="text-2xl mb-2" style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}>
             Share
           </h2>
           <p className="text-[var(--oc-cream-muted)] leading-relaxed">

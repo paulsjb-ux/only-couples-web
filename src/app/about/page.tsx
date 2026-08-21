@@ -45,12 +45,12 @@ const FAQ = [
 
 export default function AboutPage() {
   return (
-    <div className="oc-page-dark">
+    <div >
       <MarketingNav />
       <article className="mx-auto max-w-2xl px-5 py-10 space-y-12">
         <header>
           <h1
-            className="text-4xl mb-4 oc-serif text-[var(--oc-cream)]"
+            className="text-4xl mb-4" style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
           >
             Why this exists
           </h1>
@@ -69,7 +69,7 @@ export default function AboutPage() {
           {FAQ.map((item) => (
             <div key={item.q}>
               <h2 className="text-lg mb-1">{item.q}</h2>
-              <p className="text-sm text-[var(--oc-cream-muted)] leading-relaxed">{item.a}</p>
+              <p className="text-sm text-[var(--muted)] leading-relaxed">{item.a}</p>
             </div>
           ))}
         </section>
