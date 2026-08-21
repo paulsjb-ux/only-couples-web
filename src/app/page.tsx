@@ -1,97 +1,66 @@
 import Link from "next/link";
-import Image from "next/image";
-import { MarketingFooter, MarketingNav } from "@/components/marketing/nav";
+import { MarketingFooter, MarketingNav, Wordmark } from "@/components/marketing/nav";
 
 export default function HomePage() {
   return (
     <div>
       <MarketingNav />
 
-      <section className="mx-auto max-w-4xl px-6 pt-16 pb-20 sm:pt-24 sm:pb-28 text-center">
-        <Image
-          src="/brand/logos/wordmark-hero.jpg"
-          alt="Only Couples"
-          width={560}
-          height={155}
-          className="mx-auto h-auto w-[min(100%,28rem)] object-contain"
-          priority
-        />
-        <p className="mt-10 text-xl sm:text-2xl tracking-tight max-w-lg mx-auto">
+      <section className="mx-auto max-w-3xl px-6 pt-20 pb-16 sm:pt-28 sm:pb-20 text-center">
+        <div className="flex justify-center text-5xl sm:text-7xl">
+          <Wordmark />
+        </div>
+        <p
+          className="mt-12 text-2xl sm:text-3xl leading-snug"
+          style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
+        >
           A private studio for the two of you.
         </p>
-        <p className="mt-5 text-[var(--muted)] max-w-md mx-auto leading-relaxed text-[15px]">
-          Your faces. Your terms. Nothing leaves your studio.
+        <p className="mt-5 text-[var(--muted)] max-w-md mx-auto leading-relaxed">
+          A little kinky fun. The scenes you’d never ask a photographer for.
+          Then you close the album.
         </p>
         <div className="mt-10">
           <Link href="/signup" className="btn btn-primary">
-            Start a scene
+            Come in
           </Link>
         </div>
+        <p className="mt-5 text-sm text-[var(--muted)]">Together, or on your own. Then invite them in.</p>
       </section>
 
-      <section className="mx-auto max-w-4xl px-6 pb-24 grid gap-16 sm:grid-cols-3 text-center sm:text-left">
+      <section className="mx-auto max-w-4xl px-6 pb-20 grid gap-12 sm:grid-cols-3">
         <div>
-          <h2
-            className="text-lg mb-3"
-            style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
-          >
-            Not a feed
-          </h2>
-          <p className="text-sm text-[var(--muted)] leading-relaxed">
-            An erotic escape for personal use. Locked to your faces. Saved in a private album only you can open.
+          <p className="text-[11px] tracking-[0.18em] uppercase text-[#c4a35a] mb-3">The room</p>
+          <p className="text-[var(--text)] leading-relaxed">
+            Not a feed. Not an audience. A closed door, two faces, and whatever you want to see of each other.
           </p>
         </div>
         <div>
-          <h2
-            className="text-lg mb-3"
-            style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
-          >
-            You choose how far
-          </h2>
-          <p className="text-sm text-[var(--muted)] leading-relaxed">
-            Playful. After dark. Explicit. Same couple. Same lock. She doesn’t have to see the explicit set until you both want it.
+          <p className="text-[11px] tracking-[0.18em] uppercase text-[#c4a35a] mb-3">How far</p>
+          <p className="text-[var(--text)] leading-relaxed">
+            Playful. After dark. Explicit. Same lock. She doesn’t have to walk into the last room until you both want it.
           </p>
         </div>
         <div>
-          <h2
-            className="text-lg mb-3"
-            style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
-          >
-            The ritual
-          </h2>
-          <p className="text-sm text-[var(--muted)] leading-relaxed">
-            Add both faces once. Pick a scene. Preview. Keep it — or delete it. Nothing is saved until you say so.
+          <p className="text-[11px] tracking-[0.18em] uppercase text-[#c4a35a] mb-3">The night</p>
+          <p className="text-[var(--text)] leading-relaxed">
+            Add your faces once. Pick a scene. Look. Keep it — or delete it. Nothing is saved until you say so.
           </p>
         </div>
       </section>
 
-      <section className="mx-auto max-w-2xl px-6 pb-24 text-center">
-        <h2
-          className="text-2xl mb-4"
+      <section className="mx-auto max-w-xl px-6 pb-24 text-center">
+        <p
+          className="text-2xl sm:text-3xl leading-snug mb-5"
           style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
         >
-          Why us, not a generator
-        </h2>
-        <p className="text-[var(--muted)] leading-relaxed">
-          Two real people, locked — not a random model. Scenes that feel like a relationship. A library that behaves like a private album. We do not train on your photos.
+          If it doesn’t look like you, don’t pay.
         </p>
-        <p className="mt-8 text-xs tracking-wide text-[var(--muted)] uppercase">
-          No public gallery · Adults only · Delete everything
-        </p>
-      </section>
-
-      <section className="mx-auto max-w-2xl px-6 pb-24 text-center">
-        <h2
-          className="text-2xl mb-4"
-          style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
-        >
-          Start with one soft scene
-        </h2>
         <p className="text-[var(--muted)] leading-relaxed mb-8">
-          If the faces don’t hold, you shouldn’t pay. That’s why the first scene is free.
+          Everyone starts the same way: one soft scene, free, so you can see the lock hold.
         </p>
         <Link href="/signup" className="btn btn-primary">
-          Open the studio
+          Start that first scene
         </Link>
       </section>
 
