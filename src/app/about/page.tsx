@@ -45,17 +45,16 @@ const FAQ = [
 
 export default function AboutPage() {
   return (
-    <div>
+    <div className="oc-page-dark">
       <MarketingNav />
       <article className="mx-auto max-w-2xl px-5 py-10 space-y-12">
         <header>
           <h1
-            className="text-4xl mb-4"
-            style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
+            className="text-4xl mb-4 oc-serif text-[var(--oc-cream)]"
           >
             Why this exists
           </h1>
-          <div className="text-[var(--muted)] leading-relaxed space-y-4">
+          <div className="text-[var(--oc-cream-muted)] leading-relaxed space-y-4">
             <p>We wanted scenes of us — not a model, not a stranger, not a folder of other people’s fantasies.</p>
             <p>
               The tools that existed were either a girlfriend chatbot or a generator that treated two real people as an afterthought. Faces slipped. Anatomy broke. Privacy was a footnote.
@@ -70,7 +69,7 @@ export default function AboutPage() {
           {FAQ.map((item) => (
             <div key={item.q}>
               <h2 className="text-lg mb-1">{item.q}</h2>
-              <p className="text-sm text-[var(--muted)] leading-relaxed">{item.a}</p>
+              <p className="text-sm text-[var(--oc-cream-muted)] leading-relaxed">{item.a}</p>
             </div>
           ))}
         </section>

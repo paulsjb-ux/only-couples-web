@@ -1,0 +1,58 @@
+/* Only Couples brand tokens — import in globals.css */
+
+:root {
+  --oc-black: #0a0a0a;
+  --oc-ink: #1a1614;
+  --oc-ink-muted: #5c534c;
+  --oc-cream: #f3ebe0;
+  --oc-cream-muted: rgba(243, 235, 224, 0.72);
+  --oc-gold: #c4a35a;
+  --oc-gold-soft: rgba(196, 163, 90, 0.35);
+  --oc-line: rgba(26, 22, 20, 0.12);
+  --oc-line-dark: rgba(243, 235, 224, 0.12);
+  --oc-card: #14110f;
+  --oc-card-light: #faf6f1;
+}
+
+.btn-oc-primary {
+  background: var(--oc-cream);
+  color: var(--oc-ink);
+  transition: opacity 0.15s ease;
+}
+.btn-oc-primary:hover {
+  opacity: 0.92;
+}
+
+.btn-oc-ghost {
+  border: 1px solid var(--oc-line-dark);
+  color: var(--oc-cream);
+  background: transparent;
+}
+.btn-oc-ghost:hover {
+  border-color: var(--oc-gold-soft);
+}
+
+.oc-card {
+  background: var(--oc-card);
+  border: 1px solid var(--oc-line-dark);
+  border-radius: 1rem;
+  color: var(--oc-cream-muted);
+}
+
+.oc-gold-rule {
+  height: 1px;
+  width: 4rem;
+  background: var(--oc-gold);
+  border: 0;
+  margin: 0.75rem 0 0;
+}
+
+.oc-page-dark {
+  background: var(--oc-black);
+  color: var(--oc-cream);
+  min-height: 100vh;
+}
+
+.oc-serif {
+  font-family: var(--font-cormorant), Georgia, "Times New Roman", serif;
+}
