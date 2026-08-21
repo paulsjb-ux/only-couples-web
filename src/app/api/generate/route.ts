@@ -346,10 +346,11 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  let path: string | null = null;
   try {
     const img = await fetch(url);
     const bytes = await img.arrayBuffer();
-    const path = `${studioId}/${Date.now()}.jpg`;
+    path = `${studioId}/${Date.now()}.jpg`;
     await supabase.storage.from("library").upload(path, bytes, {
       contentType: "image/jpeg",
       upsert: true,
@@ -362,12 +363,11 @@ export async function POST(req: NextRequest) {
     // keep Zen URL
   }
 
-  await supabase.from("generations").insert({
-    studio_id: studioId,
+  // Do not insert into library yet — Create page previews first, then Save or Delete
+  return NextResponse.json({
+    url,
+    path,
     kind,
     prompt: `${sceneId} | ${sceneName} (${who})`,
-    result_url: url,
   });
-
-  return NextResponse.json({ url });
 }

@@ -52,6 +52,14 @@ function CreateInner() {
   const [note, setNote] = useState("");
   const [studioId, setStudioId] = useState<string | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
+  const [preview, setPreview] = useState<{
+    url: string;
+    path: string | null;
+    prompt: string;
+    kind: string;
+    saved?: boolean;
+    id?: string | null;
+  } | null>(null);
 
   useEffect(() => {
     load();
@@ -140,6 +148,7 @@ function CreateInner() {
       return;
     }
     setBusy(true);
+    setPreview(null);
     setNote("Making the image. This can take a minute…");
     const who = selected.join(",");
     try {
@@ -154,11 +163,70 @@ function CreateInner() {
         alert(data.error || "Generation failed");
         return;
       }
-      setNote("Done. Open Library or Scenes to see it.");
-      if (data.url) window.open(data.url, "_blank");
+      if (!data.url) {
+        setNote("No image came back");
+        return;
+      }
+      setPreview({
+        url: data.url,
+        path: data.path || null,
+        prompt: data.prompt || `${sceneId} | ${sceneName} (${who})`,
+        kind: data.kind || kind,
+        saved: false,
+      });
+      setNote("Preview ready. Save to library or delete.");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Network error";
       alert(message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function savePreview() {
+    if (!preview || preview.saved) return;
+    setBusy(true);
+    setNote("Saving to library…");
+    try {
+      const res = await fetch("/api/library", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: preview.url,
+          path: preview.path,
+          kind: preview.kind,
+          prompt: preview.prompt,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setNote(data.error || "Save failed");
+        alert(data.error || "Save failed");
+        return;
+      }
+      setPreview({ ...preview, saved: true, id: data.id || null });
+      setNote("Saved to library.");
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Save failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function deletePreview() {
+    if (!preview) return;
+    setBusy(true);
+    setNote("Deleting…");
+    try {
+      await fetch("/api/library", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: preview.path, id: preview.id }),
+      });
+      setPreview(null);
+      setNote("Deleted.");
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Delete failed");
     } finally {
       setBusy(false);
     }
@@ -338,6 +406,38 @@ function CreateInner() {
           {busy ? "Making…" : "Use this scene"}
         </button>
         {note && <p className="text-sm text-[var(--muted)]">{note}</p>}
+
+        {preview && (
+          <div className="card p-4 mt-2">
+            <p className="text-sm font-semibold mb-3">Preview</p>
+            <div className="relative w-full max-w-sm aspect-[3/4] rounded-xl overflow-hidden bg-[#3A1F24] ring-1 ring-black/10">
+              <img src={preview.url} alt="Generated preview" className="w-full h-full object-cover" />
+            </div>
+            <div className="flex flex-wrap gap-2 mt-4">
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={savePreview}
+                disabled={busy || preview.saved}
+              >
+                {preview.saved ? "Saved to library" : "Save to library"}
+              </button>
+              <button
+                type="button"
+                className="rounded-full px-4 py-2 text-sm font-bold bg-white border border-[var(--line)] text-[var(--text)]"
+                onClick={deletePreview}
+                disabled={busy}
+              >
+                Delete
+              </button>
+              {preview.saved && (
+                <Link href="/library" className="text-sm underline self-center">
+                  Open library
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
