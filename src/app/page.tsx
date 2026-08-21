@@ -7,133 +7,93 @@ export default function HomePage() {
     <div>
       <MarketingNav />
 
-      <section className="mx-auto max-w-5xl px-5 pt-10 pb-12">
-        <h1
-          className="text-4xl sm:text-6xl font-medium leading-[1.05] mb-5"
-          style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
-        >
-          Only Couples.
-        </h1>
-        <p className="text-xl sm:text-2xl max-w-2xl mb-4">
+      <section className="mx-auto max-w-4xl px-6 pt-16 pb-20 sm:pt-24 sm:pb-28 text-center">
+        <Image
+          src="/brand/logos/wordmark-hero.jpg"
+          alt="Only Couples"
+          width={560}
+          height={155}
+          className="mx-auto h-auto w-[min(100%,28rem)] object-contain"
+          priority
+        />
+        <p className="mt-10 text-xl sm:text-2xl tracking-tight max-w-lg mx-auto">
           A private studio for the two of you.
         </p>
-        <p className="text-[var(--muted)] max-w-2xl mb-8 leading-relaxed">
-          From a little kinky fun to seeing each other in the kind of scenes you’d never ask a photographer for. Your faces. Your terms. Nothing leaves your studio.
+        <p className="mt-5 text-[var(--muted)] max-w-md mx-auto leading-relaxed text-[15px]">
+          Your faces. Your terms. Nothing leaves your studio.
         </p>
-        <div className="flex flex-wrap gap-3">
+        <div className="mt-10">
           <Link href="/signup" className="btn btn-primary">
-            Start with one soft scene
-          </Link>
-          <Link
-            href="/how-it-works"
-            className="rounded-full px-4 py-2 text-sm font-bold bg-white border border-[var(--line)]"
-          >
-            How face lock works
+            Start a scene
           </Link>
         </div>
-        <p className="mt-8 text-sm text-[var(--muted)]">
-          Together, or on your own. Then invite them in.
-        </p>
       </section>
 
-      <section className="mx-auto max-w-5xl px-5 pb-16">
-        <div className="relative overflow-hidden rounded-2xl aspect-[16/8] bg-[#1a1614]">
-          <Image
-            src="/brand/hero/hotel-room.jpg"
-            alt=""
-            fill
-            className="object-cover"
-            sizes="(max-width: 1024px) 100vw, 1024px"
-            priority
-          />
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-5xl px-5 pb-16 grid gap-6 md:grid-cols-3">
-        <div className="card p-5">
-          <h2 className="text-lg mb-2" style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}>
-            What this is
-          </h2>
-          <p className="text-sm text-[var(--muted)] leading-relaxed">
-            Not a feed. Not a fan site. Not a deepfake tool.
-            <br />
-            <br />
-            An erotic escape for personal use — images and video of you, locked to your faces, saved in a private album only you can open.
-          </p>
-        </div>
-        <div className="card p-5">
-          <h2 className="text-lg mb-2" style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}>
-            The range
-          </h2>
-          <p className="text-sm text-[var(--muted)] leading-relaxed">
-            Playful. After dark. Explicit.
-            <br />
-            <br />
-            Same couple. Same lock. Different rooms. You choose how far to go. She doesn’t have to see the explicit set until you both want it.
-          </p>
-        </div>
-        <div className="card p-5">
-          <h2 className="text-lg mb-2" style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}>
-            How it works
-          </h2>
-          <ol className="text-sm text-[var(--muted)] leading-relaxed list-decimal pl-4 space-y-1">
-            <li>Add both faces once.</li>
-            <li>Pick a scene — or write one.</li>
-            <li>Preview. Keep it. Or delete it.</li>
-          </ol>
-          <p className="text-sm text-[var(--muted)] mt-3">That’s the whole ritual.</p>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-5xl px-5 pb-16">
-        <h2 className="text-2xl mb-4" style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}>
-          Why us, not a generator
-        </h2>
-        <ul className="text-[var(--muted)] space-y-2 max-w-2xl">
-          <li>Two real people, locked — not a random model.</li>
-          <li>Scenes that feel like a relationship, not a dump of tabs.</li>
-          <li>A library that behaves like a private album.</li>
-          <li>We do not train on your photos.</li>
-        </ul>
-      </section>
-
-      <section className="mx-auto max-w-5xl px-5 pb-16">
-        <div className="card p-5 flex flex-wrap gap-x-8 gap-y-2 text-sm">
-          <span>No public gallery.</span>
-          <span>Delete account, wipe storage.</span>
-          <span>Adults only.</span>
-          <span>Invite-only share — if you share at all.</span>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-5xl px-5 pb-16">
-        <div className="max-w-2xl">
-          <h2 className="text-2xl mb-3" style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}>
-            First scene
-          </h2>
-          <p className="text-[var(--muted)] leading-relaxed">
-            Everyone starts the same way: a soft scene that should look like the two of you. If the faces don’t hold, you shouldn’t pay. That’s why the first scene is free.
-          </p>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-5xl px-5 pb-8">
-        <div className="hero p-8 sm:p-12">
+      <section className="mx-auto max-w-4xl px-6 pb-24 grid gap-16 sm:grid-cols-3 text-center sm:text-left">
+        <div>
           <h2
-            className="text-3xl mb-3 text-white"
+            className="text-lg mb-3"
             style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
           >
-            Start together. Or start alone and send an invite.
+            Not a feed
           </h2>
-          <Link href="/signup" className="btn btn-primary mt-2 inline-block">
-            Open the studio
-          </Link>
+          <p className="text-sm text-[var(--muted)] leading-relaxed">
+            An erotic escape for personal use. Locked to your faces. Saved in a private album only you can open.
+          </p>
+        </div>
+        <div>
+          <h2
+            className="text-lg mb-3"
+            style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
+          >
+            You choose how far
+          </h2>
+          <p className="text-sm text-[var(--muted)] leading-relaxed">
+            Playful. After dark. Explicit. Same couple. Same lock. She doesn’t have to see the explicit set until you both want it.
+          </p>
+        </div>
+        <div>
+          <h2
+            className="text-lg mb-3"
+            style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
+          >
+            The ritual
+          </h2>
+          <p className="text-sm text-[var(--muted)] leading-relaxed">
+            Add both faces once. Pick a scene. Preview. Keep it — or delete it. Nothing is saved until you say so.
+          </p>
         </div>
       </section>
 
-      <p className="mx-auto max-w-5xl px-5 text-xs text-[var(--muted)]">
-        Only Couples is for consenting adults, for personal use.
-      </p>
+      <section className="mx-auto max-w-2xl px-6 pb-24 text-center">
+        <h2
+          className="text-2xl mb-4"
+          style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
+        >
+          Why us, not a generator
+        </h2>
+        <p className="text-[var(--muted)] leading-relaxed">
+          Two real people, locked — not a random model. Scenes that feel like a relationship. A library that behaves like a private album. We do not train on your photos.
+        </p>
+        <p className="mt-8 text-xs tracking-wide text-[var(--muted)] uppercase">
+          No public gallery · Adults only · Delete everything
+        </p>
+      </section>
+
+      <section className="mx-auto max-w-2xl px-6 pb-24 text-center">
+        <h2
+          className="text-2xl mb-4"
+          style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
+        >
+          Start with one soft scene
+        </h2>
+        <p className="text-[var(--muted)] leading-relaxed mb-8">
+          If the faces don’t hold, you shouldn’t pay. That’s why the first scene is free.
+        </p>
+        <Link href="/signup" className="btn btn-primary">
+          Open the studio
+        </Link>
+      </section>
 
       <MarketingFooter />
     </div>
