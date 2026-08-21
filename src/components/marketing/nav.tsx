@@ -1,24 +1,24 @@
 import Link from "next/link";
-
-export function Wordmark({ className = "" }: { className?: string }) {
-  return (
-    <span className={`inline-flex flex-col items-center ${className}`}>
-      <span
-        className="leading-none tracking-tight"
-        style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
-      >
-        Only Couples
-      </span>
-      <span className="mt-1.5 block h-px w-14 bg-[#c4a35a]" />
-    </span>
-  );
-}
+import Image from "next/image";
 
 export function MarketingNav() {
   return (
-    <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-7">
-      <Link href="/" className="text-[22px] text-[var(--text)]">
-        <Wordmark className="items-start" />
+    <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
+      <Link href="/" className="flex items-center gap-3 shrink-0">
+        <Image
+          src="/brand/logos/mark-light-trim.jpg"
+          alt="Only Couples"
+          width={44}
+          height={58}
+          className="h-11 w-auto object-contain"
+          priority
+        />
+        <span
+          className="hidden sm:block text-lg tracking-tight"
+          style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
+        >
+          Only Couples
+        </span>
       </Link>
       <nav className="flex items-center gap-7 text-[13px] text-[var(--muted)]">
         <Link href="/how-it-works" className="hidden sm:inline hover:text-[var(--text)]">
@@ -38,9 +38,18 @@ export function MarketingNav() {
 export function MarketingFooter() {
   return (
     <footer className="mx-auto max-w-5xl border-t border-[var(--line)] px-6 py-12 text-[13px] text-[var(--muted)]">
-      <p className="max-w-md leading-relaxed mb-6">
-        Only Couples is a private erotic studio for consenting adults. Personal use. Your faces stay in your studio.
-      </p>
+      <div className="flex items-start gap-4 mb-6">
+        <Image
+          src="/brand/logos/mark-light-trim.jpg"
+          alt=""
+          width={36}
+          height={48}
+          className="h-9 w-auto object-contain mt-0.5"
+        />
+        <p className="max-w-md leading-relaxed">
+          Only Couples is a private erotic studio for consenting adults. Personal use. Your faces stay in your studio.
+        </p>
+      </div>
       <nav className="flex flex-wrap gap-x-6 gap-y-2">
         <Link href="/how-it-works">How it works</Link>
         <Link href="/privacy">Privacy</Link>
