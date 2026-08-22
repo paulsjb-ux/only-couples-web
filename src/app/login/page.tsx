@@ -42,8 +42,16 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-5 py-12">
-      <div className="w-full max-w-md">
+    <main
+      className="min-h-screen flex flex-col items-center justify-center"
+      style={{
+        paddingTop: "max(3rem, env(safe-area-inset-top))",
+        paddingBottom: "max(3rem, env(safe-area-inset-bottom))",
+        paddingLeft: "max(1.25rem, env(safe-area-inset-left))",
+        paddingRight: "max(1.25rem, env(safe-area-inset-right))",
+      }}
+    >
+      <div className="w-full max-w-md" style={{ paddingTop: "1.5rem", paddingBottom: "2rem" }}>
         <div className="text-center mb-8">
           <Link href="/" className="inline-block">
             <div
@@ -56,22 +64,27 @@ export default function LoginPage() {
             </div>
           </Link>
           <h1
-            className="text-2xl font-medium"
+            className="text-2xl font-medium text-[var(--cream,#f3ebe0)]"
             style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
           >
             Enter your studio
           </h1>
         </div>
 
-        <div className="hero mb-6">
-          <p className="text-white/90 text-sm leading-relaxed">
-            Private 18+ space. Soft by default. Intense only when you choose.
-          </p>
-        </div>
+        {/* Do NOT use className="hero" — that is the full-page landing hero */}
+        <p
+          className="mb-8 text-center text-sm leading-relaxed"
+          style={{ color: "var(--cream-muted, #c9bdb0)" }}
+        >
+          Private 18+ space. Soft by default. Intense only when you choose.
+        </p>
 
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleLogin} className="space-y-5">
           <div>
-            <label className="block text-sm font-semibold mb-1.5 text-[var(--text)]">
+            <label
+              className="block text-sm font-medium mb-2"
+              style={{ color: "var(--cream-muted, #c9bdb0)" }}
+            >
               Email
             </label>
             <input
@@ -79,13 +92,22 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-[var(--text)] focus:border-[var(--accent)] focus:outline-none"
+              className="w-full rounded-xl border px-4 py-3.5 focus:outline-none"
+              style={{
+                borderColor: "rgba(243,235,224,0.15)",
+                background: "#1a1816",
+                color: "var(--cream, #f3ebe0)",
+              }}
               placeholder="you@example.com"
+              autoComplete="email"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold mb-1.5 text-[var(--text)]">
+            <label
+              className="block text-sm font-medium mb-2"
+              style={{ color: "var(--cream-muted, #c9bdb0)" }}
+            >
               Password
             </label>
             <input
@@ -93,20 +115,28 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-[var(--text)] focus:border-[var(--accent)] focus:outline-none"
+              className="w-full rounded-xl border px-4 py-3.5 focus:outline-none"
+              style={{
+                borderColor: "rgba(243,235,224,0.15)",
+                background: "#1a1816",
+                color: "var(--cream, #f3ebe0)",
+              }}
               placeholder="••••••••"
+              autoComplete="current-password"
             />
           </div>
 
-          <div className="space-y-3 pt-1">
+          <div className="space-y-3 pt-2">
             <label className="flex items-start gap-3 cursor-pointer">
               <input
                 type="checkbox"
                 checked={adult}
                 onChange={(e) => setAdult(e.target.checked)}
-                className="mt-1 h-4 w-4 rounded border-[var(--line)] accent-[var(--accent)]"
+                className="mt-1 h-4 w-4 rounded shrink-0"
               />
-              <span className="text-sm text-[var(--text)]">I am 18 or older</span>
+              <span className="text-sm" style={{ color: "var(--cream, #f3ebe0)" }}>
+                I am 18 or older
+              </span>
             </label>
 
             <label className="flex items-start gap-3 cursor-pointer">
@@ -114,16 +144,27 @@ export default function LoginPage() {
                 type="checkbox"
                 checked={consent}
                 onChange={(e) => setConsent(e.target.checked)}
-                className="mt-1 h-4 w-4 rounded border-[var(--line)] accent-[var(--accent)]"
+                className="mt-1 h-4 w-4 rounded shrink-0"
               />
-              <span className="text-sm text-[var(--text)] leading-snug">
-                I only use photos of adults who consented, for private personal use
+              <span
+                className="text-sm leading-snug"
+                style={{ color: "var(--cream, #f3ebe0)" }}
+              >
+                I only use photos of adults who consented, for private personal
+                use
               </span>
             </label>
           </div>
 
           {error && (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            <div
+              className="rounded-xl border px-4 py-3 text-sm"
+              style={{
+                borderColor: "rgba(200,80,80,0.4)",
+                background: "rgba(80,20,20,0.35)",
+                color: "#f5c4c4",
+              }}
+            >
               {error}
             </div>
           )}
@@ -131,15 +172,19 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="btn btn-primary w-full disabled:opacity-60"
+            className="btn btn-primary w-full disabled:opacity-60 mt-2"
+            style={{ minHeight: "3rem" }}
           >
             {loading ? "Entering…" : "Enter studio"}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-[var(--muted)]">
+        <p
+          className="mt-8 text-center text-sm"
+          style={{ color: "var(--cream-muted, #c9bdb0)" }}
+        >
           No studio yet?{" "}
-          <Link href="/signup" className="font-semibold text-[var(--accent)] hover:underline">
+          <Link href="/signup" className="font-medium underline underline-offset-2">
             Create one
           </Link>
         </p>
