@@ -26,15 +26,20 @@ const SECTIONS = {
 };
 
 const LAUNCH_IDS = new Set([
+  "outfit-try-on",
+  "who-wore-it-best",
   "soft-eye-contact",
   "soft-aftercare",
   "soft-slow-undress",
+  "soft-shower-laugh",
+  "soft-her-choice",
+  "soft-for-her",
   "romance-undress",
   "romance-naked-together",
   "romance-shower",
+  "romance-kiss",
+  "romance-morning",
   "zen-silent-desire",
-  "soft-her-choice",
-  "soft-for-her",
   "erotic-missionary",
   "erotic-doggy",
   "erotic-cowgirl",
@@ -53,7 +58,7 @@ const LAUNCH_IDS = new Set([
 ]);
 
 const RAW = `
-romance-undress|Taking her clothes off|solo|soft|wife|✨|Keep the same pose, location and woman — make her naked
+outfit-try-on|Add me in this outfit|solo|soft|wife|👗|Upload any outfit — put her (or him) in it\nwho-wore-it-best|Who wore it best|solo|soft|wife|✨|Editorial: the exact dress, suit, or lingerie on your face\nromance-undress|Taking her clothes off|solo|soft|wife|✨|Keep the same pose, location and woman — make her naked
 romance-naked-together|Male + Female Undresser|couple|soft|wife,husband|🤍|Same couple, same pose — both fully nude
 romance-kiss|Intimate Bed Scene|couple|soft|wife,husband|💋|Beautiful couple in an intimate bedroom scene
 romance-shower|After Shower Couple|couple|soft|wife,husband|🚿|Naked couple taking a bathroom mirror selfie
@@ -188,9 +193,9 @@ zen-ahegao|Overwhelmed look|solo|intense|wife|😵|Street kneeling ahegao face
 soft-eye-contact|Eye contact in bed|couple|soft|wife,husband|👁|Quiet intimacy — looking at each other, no rush
 soft-shower-laugh|Laughing in the shower|couple|soft|wife,husband|🚿|Playful shower — steam, smiles, closeness
 soft-slow-undress|Slow undress together|couple|soft|wife,husband|🤍|Helping each other out of clothes — equal, unhurried
-soft-her-choice|She leads|couple|playful|wife,husband|✦|She is on top, confident, looking at him
+soft-her-choice|She leads|couple|soft|wife,husband|✦|She is on top, confident, looking at him
 soft-aftercare|Aftercare portrait|couple|soft|wife,husband|🌙|After — holding each other, calm, close
-soft-for-her|Undressed for her|couple|playful|wife,husband|🖤|He is nude for her gaze — her desire in frame
+soft-for-her|Undressed for her|couple|soft|wife,husband|🖤|He is nude for her gaze — her desire in frame
 `.trim();
 
 const TEMPLATES = RAW.split("\n").map((line) => {
@@ -257,12 +262,14 @@ export default function ScenesPage() {
   }
 
   function picFor(id: string, name: string) {
-    const a = id.toLowerCase();
-    const b = name.toLowerCase();
-    return results.find((r) => {
-      const p = r.prompt.toLowerCase();
-      return p.includes(a) || p.includes(b);
+    // Only show a result thumbnail that belongs to THIS scene id (not a random recent gen)
+    const needle = id.toLowerCase();
+    const hit = results.find((r) => {
+      const p = String(r.prompt || "").toLowerCase();
+      return p.includes(needle);
     });
+    if (hit?.url) return { url: hit.url };
+    return null;
   }
 
   const availableMoods: Mood[] = showIntense
@@ -329,7 +336,7 @@ export default function ScenesPage() {
         ))}
       </div>
 
-      <div className="card p-4 mb-6 text-sm text-[var(--muted)]">
+      <div className="card p-4 mb-6 text-sm text-[var(--text)]/80">
         <p className="font-semibold text-[var(--text)] mb-1">Launch set</p>
         <p>
           A short shelf first. One scene at a time. Tick Show all templates only if you want the old full list.
