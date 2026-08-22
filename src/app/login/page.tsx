@@ -52,7 +52,7 @@ export default function LoginPage() {
                 background: "linear-gradient(135deg, #8B4A54, #7A3E48, #5C2E36)",
               }}
             >
-              OC
+              TOR
             </div>
           </Link>
           <h1
