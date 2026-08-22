@@ -1,6 +1,6 @@
 # Private Album — Product & Engineering Spec
 
-**Product:** Only Couples / The Other Room (private AI studio for couples)  
+**Product:** The Other Room (private AI studio for couples)  
 **Document type:** Single source of truth — product rules + coding instructions  
 **Status:** MVP-ready  
 
