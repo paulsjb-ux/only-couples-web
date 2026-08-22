@@ -1,0 +1,7 @@
+# Append to positive when intensity is 2-person (always for couple studio)
+
+exactly two people, one man and one woman, two distinct bodies, two faces only, correct human anatomy, natural proportions, clear separation between the two people, matching pose, coherent limbs
+
+# Append to negative on every 2-person generate
+
+third person, three people, extra person, crowd, extra limbs, extra arms, extra legs, fused bodies, merged torso, conjoined, duplicate face, cloned face, bad anatomy, disfigured, deformed hands, extra fingers, missing fingers, too many hands, mutated hands, malformed
