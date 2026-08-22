@@ -15,12 +15,12 @@ const SECTIONS = {
   },
   playful: {
     label: "Playful",
-    blurb: "Confident, sexy, explicit — for when you want more heat.",
+    blurb: "Bolder, more confident — still elegant, still private.",
     heroClass: "hero-playful",
   },
   intense: {
-    label: "Intense",
-    blurb: "Bold fantasies — only when you choose to open them.",
+    label: "After dark",
+    blurb: "Further rooms of the studio — only when you open them.",
     heroClass: "hero-intense",
   },
 };
@@ -58,59 +58,59 @@ const LAUNCH_IDS = new Set([
 ]);
 
 const RAW = `
-outfit-try-on|Add me in this outfit|solo|soft|wife|👗|Upload any outfit — put her (or him) in it\nwho-wore-it-best|Who wore it best|solo|soft|wife|✨|Editorial: the exact dress, suit, or lingerie on your face\nromance-undress|Taking her clothes off|solo|soft|wife|✨|Keep the same pose, location and woman — make her naked
-romance-naked-together|Male + Female Undresser|couple|soft|wife,husband|🤍|Same couple, same pose — both fully nude
-romance-kiss|Intimate Bed Scene|couple|soft|wife,husband|💋|Beautiful couple in an intimate bedroom scene
-romance-shower|After Shower Couple|couple|soft|wife,husband|🚿|Naked couple taking a bathroom mirror selfie
-romance-morning|Bedroom Smile|couple|soft|wife,husband|🌅|Soft bedroom, close and smiling
-romance-massage|Her body, soft light|solo|soft|wife|🕯|Same woman, location and pose — body nude from reference
-zen-undress-v3|Undress Woman V3|solo|soft|wife|🖤|Same seated fashion pose, clothes gone
-zen-shower-pose|Pose Change In The Shower|solo|soft|wife|🚿|Same woman in the shower, new wet kneeling pose
-zen-low-angle|Shoot from below|solo|soft|wife|📷|Same woman and room — camera from way below
-zen-larger-hips|Larger hips and breasts|solo|soft|wife|💫|Same face and pose — fuller hips and breasts
-zen-foam-shower|Foam Shower Girl|solo|soft|wife|🫧|Sweet-faced, wet and soapy in the shower
-zen-carpet-kneel|Carpet Kneel Pose|solo|soft|wife|🛏|Kneeling on the bedroom carpet, nude
-zen-bedroom-v|Bedroom V Position|solo|playful|wife|🌙|On the bed, legs in a V, nude
-zen-bed-selfie|Bed Selfie Spread|solo|playful|wife|📱|Nude on the bed taking a spread selfie
-zen-bare-pussy|Bare, soft|solo|playful|wife|🖤|Same woman, nude on the desk — vulva the focus
-zen-spread-jewel|Open, jewel light|solo|playful|wife|💎|On the floor, legs spread, hands on her vulva
-zen-spread-pussy|Open for you|solo|playful|wife|🌸|Close explicit spread, her face in frame
-zen-nude-body|Nude Body|solo|playful|wife|🤍|Clean full-nude portrait of her
-erotic-masturbation|Masturbation|solo|playful|wife|✋|On the bed touching herself
-erotic-lovemaking|Missionary Surprise|couple|playful|wife,husband|💕|Missionary on the bed, mid-entry
-erotic-one-night|Spread Wide & Filled|couple|playful|wife,male_lover|🌙|On her back, legs wide, he is inside
-erotic-doggy|Deep From Behind|couple|playful|wife,husband|🔥|Doggy, deep from behind
-erotic-missionary|Folded Missionary|couple|playful|wife,husband|💋|Her legs folded back, he is inside
-erotic-oral-her|He goes down|couple|playful|wife,husband|👅|His mouth on her vulva
-erotic-oral-him|Deepthroat Blowjob|couple|playful|wife,husband|👄|Her lips around him, close
-erotic-cowgirl|Blonde Cowgirl Ride|couple|playful|wife,husband|💃|She rides him, legs wide
-erotic-wall|Against the wall|couple|playful|wife,husband|🚪|Standing, one leg up, he is inside
-zen-floor-spread|Floor Spread|couple|playful|wife,husband|🪵|On the floor, legs held open, he is inside
-zen-pov-handjob|POV Handjob Smile|couple|playful|wife,husband|😊|She smiles while stroking him, outdoor POV
-zen-hungry|Hungry For Cock|couple|playful|wife,husband|🔥|Eager oral, looking up
-zen-deepthroat-close|Deepthroat Closeup|couple|playful|wife,husband|👄|Tight close-up of her taking him deep
-zen-intense-oral|Intense Oral|couple|playful|wife,husband|💋|Tight side-on oral
-zen-drooling|Hungry oral|couple|intense|wife,husband|💦|Heavy saliva, deep in her throat
-zen-face-hold|Face Hold Oral|couple|intense|wife,husband|🤲|His hands on her head while she sucks
-zen-squat-dt|Kneeling deep|couple|intense|wife,husband|⬇️|Overhead: she squats and takes him deep
-zen-blonde-devotion|Blonde Devotion|couple|playful|wife,husband|🙏|Close, worshipful oral, eye contact
-zen-golden-oral|Golden Hour Oral|couple|playful|wife,husband|🌇|Sunset rooftop, tongue on him
-zen-sultry-oral|Sultry Oral|couple|playful|wife,husband|🔥|Slow, sultry oral close-up
-zen-parking-bj|Parking Lot Blowjob|couple|playful|wife,husband|🚗|Outdoor / parking lot oral
-zen-pov-anal|POV Anal Doggy|couple|intense|wife,husband|🍑|POV from behind, penis in her anus
-zen-anal-bath|Anal Bathroom POV|couple|intense|wife,husband|🚿|Bathroom, anal POV
-spicy-anal|Anal|couple|intense|wife,husband|🍑|Anal sex, junction visible
-spicy-creampie|Filled|couple|intense|wife,male_lover|💦|Semen leaking from her
-zen-cum-face|Soft finish, face|couple|intense|wife,husband|🤍|Finish on her face
-zen-face-full|Soft finish|couple|intense|wife,husband|💦|Heavy facial, mouth open
-zen-cum-tits|On her chest|couple|intense|wife,husband|💗|Semen on her breasts, she lies back
-zen-cum-beauty|Covered beauty|solo|intense|wife|✨|Her face and lingerie streaked
+outfit-try-on|In this outfit|solo|soft|wife|👗|Any garment — her or him in it, exact fabric and cut\nwho-wore-it-best|Who wore it best|solo|soft|wife|✨|Editorial — the exact piece on your face\nromance-undress|Undressed|solo|soft|wife|✨|Same pose and place — clothing set aside
+romance-naked-together|Both undressed|couple|soft|wife,husband|🤍|The two of you, same pose, nothing between you
+romance-kiss|In bed|couple|soft|wife,husband|💋|Close, warm light, unhurried
+romance-shower|After the shower|couple|soft|wife,husband|🚿|Steam, soft light, a shared mirror moment
+romance-morning|Morning light|couple|soft|wife,husband|🌅|White sheets, close, smiling
+romance-massage|Soft light|solo|soft|wife|🕯|Her form in quiet, flattering light
+zen-undress-v3|Seated, undressed|solo|soft|wife|🖤|Fashion pose held — clothing set aside
+zen-shower-pose|In the shower|solo|soft|wife|🚿|Water, light, a new pose
+zen-low-angle|From below|solo|soft|wife|📷|Low angle, same room, same face
+zen-larger-hips|Fuller figure|solo|soft|wife|💫|Same face and pose — a softer, fuller line
+zen-foam-shower|Foam and water|solo|soft|wife|🫧|Soft face, water and foam
+zen-carpet-kneel|Kneeling|solo|soft|wife|🛏|Kneeling on the carpet, unhurried
+zen-bedroom-v|On the bed|solo|playful|wife|🌙|On the bed, open, soft light
+zen-bed-selfie|Bed selfie|solo|playful|wife|📱|A private selfie on the bed
+zen-bare-pussy|Bare|solo|playful|wife|🖤|Same woman, bare, quiet and direct
+zen-spread-jewel|Open, jewel light|solo|playful|wife|💎|On the floor, open, hands close
+zen-spread-pussy|Open for you|solo|playful|wife|🌸|Close, open, her face in frame
+zen-nude-body|Full portrait|solo|playful|wife|🤍|A clean full portrait of her
+erotic-masturbation|Touching herself|solo|playful|wife|✋|On the bed, alone with her hands
+erotic-lovemaking|Missionary|couple|playful|wife,husband|💕|Together on the bed, close and joined
+erotic-one-night|Open and joined|couple|playful|wife,male_lover|🌙|On her back, open, joined
+erotic-doggy|From behind|couple|playful|wife,husband|🔥|From behind, deep and close
+erotic-missionary|Folded close|couple|playful|wife,husband|💋|Legs drawn in, close and joined
+erotic-oral-her|His mouth on her|couple|playful|wife,husband|👅|His mouth, her pleasure
+erotic-oral-him|Her mouth on him|couple|playful|wife,husband|👄|Her lips around him, close
+erotic-cowgirl|She rides|couple|playful|wife,husband|💃|She above him, legs open
+erotic-wall|Against the wall|couple|playful|wife,husband|🚪|Standing, one leg raised, joined
+zen-floor-spread|On the floor|couple|playful|wife,husband|🪵|On the floor, open, joined
+zen-pov-handjob|Her hand, his gaze|couple|playful|wife,husband|😊|She smiles while her hand works
+zen-hungry|Eager mouth|couple|playful|wife,husband|🔥|Eager, looking up
+zen-deepthroat-close|Close oral|couple|playful|wife,husband|👄|Close, deep, her mouth on him
+zen-intense-oral|Intense oral|couple|playful|wife,husband|💋|Side-on, intent
+zen-drooling|Deep oral|couple|intense|wife,husband|💦|Deep, wet, intent
+zen-face-hold|Hands in her hair|couple|intense|wife,husband|🤲|His hands guide; she stays with him
+zen-squat-dt|Kneeling, deep|couple|intense|wife,husband|⬇️|From above — kneeling, deep
+zen-blonde-devotion|Devotion|couple|playful|wife,husband|🙏|Close oral, eye contact
+zen-golden-oral|Golden hour|couple|playful|wife,husband|🌇|Warm light, her mouth on him
+zen-sultry-oral|Sultry oral|couple|playful|wife,husband|🔥|Slow, close, unhurried
+zen-parking-bj|Outside, hidden|couple|playful|wife,husband|🚗|Outside, private, oral
+zen-pov-anal|From behind, anal|couple|intense|wife,husband|🍑|From behind, anal, his view
+zen-anal-bath|Bathroom, anal|couple|intense|wife,husband|🚿|Bathroom light, anal, his view
+spicy-anal|Anal|couple|intense|wife,husband|🍑|Anal, junction visible
+spicy-creampie|Filled|couple|intense|wife,male_lover|💦|After, still full
+zen-cum-face|A soft finish on her face|couple|intense|wife,husband|🤍|A soft finish on her face
+zen-face-full|Finish|couple|intense|wife,husband|💦|Finish on her face, mouth open
+zen-cum-tits|On her chest|couple|intense|wife,husband|💗|On her chest, she lies back
+zen-cum-beauty|Marked|solo|intense|wife|✨|Her face and lingerie, marked
 zen-glory|Through the wall|solo|intense|wife|🔘|She takes a penis through a glory hole, the penis belongs to an unseen man, correct anatomy, no extra genitals
-zen-spread-open|Spread Wide Open|couple|intense|wife,husband|🦵|Legs held open, he is inside, she moans
+zen-spread-open|Spread open|couple|intense|wife,husband|🦵|Legs held open, joined
 spicy-bbc|BBC|couple|intense|wife,male_lover|🖤|With a well-endowed black lover
-spicy-dp|Double penetration|three|intense|wife,husband,male_lover|🔥|Two men both penetrating the woman, each penis attached only to its own man, correct anatomy, no extra genitals
-spicy-spitroast|Spit roast|three|intense|wife,husband,male_lover|⚡|One man in her mouth, one man penetrating her, two penises only, each attached to its own man, correct anatomy
-spicy-cuckold|Cuckold|three|intense|wife,male_lover,husband|👁|Husband watches, the other man’s penis is the only one inside her, correct anatomy, no extra genitals
+spicy-dp|Double|three|intense|wife,husband,male_lover|🔥|Two men both penetrating the woman, each penis attached only to its own man, correct anatomy, no extra genitals
+spicy-spitroast|Between two|three|intense|wife,husband,male_lover|⚡|One man in her mouth, one man penetrating her, two penises only, each attached to its own man, correct anatomy
+spicy-cuckold|He watches|three|intense|wife,male_lover,husband|👁|He watches; the other man is with her
 spicy-mmf|MMF|three|intense|wife,husband,male_lover|🔥|Two men and one woman, only two penises each attached to its own man, no extra genitals, no body fusion
 spicy-ffm|FFM|three|intense|husband,wife,female_lover|💜|Two women kiss, man on the right — one penis at his hips only, hand on shaft near base, not between breasts, correct anatomy
 zen-collar-three|Collar Threesome|three|intense|wife,husband,male_lover|⛓|She wears a collar, two men, only two penises each belonging to one man, correct anatomy
@@ -173,7 +173,7 @@ zen-ruined-makeup|Ruined makeup|solo|intense|wife|💄|Smudged mascara selfie af
 zen-knees-in-cum|On her knees|solo|intense|wife|💧|Kneeling outdoors, semen on chest, tongue out
 zen-cum-on-ass|Along her back|solo|intense|wife|🍑|Rear view, semen on her buttocks
 zen-nude-mirror-selfie|Nude Mirror Selfie|solo|playful|wife|📱|Nude bedroom selfie with phone on a tripod
-zen-reading-masturbation|Reading & Masturbation|solo|playful|wife|📖|Reading a book while touching herself
+zen-reading-masturbation|Reading & Touching herself|solo|playful|wife|📖|Reading a book while touching herself
 zen-candid-vagina-selfie|Candid Vagina Selfie|solo|playful|wife|📱|Couch selfie, legs open, phone in hand
 zen-silent-desire|Silent Desire|solo|soft|wife|😶|Close face, lips parted, quiet hungry look
 zen-backdoor-aesthetic|Backdoor Aesthetic|solo|playful|wife|🍑|Prone rear view on a bench, artistic nude
