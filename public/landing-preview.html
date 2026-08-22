@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Other Room — A private studio for the two of you</title>
+  <meta name="description" content="Private scenes with your faces — not a random model. Soft by default. Explicit only when you choose. Nothing public." />
+  <meta name="theme-color" content="#0c0b0a" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0c0b0a;
+      --bg-elevated: #161412;
+      --bg-card: #1a1816;
+      --cream: #f3ebe0;
+      --cream-muted: #c9bdb0;
+      --gold: #c4a574;
+      --gold-dim: #8a7350;
+      --line: rgba(243, 235, 224, 0.12);
+      --rose: #8b5a5a;
+      --rose-hover: #a36b6b;
+      --safe: max(1.25rem, env(safe-area-inset-left));
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: "Outfit", system-ui, sans-serif;
+      font-weight: 300;
+      background: var(--bg);
+      color: var(--cream);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3, .serif {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; display: block; }
+
+    /* —— Nav —— */
+    .nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem var(--safe);
+      background: linear-gradient(to bottom, rgba(12,11,10,0.92), transparent);
+      backdrop-filter: blur(8px);
+    }
+    .nav-mark {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 1.05rem;
+      letter-spacing: 0.04em;
+      color: var(--cream);
+    }
+    .nav-actions {
+      display: flex;
+      gap: 1.25rem;
+      align-items: center;
+      font-size: 0.85rem;
+      color: var(--cream-muted);
+    }
+    .nav-actions a:hover { color: var(--cream); }
+
+    /* —— Hero —— */
+    .hero {
+      min-height: 100svh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 6rem var(--safe) 4rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% 20%, rgba(196,165,116,0.08), transparent 55%),
+        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(139,90,90,0.06), transparent 50%),
+        linear-gradient(180deg, #0c0b0a 0%, #12100e 50%, #0c0b0a 100%);
+      z-index: 0;
+    }
+    .hero-inner {
+      position: relative;
+      z-index: 1;
+      max-width: 36rem;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .hero-kicker {
+      font-size: 0.7rem;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 1.75rem;
+      font-weight: 400;
+    }
+    .hero h1 {
+      font-size: clamp(2.75rem, 9vw, 4rem);
+      line-height: 1.05;
+      font-weight: 500;
+      color: var(--cream);
+      margin-bottom: 0.75rem;
+    }
+    .hero-rule {
+      width: 3.5rem;
+      height: 1px;
+      background: var(--gold);
+      margin: 1.25rem auto;
+      opacity: 0.85;
+    }
+    .hero-tag {
+      font-family: "Cormorant Garamond", serif;
+      font-style: italic;
+      font-size: 1.2rem;
+      color: var(--cream-muted);
+      margin-bottom: 2rem;
+    }
+    .hero-lead {
+      font-size: 1.05rem;
+      color: var(--cream-muted);
+      max-width: 28rem;
+      margin: 0 auto 2.5rem;
+      font-weight: 300;
+    }
+    .hero-cta {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.95rem 2.4rem;
+      border-radius: 999px;
+      font-size: 0.95rem;
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
+    }
+    .btn-primary {
+      background: var(--cream);
+      color: var(--bg);
+      box-shadow: 0 0 0 1px rgba(243,235,224,0.1), 0 12px 40px rgba(0,0,0,0.35);
+    }
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 0 0 1px rgba(243,235,224,0.2), 0 16px 48px rgba(0,0,0,0.4);
+    }
+    .btn-ghost {
+      background: transparent;
+      color: var(--cream-muted);
+      font-size: 0.9rem;
+      padding: 0.5rem 1rem;
+    }
+    .btn-ghost:hover { color: var(--cream); }
+    .hero-foot {
+      margin-top: 3.5rem;
+      font-size: 0.8rem;
+      letter-spacing: 0.06em;
+      color: var(--gold-dim);
+    }
+
+    /* —— Sections —— */
+    section {
+      padding: 5rem var(--safe);
+      max-width: 72rem;
+      margin: 0 auto;
+    }
+    .section-label {
+      font-size: 0.65rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 1rem;
+    }
+    .section-title {
+      font-size: clamp(1.85rem, 4vw, 2.5rem);
+      line-height: 1.15;
+      margin-bottom: 1rem;
+      max-width: 20ch;
+    }
+    .section-body {
+      color: var(--cream-muted);
+      max-width: 36rem;
+      font-size: 1.05rem;
+    }
+
+    /* —— Promise strip —— */
+    .promise {
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      padding: 2.5rem var(--safe);
+    }
+    .promise-grid {
+      max-width: 56rem;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+    @media (min-width: 720px) {
+      .promise-grid { grid-template-columns: repeat(3, 1fr); gap: 2.5rem; }
+    }
+    .promise-item h3 {
+      font-size: 1.35rem;
+      margin-bottom: 0.5rem;
+      color: var(--cream);
+    }
+    .promise-item p {
+      font-size: 0.92rem;
+      color: var(--cream-muted);
+    }
+
+    /* —— How —— */
+    .how {
+      display: grid;
+      gap: 3rem;
+    }
+    @media (min-width: 800px) {
+      .how {
+        grid-template-columns: 1fr 1.2fr;
+        align-items: start;
+        gap: 4rem;
+      }
+    }
+    .steps {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 1.75rem;
+    }
+    .step {
+      display: grid;
+      grid-template-columns: 2.5rem 1fr;
+      gap: 1rem;
+      align-items: start;
+    }
+    .step-num {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 1.5rem;
+      color: var(--gold);
+      line-height: 1.2;
+    }
+    .step h3 {
+      font-size: 1.25rem;
+      margin-bottom: 0.35rem;
+    }
+    .step p {
+      font-size: 0.95rem;
+      color: var(--cream-muted);
+    }
+
+    /* —— Intensity —— */
+    .tiers {
+      display: grid;
+      gap: 1rem;
+      margin-top: 2.5rem;
+    }
+    @media (min-width: 700px) {
+      .tiers { grid-template-columns: repeat(3, 1fr); }
+    }
+    .tier {
+      background: var(--bg-card);
+      border: 1px solid var(--line);
+      border-radius: 1rem;
+      padding: 1.75rem 1.5rem;
+      transition: border-color 0.2s;
+    }
+    .tier:hover { border-color: rgba(196,165,116,0.35); }
+    .tier-soft { border-color: rgba(196,165,116,0.25); }
+    .tier .label {
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 0.6rem;
+    }
+    .tier h3 {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .tier p {
+      font-size: 0.9rem;
+      color: var(--cream-muted);
+    }
+
+    /* —— Privacy —— */
+    .privacy-box {
+      background: var(--bg-elevated);
+      border: 1px solid var(--line);
+      border-radius: 1.25rem;
+      padding: 2.5rem 1.75rem;
+      margin-top: 1.5rem;
+    }
+    .privacy-list {
+      list-style: none;
+      display: grid;
+      gap: 1.25rem;
+      margin-top: 1.5rem;
+    }
+    @media (min-width: 640px) {
+      .privacy-list { grid-template-columns: 1fr 1fr; }
+    }
+    .privacy-list li {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+      font-size: 0.95rem;
+      color: var(--cream-muted);
+    }
+    .privacy-list .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--gold);
+      margin-top: 0.55rem;
+      flex-shrink: 0;
+    }
+
+    /* —— For whom —— */
+    .audience {
+      display: grid;
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+    @media (min-width: 700px) {
+      .audience { grid-template-columns: repeat(3, 1fr); }
+    }
+    .audience-card {
+      padding: 1.5rem;
+      border-radius: 1rem;
+      background: transparent;
+      border: 1px solid var(--line);
+    }
+    .audience-card h3 {
+      font-size: 1.25rem;
+      margin-bottom: 0.4rem;
+    }
+    .audience-card p {
+      font-size: 0.9rem;
+      color: var(--cream-muted);
+    }
+
+    /* —— Final CTA —— */
+    .final {
+      text-align: center;
+      padding: 6rem var(--safe) 5rem;
+      border-top: 1px solid var(--line);
+    }
+    .final h2 {
+      font-size: clamp(2rem, 5vw, 2.75rem);
+      margin-bottom: 0.75rem;
+    }
+    .final p {
+      color: var(--cream-muted);
+      margin-bottom: 2rem;
+      max-width: 28rem;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* —— Footer —— */
+    footer {
+      padding: 2.5rem var(--safe) 3rem;
+      border-top: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      align-items: center;
+      text-align: center;
+      color: var(--cream-muted);
+      font-size: 0.8rem;
+    }
+    @media (min-width: 640px) {
+      footer {
+        flex-direction: row;
+        justify-content: space-between;
+        text-align: left;
+        max-width: 72rem;
+        margin: 0 auto;
+      }
+    }
+    .footer-links {
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .footer-links a:hover { color: var(--cream); }
+    .footer-mark {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 1rem;
+      color: var(--cream);
+    }
+  </style>
+</head>
+<body>
+  <header class="nav">
+    <a href="#" class="nav-mark">The Other Room</a>
+    <div class="nav-actions">
+      <a href="#how">How it works</a>
+      <a href="#enter">Sign in</a>
+    </div>
+  </header>
+
+  <main>
+    <!-- HERO -->
+    <section class="hero" id="top">
+      <div class="hero-inner">
+        <p class="hero-kicker">Private by design</p>
+        <h1>The Other Room</h1>
+        <div class="hero-rule" aria-hidden="true"></div>
+        <p class="hero-tag">A private studio for the two of you.</p>
+        <p class="hero-lead">
+          Scenes with <em style="font-style: normal; color: var(--cream);">your</em> faces — not a random model.
+          Soft by default. Explicit only when you both choose. Nothing is public.
+        </p>
+        <div class="hero-cta">
+          <a class="btn btn-primary" href="#enter" id="enter">Come in</a>
+          <a class="btn btn-ghost" href="#how">How it works</a>
+        </div>
+        <p class="hero-foot">Together, or on your own — then invite them in.</p>
+      </div>
+    </section>
+
+    <!-- PROMISE -->
+    <div class="promise">
+      <div class="promise-grid">
+        <div class="promise-item">
+          <h3 class="serif">Your faces</h3>
+          <p>Identity lock for two real people. It should look like you — not a stranger from a prompt dump.</p>
+        </div>
+        <div class="promise-item">
+          <h3 class="serif">Your pace</h3>
+          <p>Start soft. Move to playful or after dark only when you’re ready. She shouldn’t bounce on first open.</p>
+        </div>
+        <div class="promise-item">
+          <h3 class="serif">Your album</h3>
+          <p>Preview, then keep or discard. A private library — not a feed, not a gallery, not training data.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- HOW -->
+    <section class="how" id="how">
+      <div>
+        <p class="section-label">How it works</p>
+        <h2 class="section-title">From empty room to private album</h2>
+        <p class="section-body">
+          Built for couples who want something personal — a bit of fun through to scenes you’d never ask a photographer for.
+        </p>
+      </div>
+      <ol class="steps">
+        <li class="step">
+          <span class="step-num">01</span>
+          <div>
+            <h3 class="serif">Lock your faces</h3>
+            <p>Each of you adds a few reference photos. They stay in your studio. We don’t train on them.</p>
+          </div>
+        </li>
+        <li class="step">
+          <span class="step-num">02</span>
+          <div>
+            <h3 class="serif">Start soft</h3>
+            <p>The first scene is gentle — bed, morning light, the two of you. No shock, no homepage explicit.</p>
+          </div>
+        </li>
+        <li class="step">
+          <span class="step-num">03</span>
+          <div>
+            <h3 class="serif">Preview, then decide</h3>
+            <p>Every image is a preview until you Keep it. Discard removes it. Keep puts it in your private album.</p>
+          </div>
+        </li>
+        <li class="step">
+          <span class="step-num">04</span>
+          <div>
+            <h3 class="serif">Invite when you’re ready</h3>
+            <p>Open the studio alone, or invite your partner. Shared library. Optional hide-from-partner for surprises.</p>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <!-- INTENSITY -->
+    <section id="intensity">
+      <p class="section-label">Intensity</p>
+      <h2 class="section-title">Soft first. Then as far as you want.</h2>
+      <p class="section-body">
+        One product, three doors. You choose how far to open them — never the other way around.
+      </p>
+      <div class="tiers">
+        <article class="tier tier-soft">
+          <p class="label">Always open</p>
+          <h3 class="serif">Soft</h3>
+          <p>Smiling, close, clothed or barely. The scene that should always work on first try.</p>
+        </article>
+        <article class="tier">
+          <p class="label">When you’re ready</p>
+          <h3 class="serif">Playful</h3>
+          <p>Tease, lingerie, tension. Still private. Still the two of you.</p>
+        </article>
+        <article class="tier">
+          <p class="label">Consent gated</p>
+          <h3 class="serif">After dark</h3>
+          <p>Explicit, on your terms. Unlocked only after you say so — not on the homepage.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- PRIVACY -->
+    <section id="privacy">
+      <p class="section-label">Privacy</p>
+      <h2 class="section-title">This is not a public gallery</h2>
+      <p class="section-body">
+        The product is the closed album. If it ever feels like a feed, we’ve failed.
+      </p>
+      <div class="privacy-box">
+        <ul class="privacy-list">
+          <li><span class="dot"></span> Photos stay in your studio — not used to train a public model</li>
+          <li><span class="dot"></span> No public gallery by default. No SEO of your scenes</li>
+          <li><span class="dot"></span> Delete account and we wipe storage</li>
+          <li><span class="dot"></span> Preview → keep or discard. Nothing auto-saves into the album</li>
+          <li><span class="dot"></span> Hide from partner when you want a surprise</li>
+          <li><span class="dot"></span> Adult-only access, real enough for the way we process payments</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- WHO -->
+    <section id="who">
+      <p class="section-label">Who it’s for</p>
+      <h2 class="section-title">Built for couples — not for everyone</h2>
+      <div class="audience">
+        <div class="audience-card">
+          <h3 class="serif">Couples already sharing</h3>
+          <p>You send nudes or play with AI casually. You want it to look like both of you.</p>
+        </div>
+        <div class="audience-card">
+          <h3 class="serif">Someone buying for two</h3>
+          <p>A gift of a private studio — soft enough she’ll open it, deep enough you’ll both stay.</p>
+        </div>
+        <div class="audience-card">
+          <h3 class="serif">One consistent “us”</h3>
+          <p>Not a new stranger every prompt. The same two faces, a relationship-shaped scene list.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- FINAL CTA -->
+    <div class="final">
+      <h2 class="serif">Close the door.<br />Open the album.</h2>
+      <p>Private scenes with your faces. Soft by default. Yours alone.</p>
+      <a class="btn btn-primary" href="#enter">Come in</a>
+    </div>
+  </main>
+
+  <footer>
+    <div>
+      <p class="footer-mark">The Other Room</p>
+      <p style="margin-top: 0.35rem;">A private studio for the two of you.</p>
+    </div>
+    <div class="footer-links">
+      <a href="#privacy">Privacy</a>
+      <a href="#how">How it works</a>
+      <a href="#">Terms</a>
+      <a href="#">Contact</a>
+    </div>
+  </footer>
+</body>
+</html>
