@@ -1,26 +1,25 @@
-# Drop-in layout — scene background fix
+# The Other Room — drop into Next.js repo root
 
-Copy into your app root (merge with existing folders).
+Merge with your existing `docs/` and create `prompts/`.
 
-```
-prompts/                         # runtime — load these in the prompt builder
-  global-negatives.txt
-  locations.json
-  soft-hero-template.json
-
-configs/scenes/                  # optional alternate path (same JSON)
-  locations.json
-  soft-hero-template.json
+```text
+prompts/
+  global-negatives.txt      # shower block + anatomy block
+  locations.json            # soft default = bedroom_morning
+  soft-hero-template.json   # first scene
+  anatomy-two-person.txt    # human-readable anatomy lines
+  anatomy-rules.json        # machine suffixes + hide 3-person
 
 docs/
-  scene-background-fix.md
-  prompt-rules.md
-  private-album-spec.md
+  prompt-builder-rules.md   # how to assemble prompts
+  private-album-mvp.md      # keep / discard API + states
+  private-album-spec.md     # full product spec (optional copy)
 ```
 
-Use either `prompts/` **or** `configs/scenes/` for the JSON — not both unless you keep them in sync.
+## Three fixes
 
-Wire `buildPrompt` to:
-1. Require a location (default: `bedroom_morning` from locations.json)
-2. Always append `prompts/global-negatives.txt`
-3. Use `soft-hero-template.json` for the first soft scene
+1. **Background** — required location; default morning bed; shower only if selected.  
+2. **Anatomy** — exactly two people; strong anti-extra-limb negatives; no 3-person UI yet.  
+3. **Album** — preview → keep/discard; Soft default album; no public gallery.
+
+Wire `src` prompt builder to read `prompts/*` and implement album routes per `docs/private-album-mvp.md`.
