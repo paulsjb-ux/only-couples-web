@@ -287,7 +287,7 @@ export default function ScenesPage() {
     <div className="max-w-5xl mx-auto">
       <div className={cn("hero mb-6", current.heroClass)}>
         <h1
-          className="text-2xl font-medium mb-1"
+          className="text-2xl font-medium mb-1 text-white"
           style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
         >
           {current.label}
