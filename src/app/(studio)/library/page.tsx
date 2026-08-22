@@ -122,21 +122,23 @@ export default function LibraryPage() {
               <p className="text-[10px] text-[var(--muted)] mt-2 line-clamp-2">
                 {item.prompt || "Scene"}
               </p>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {item.result_url && (
+              <div className="flex gap-2 mt-2">
+                {item.result_url ? (
                   <button
                     type="button"
                     disabled={busy}
-                    className="btn btn-primary text-xs px-3 py-1.5"
+                    className="btn btn-primary flex-1 text-xs px-3 py-2 text-center"
                     onClick={() => downloadToDevice(item.result_url!, item.id)}
                   >
                     Download
                   </button>
+                ) : (
+                  <span className="flex-1" />
                 )}
                 <button
                   type="button"
                   disabled={busy}
-                  className="rounded-full px-3 py-1.5 text-xs font-bold bg-white border border-[var(--line)] text-[var(--text)]"
+                  className="flex-1 rounded-full px-3 py-2 text-xs font-bold bg-white border border-[var(--line)] text-[var(--text)] text-center"
                   onClick={() => remove(item.id)}
                 >
                   Delete
