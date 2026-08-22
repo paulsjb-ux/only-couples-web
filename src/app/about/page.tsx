@@ -60,7 +60,7 @@ export default function AboutPage() {
               The tools that existed were either a girlfriend chatbot or a generator that treated two real people as an afterthought. Faces slipped. Anatomy broke. Privacy was a footnote.
             </p>
             <p>
-              Only Couples is a private studio. You come together or you come separately. You make what you’d never commission. Then you close the album.
+              The Other Room is a private studio. You come together or you come separately. You make what you’d never commission. Then you close the album.
             </p>
           </div>
         </header>
