@@ -4,24 +4,37 @@ import { getSceneCore } from "@/lib/scene-cores";
 
 const ZEN_BASE = "https://api.zencreator.pro/api/public/v1";
 
-function extractUrl(payload: any): string | null {
-  if (!payload || typeof payload !== "object") return null;
+function pushUrl(out: string[], v: unknown) {
+  if (typeof v === "string" && v.startsWith("http") && !out.includes(v)) out.push(v);
+  else if (v && typeof v === "object") {
+    const o = v as Record<string, unknown>;
+    if (typeof o.url === "string") pushUrl(out, o.url);
+    if (typeof o.download_url === "string") pushUrl(out, o.download_url);
+    if (typeof o.image_url === "string") pushUrl(out, o.image_url);
+  }
+}
+
+function extractUrls(payload: any): string[] {
+  const out: string[] = [];
+  if (!payload || typeof payload !== "object") return out;
   const bags = [payload, payload.data, payload.result, payload.data?.result, payload.output];
   for (const bag of bags) {
     if (!bag || typeof bag !== "object") continue;
-    if (typeof bag.url === "string" && bag.url.startsWith("http")) return bag.url;
-    if (typeof bag.download_url === "string") return bag.download_url;
-    if (typeof bag.image_url === "string") return bag.image_url;
+    pushUrl(out, bag.url);
+    pushUrl(out, bag.download_url);
+    pushUrl(out, bag.image_url);
     for (const key of ["outputs", "images", "results", "files"]) {
-      const arr = bag[key];
-      if (Array.isArray(arr) && arr[0]) {
-        if (typeof arr[0] === "string" && arr[0].startsWith("http")) return arr[0];
-        if (arr[0]?.url) return arr[0].url;
-        if (arr[0]?.download_url) return arr[0].download_url;
+      const arr = (bag as any)[key];
+      if (Array.isArray(arr)) {
+        for (const item of arr) pushUrl(out, item);
       }
     }
   }
-  return null;
+  return out;
+}
+
+function extractUrl(payload: any): string | null {
+  return extractUrls(payload)[0] || null;
 }
 
 async function zenUpload(key: string, bytes: ArrayBuffer, name: string) {
@@ -115,6 +128,13 @@ function refineAnatomyPrompt(men: number) {
   return `Keep the same people, faces, pose and lighting. Fix anatomy only: exactly ${men} penises, each attached only to a man at his hips. Remove any extra, anonymous, or floating penises. Women have only vulvas. No extra limbs or fused bodies.`;
 }
 
+const VERSION_VARIANTS = [
+  "", // v1 — base scene
+  "VARIATION: wider full-body framing, more of the room and posture visible, same people and act.",
+  "VARIATION: tighter intimate crop on faces and torsos, same people and act.",
+  "VARIATION: warmer side light, slightly moodier shadows, same people, pose family, and act.",
+];
+
 export async function POST(req: NextRequest) {
   const key = process.env.ZENCREATOR_API_KEY;
   if (!key) {
@@ -132,6 +152,9 @@ export async function POST(req: NextRequest) {
   const who = String(body.who || "couple");
   const kind = String(body.kind || "image");
   const sceneId = String(body.sceneId || "");
+  const versions = Math.min(4, Math.max(1, Number(body.versions) || 1));
+  const outfitPath = body.outfitPath ? String(body.outfitPath) : null;
+  const outfitWearer = body.outfitWearer ? String(body.outfitWearer) : null;
 
   const { data: memberships } = await supabase
     .from("studio_members")
@@ -177,8 +200,34 @@ export async function POST(req: NextRequest) {
     assetIds.push(await zenUpload(key, bytes, `${item.role}-${item.kind}.jpg`));
   }
 
+  // Outfit reference (try-on / who wore it best) — first asset when present
+  let outfitLock = "";
+  if (outfitPath && outfitPath.startsWith(`${studioId}/`)) {
+    try {
+      const { data: file, error } = await supabase.storage.from("library").download(outfitPath);
+      if (!error && file) {
+        const bytes = await file.arrayBuffer();
+        const outfitAsset = await zenUpload(key, bytes, "outfit-ref.jpg");
+        assetIds.unshift(outfitAsset);
+        // Keep at most 3 assets total (Zen limit we use)
+        while (assetIds.length > 3) assetIds.pop();
+        const wearer = (outfitWearer || wanted[0] || "wife").replace(/_/g, " ");
+        outfitLock =
+          `OUTFIT LOCK: Reference image 1 is the OUTFIT only (clothing on a hanger, mannequin, or another body). Put the ${wearer} into that exact outfit — same garment, colour, fabric, cut, and details. The ${wearer} face and identity come from their face reference, never from whoever appears in the outfit photo. Do not invent different clothes.`;
+        if (!sceneId || sceneId === "free-play") {
+          // force try-on core if free play with outfit
+        }
+      }
+    } catch {
+      // continue without outfit
+    }
+  }
+
   // 1) Scene core from catalog
-  let core = getSceneCore(sceneId, sceneName);
+  let core = getSceneCore(
+    sceneId || (outfitPath ? "outfit-try-on" : ""),
+    sceneName || (outfitPath ? "Outfit try-on" : "erotic couple scene")
+  );
   const labels = (castPeople.length ? castPeople : refs).map((p: any) =>
     p.role.replace(/_/g, " ")
   );
@@ -216,84 +265,92 @@ export async function POST(req: NextRequest) {
   const look =
     "LOOK: vertical 3:4 frame, ultra high-resolution luxury photoshoot, 85mm f/1.4, soft cinematic light, glossy hydrated skin, tack-sharp faces, magazine grade, 8k, no watermark, no text.";
 
-  const prompt = [whoLine, faceLock, bodyLock, anatomy, core, look].filter(Boolean).join(" ");
+  const promptBase = [whoLine, faceLock, bodyLock, anatomy, outfitLock, core, look].filter(Boolean).join(" ");
 
-  const tool = assetIds.length ? "image_editor" : "by_prompt";
-  const input = assetIds.length
-    ? {
-        image_assets: assetIds.slice(0, 3),
-        prompt,
-        ratio: "3:4",
-        number_of_images: 1,
-        model: "SEEDREAM_5_PRO",
-      }
-    : {
-        positive_prompt: prompt,
-        ratio: "3:4",
-        batch_size: 1,
-        model: "SEEDREAM_5_PRO",
-      };
+  async function runOne(versionIndex: number): Promise<string | null> {
+    const variant = VERSION_VARIANTS[versionIndex] || "";
+    const prompt = variant ? `${promptBase} ${variant}` : promptBase;
+    const tool = assetIds.length ? "image_editor" : "by_prompt";
+    const input = assetIds.length
+      ? {
+          image_assets: assetIds.slice(0, 3),
+          prompt,
+          ratio: "3:4",
+          number_of_images: 1,
+          model: "SEEDREAM_5_PRO",
+        }
+      : {
+          positive_prompt: prompt,
+          ratio: "3:4",
+          batch_size: 1,
+          model: "SEEDREAM_5_PRO",
+        };
 
-  const submit = await fetch(`${ZEN_BASE}/generations`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ tool, input }),
-  });
-  const submitted = await submit.json().catch(() => ({}));
-  if (!submit.ok) {
-    return NextResponse.json(
-      { error: submitted.error?.message || submitted.message || `Zen error ${submit.status}` },
-      { status: 500 }
-    );
-  }
+    const submit = await fetch(`${ZEN_BASE}/generations`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ tool, input }),
+    });
+    const submitted = await submit.json().catch(() => ({}));
+    if (!submit.ok) {
+      throw new Error(submitted.error?.message || submitted.message || `Zen error ${submit.status}`);
+    }
 
-  let url = extractUrl(submitted);
-  const genId = submitted.id || submitted.generation_id || submitted.data?.id;
-
-  if (!url && genId) {
-    for (let i = 0; i < 40; i++) {
-      await new Promise((r) => setTimeout(r, 3000));
-      const poll = await fetch(`${ZEN_BASE}/generations/${genId}`, {
-        headers: { Authorization: `Bearer ${key}` },
-      });
-      const polled = await poll.json().catch(() => ({}));
-      const status = String(polled.status || polled.state || "").toLowerCase();
-      url = extractUrl(polled);
-      if (!url) {
-        try {
-          const resultRes = await fetch(`${ZEN_BASE}/generations/${genId}/result`, {
-            headers: { Authorization: `Bearer ${key}` },
-          });
-          const resultBody = await resultRes.json().catch(() => ({}));
-          url = extractUrl(resultBody);
-        } catch {
-          // ignore
+    let urls = extractUrls(submitted);
+    const genId = submitted.id || submitted.generation_id || submitted.data?.id;
+    if (!urls.length && genId) {
+      for (let i = 0; i < 40; i++) {
+        await new Promise((r) => setTimeout(r, 3000));
+        const poll = await fetch(`${ZEN_BASE}/generations/${genId}`, {
+          headers: { Authorization: `Bearer ${key}` },
+        });
+        const polled = await poll.json().catch(() => ({}));
+        const status = String(polled.status || polled.state || "").toLowerCase();
+        urls = extractUrls(polled);
+        if (!urls.length) {
+          try {
+            const resultRes = await fetch(`${ZEN_BASE}/generations/${genId}/result`, {
+              headers: { Authorization: `Bearer ${key}` },
+            });
+            urls = extractUrls(await resultRes.json().catch(() => ({})));
+          } catch {
+            // ignore
+          }
+        }
+        if (urls.length) break;
+        if (["failed", "error", "cancelled"].includes(status)) {
+          throw new Error(polled.error || polled.message || "Generation failed");
         }
       }
-      if (url) break;
-      if (["failed", "error", "cancelled"].includes(status)) {
-        return NextResponse.json(
-          { error: polled.error || polled.message || "Generation failed" },
-          { status: 500 }
-        );
-      }
     }
+    return urls[0] || null;
   }
 
-  if (!url) {
-    return NextResponse.json({ error: "Timed out waiting for the image" }, { status: 504 });
+  // Run versions: v1 base; v2 wider camera; v3 tighter crop; v4 lighting (in parallel)
+  const jobs = Array.from({ length: versions }, (_, i) => runOne(i));
+  const settled = await Promise.allSettled(jobs);
+  let urls = settled
+    .filter((s): s is PromiseFulfilledResult<string | null> => s.status === "fulfilled")
+    .map((s) => s.value)
+    .filter((u): u is string => Boolean(u));
+
+  if (!urls.length) {
+    const firstErr = settled.find((s) => s.status === "rejected") as PromiseRejectedResult | undefined;
+    const msg = firstErr?.reason?.message || "Timed out waiting for the image";
+    return NextResponse.json({ error: msg }, { status: 504 });
   }
 
-  // Second-pass anatomy refine for 3-person scenes (Seedream often fuses genitals on groups)
+  // Optional anatomy refine only for single 3-person result
   const menCount = (castPeople.length ? castPeople : refs).filter((p: any) => {
     const r = String(p.role || "");
     return r.includes("husband") || r.includes("male");
   }).length;
-  if ((castPeople.length || refs.length) >= 3) {
+  if (versions === 1 && (castPeople.length || refs.length) >= 3) {
     try {
+      let url = urls[0];
       const firstBytes = await (await fetch(url)).arrayBuffer();
       const fixAsset = await zenUpload(key, firstBytes, "anatomy-fix.jpg");
       const fixPrompt = refineAnatomyPrompt(menCount);
@@ -340,34 +397,53 @@ export async function POST(req: NextRequest) {
           if (["failed", "error", "cancelled"].includes(status)) break;
         }
       }
-      if (fixedUrl) url = fixedUrl;
+      if (fixedUrl) urls = [fixedUrl];
     } catch {
       // keep first-pass URL if refine fails
     }
   }
 
-  let path: string | null = null;
-  try {
-    const img = await fetch(url);
-    const bytes = await img.arrayBuffer();
-    path = `${studioId}/${Date.now()}.jpg`;
-    await supabase.storage.from("library").upload(path, bytes, {
-      contentType: "image/jpeg",
-      upsert: true,
+  // Private album spec: outputs are PREVIEW only until explicit Keep.
+  // Do not insert into generations here — that happens on POST /api/library (Keep).
+  const prompt = `${sceneId} | ${sceneName} (${who})`;
+  const items: { url: string; path: string | null; id: string | null }[] = [];
+
+  for (let i = 0; i < urls.length; i++) {
+    let itemUrl = urls[i];
+    let path: string | null = null;
+    try {
+      const img = await fetch(itemUrl);
+      const bytes = await img.arrayBuffer();
+      // preview prefix — not listed in album until Keep
+      path = `${studioId}/preview/${Date.now()}-${i}.jpg`;
+      await supabase.storage.from("library").upload(path, bytes, {
+        contentType: "image/jpeg",
+        upsert: true,
+      });
+      const { data: signed } = await supabase.storage
+        .from("library")
+        .createSignedUrl(path, 60 * 60 * 24); // 24h preview TTL intent
+      if (signed?.signedUrl) itemUrl = signed.signedUrl;
+    } catch {
+      // keep Zen URL
+    }
+
+    items.push({
+      url: itemUrl,
+      path,
+      id: null,
     });
-    const { data: signed } = await supabase.storage
-      .from("library")
-      .createSignedUrl(path, 60 * 60 * 24 * 7);
-    if (signed?.signedUrl) url = signed.signedUrl;
-  } catch {
-    // keep Zen URL
   }
 
-  // Do not insert into library yet — Create page previews first, then Save or Delete
   return NextResponse.json({
-    url,
-    path,
+    url: items[0]?.url || null,
+    path: items[0]?.path || null,
+    id: null,
     kind,
-    prompt: `${sceneId} | ${sceneName} (${who})`,
+    prompt,
+    saved: false,
+    status: "preview",
+    versions: items.length,
+    items,
   });
 }
