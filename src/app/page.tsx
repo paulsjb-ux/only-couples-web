@@ -1,110 +1,260 @@
 import Link from "next/link";
-import Image from "next/image";
 
+/**
+ * The Other Room — marketing homepage
+ * Wire /studio or /sign-in to your real entry route.
+ */
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-[#1C1917] text-[#F5F0E8]">
-      <header className="relative z-20 mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
-        <Link href="/" className="flex items-center">
-          <Image
-            src="/brand/logos/01-wordmark-cream-on-black.jpg"
-            alt="The Other Room"
-            width={200}
-            height={48}
-            className="h-8 w-auto sm:h-9"
-            priority
-          />
+    <>
+      <header className="nav">
+        <Link href="/" className="nav-mark">
+          The Other Room
         </Link>
-        <nav className="flex items-center gap-6 text-[13px] text-[#F5F0E8]/75">
-          <Link href="/how-it-works" className="hidden sm:inline hover:text-[#F5F0E8]">
-            How it works
-          </Link>
-          <Link href="/pricing" className="hidden sm:inline hover:text-[#F5F0E8]">
-            Pricing
-          </Link>
-          <Link href="/login" className="hover:text-[#F5F0E8]">
-            Sign in
-          </Link>
-        </nav>
+        <div className="nav-actions">
+          <a href="#how">How it works</a>
+          <Link href="/studio">Sign in</Link>
+        </div>
       </header>
 
-      <section className="relative mx-auto flex min-h-[calc(100vh-5rem)] max-w-5xl flex-col items-center justify-center px-6 pb-20">
-        <div className="relative w-full max-w-lg">
-          <Image
-            src="/brand/logos/03-wordmark-og-card-with-tagline.jpg"
-            alt="The Other Room — A private studio for the two of you."
-            width={900}
-            height={500}
-            priority
-            className="h-auto w-full object-contain"
-          />
+      <main>
+        {/* HERO */}
+        <section className="hero" id="top">
+          <div className="hero-inner">
+            <p className="hero-kicker">Private by design</p>
+            <h1>The Other Room</h1>
+            <div className="hero-rule" aria-hidden />
+            <p className="hero-tag">A private studio for the two of you.</p>
+            <p className="hero-lead">
+              Scenes with <strong>your</strong> faces — not a random model.
+              Soft by default. Explicit only when you both choose. Nothing is
+              public.
+            </p>
+            <div className="hero-cta">
+              <Link className="btn btn-primary" href="/studio">
+                Come in
+              </Link>
+              <a className="btn btn-ghost" href="#how">
+                How it works
+              </a>
+            </div>
+            <p className="hero-foot">
+              Together, or on your own — then invite them in.
+            </p>
+          </div>
+        </section>
+
+        {/* PROMISE */}
+        <div className="promise">
+          <div className="promise-grid">
+            <div className="promise-item">
+              <h3 className="serif">Your faces</h3>
+              <p>
+                Identity lock for two real people. It should look like you —
+                not a stranger from a prompt dump.
+              </p>
+            </div>
+            <div className="promise-item">
+              <h3 className="serif">Your pace</h3>
+              <p>
+                Start soft. Move to playful or after dark only when you&apos;re
+                ready. She shouldn&apos;t bounce on first open.
+              </p>
+            </div>
+            <div className="promise-item">
+              <h3 className="serif">Your album</h3>
+              <p>
+                Preview, then keep or discard. A private library — not a feed,
+                not a gallery, not training data.
+              </p>
+            </div>
+          </div>
         </div>
 
-        <p className="mt-10 max-w-md text-center text-sm sm:text-base leading-relaxed text-[#F5F0E8]/80">
-          Private scenes you would never commission. Soft by default.
-          Then you close the album.
-        </p>
+        {/* HOW */}
+        <section className="section how" id="how">
+          <div>
+            <p className="section-label">How it works</p>
+            <h2 className="section-title">From empty room to private album</h2>
+            <p className="section-body">
+              Built for couples who want something personal — a bit of fun
+              through to scenes you&apos;d never ask a photographer for.
+            </p>
+          </div>
+          <ol className="steps">
+            <li className="step">
+              <span className="step-num">01</span>
+              <div>
+                <h3 className="serif">Lock your faces</h3>
+                <p>
+                  Each of you adds a few reference photos. They stay in your
+                  studio. We don&apos;t train on them.
+                </p>
+              </div>
+            </li>
+            <li className="step">
+              <span className="step-num">02</span>
+              <div>
+                <h3 className="serif">Start soft</h3>
+                <p>
+                  The first scene is gentle — bed, morning light, the two of
+                  you. No shock, no homepage explicit.
+                </p>
+              </div>
+            </li>
+            <li className="step">
+              <span className="step-num">03</span>
+              <div>
+                <h3 className="serif">Preview, then decide</h3>
+                <p>
+                  Every image is a preview until you Keep it. Discard removes
+                  it. Keep puts it in your private album.
+                </p>
+              </div>
+            </li>
+            <li className="step">
+              <span className="step-num">04</span>
+              <div>
+                <h3 className="serif">Invite when you&apos;re ready</h3>
+                <p>
+                  Open the studio alone, or invite your partner. Shared library.
+                  Optional hide-from-partner for surprises.
+                </p>
+              </div>
+            </li>
+          </ol>
+        </section>
 
-        <div className="mt-8 flex flex-col sm:flex-row items-center gap-4">
-          <Link
-            href="/signup"
-            className="inline-block rounded-full bg-[#7A3E48] px-8 py-3 text-sm font-semibold text-[#F5F0E8] hover:bg-[#8B4A54] transition shadow-lg shadow-[#7A3E48]/25"
-          >
+        {/* INTENSITY */}
+        <section className="section" id="intensity">
+          <p className="section-label">Intensity</p>
+          <h2 className="section-title">Soft first. Then as far as you want.</h2>
+          <p className="section-body">
+            One product, three doors. You choose how far to open them — never
+            the other way around.
+          </p>
+          <div className="tiers">
+            <article className="tier tier-soft">
+              <p className="label">Always open</p>
+              <h3 className="serif">Soft</h3>
+              <p>
+                Smiling, close, clothed or barely. The scene that should always
+                work on first try.
+              </p>
+            </article>
+            <article className="tier">
+              <p className="label">When you&apos;re ready</p>
+              <h3 className="serif">Playful</h3>
+              <p>
+                Tease, lingerie, tension. Still private. Still the two of you.
+              </p>
+            </article>
+            <article className="tier">
+              <p className="label">Consent gated</p>
+              <h3 className="serif">After dark</h3>
+              <p>
+                Explicit, on your terms. Unlocked only after you say so — not on
+                the homepage.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        {/* PRIVACY */}
+        <section className="section" id="privacy">
+          <p className="section-label">Privacy</p>
+          <h2 className="section-title">This is not a public gallery</h2>
+          <p className="section-body">
+            The product is the closed album. If it ever feels like a feed,
+            we&apos;ve failed.
+          </p>
+          <div className="privacy-box">
+            <ul className="privacy-list">
+              <li>
+                <span className="dot" />
+                Photos stay in your studio — not used to train a public model
+              </li>
+              <li>
+                <span className="dot" />
+                No public gallery by default. No SEO of your scenes
+              </li>
+              <li>
+                <span className="dot" />
+                Delete account and we wipe storage
+              </li>
+              <li>
+                <span className="dot" />
+                Preview → keep or discard. Nothing auto-saves into the album
+              </li>
+              <li>
+                <span className="dot" />
+                Hide from partner when you want a surprise
+              </li>
+              <li>
+                <span className="dot" />
+                Adult-only access, real enough for the way we process payments
+              </li>
+            </ul>
+          </div>
+        </section>
+
+        {/* WHO */}
+        <section className="section" id="who">
+          <p className="section-label">Who it&apos;s for</p>
+          <h2 className="section-title">Built for couples — not for everyone</h2>
+          <div className="audience">
+            <div className="audience-card">
+              <h3 className="serif">Couples already sharing</h3>
+              <p>
+                You send nudes or play with AI casually. You want it to look
+                like both of you.
+              </p>
+            </div>
+            <div className="audience-card">
+              <h3 className="serif">Someone buying for two</h3>
+              <p>
+                A gift of a private studio — soft enough she&apos;ll open it,
+                deep enough you&apos;ll both stay.
+              </p>
+            </div>
+            <div className="audience-card">
+              <h3 className="serif">One consistent &ldquo;us&rdquo;</h3>
+              <p>
+                Not a new stranger every prompt. The same two faces, a
+                relationship-shaped scene list.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* FINAL CTA */}
+        <div className="final">
+          <h2 className="serif">
+            Close the door.
+            <br />
+            Open the album.
+          </h2>
+          <p>Private scenes with your faces. Soft by default. Yours alone.</p>
+          <Link className="btn btn-primary" href="/studio">
             Come in
           </Link>
-          <Link
-            href="/how-it-works"
-            className="text-sm text-[#F5F0E8]/70 underline-offset-4 hover:text-[#F5F0E8] hover:underline"
-          >
-            How it works
-          </Link>
         </div>
+      </main>
 
-        <p className="mt-12 text-center text-xs tracking-wide text-[#C4A574]">
-          Together, or on your own. Then invite them in.
-        </p>
-      </section>
-
-      <section className="border-t border-[#7A3E48]/35 bg-[#161311]">
-        <div className="mx-auto grid max-w-5xl gap-12 px-6 py-20 sm:grid-cols-3">
-          <div>
-            <p className="mb-3 text-[11px] uppercase tracking-[0.2em] text-[#C4A574]">The room</p>
-            <p className="text-sm leading-relaxed text-[#F5F0E8]/85">
-              Not a feed. Not an audience. A closed door, two faces, and whatever you want to see of each other.
-            </p>
-          </div>
-          <div>
-            <p className="mb-3 text-[11px] uppercase tracking-[0.2em] text-[#C4A574]">How far</p>
-            <p className="text-sm leading-relaxed text-[#F5F0E8]/85">
-              Soft. Playful. After dark. Same lock. You never have to open the last room until you both want it.
-            </p>
-          </div>
-          <div>
-            <p className="mb-3 text-[11px] uppercase tracking-[0.2em] text-[#C4A574]">The night</p>
-            <p className="text-sm leading-relaxed text-[#F5F0E8]/85">
-              Add your faces once. Pick a scene. Look. Keep it — or discard it. Nothing is in the album until you say so.
-            </p>
-          </div>
+      <footer className="site-footer">
+        <div>
+          <p className="footer-mark">The Other Room</p>
+          <p style={{ marginTop: "0.35rem" }}>
+            A private studio for the two of you.
+          </p>
         </div>
-      </section>
-
-      <footer className="border-t border-[#7A3E48]/25 bg-[#1C1917] px-6 py-10 text-center text-xs text-[#F5F0E8]/50">
-        <p className="mb-2">
-          The Other Room is a private studio for consenting adults. Personal use. Your faces stay in your studio.
-        </p>
-        <p className="flex flex-wrap justify-center gap-4">
-          <Link href="/privacy" className="hover:text-[#F5F0E8]">
-            Privacy
-          </Link>
-          <Link href="/pricing" className="hover:text-[#F5F0E8]">
-            Pricing
-          </Link>
-          <Link href="/contact" className="hover:text-[#F5F0E8]">
-            Contact
-          </Link>
-          <span>18+</span>
-        </p>
+        <div className="footer-links">
+          <a href="#privacy">Privacy</a>
+          <a href="#how">How it works</a>
+          <Link href="/terms">Terms</Link>
+          <Link href="/contact">Contact</Link>
+        </div>
       </footer>
-    </div>
+    </>
   );
 }
