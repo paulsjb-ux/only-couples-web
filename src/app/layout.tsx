@@ -17,9 +17,12 @@ const nunito = Nunito({
 });
 
 export const metadata: Metadata = {
-  title: "Only Couples — Private Erotic Studio",
-  description:
-    "A private erotic studio for two. Soft by default, intense when you choose. Classy, consensual, yours alone.",
+  title: {
+    default: "The Other Room",
+    template: "%s · The Other Room",
+  },
+  description: "A private studio for the two of you.",
+  applicationName: "The Other Room",
   robots: "noindex, nofollow",
 };
 

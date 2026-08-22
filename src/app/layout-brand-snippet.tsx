@@ -5,8 +5,8 @@
  *
  * export const metadata: Metadata = {
  *   title: {
- *     default: "Only Couples",
- *     template: "%s · Only Couples",
+ *     default: "The Other Room",
+ *     template: "%s · The Other Room",
  *   },
  *   description:
  *     "A private studio for the two of you. Your faces. Your terms. Nothing leaves your studio.",
@@ -15,7 +15,7 @@
  *     apple: "/apple-touch-icon.png",
  *   },
  *   openGraph: {
- *     title: "Only Couples",
+ *     title: "The Other Room",
  *     description: "A private studio for the two of you.",
  *     images: [{ url: "/brand/social/og-card.jpg", width: 1168, height: 784 }],
  *   },
@@ -31,8 +31,8 @@
 
 export const brandMetadata = {
   title: {
-    default: "Only Couples",
-    template: "%s · Only Couples",
+    default: "The Other Room",
+    template: "%s · The Other Room",
   },
   description:
     "A private studio for the two of you. Your faces. Your terms. Nothing leaves your studio.",
@@ -41,7 +41,7 @@ export const brandMetadata = {
     apple: "/apple-touch-icon.png",
   },
   openGraph: {
-    title: "Only Couples",
+    title: "The Other Room",
     description: "A private studio for the two of you.",
     images: [{ url: "/brand/social/og-card.jpg", width: 1168, height: 784 }],
   },
