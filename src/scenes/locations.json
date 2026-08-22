@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "default_location_id": "bedroom_morning",
+  "notes": "Never omit location. Soft default is bedroom_morning — not shower.",
+  "locations": [
+    {
+      "id": "bedroom_morning",
+      "intensity": ["soft", "playful", "after_dark"],
+      "label": "Morning bed",
+      "prompt": "shared bed, soft morning light, linen sheets, warm intimate bedroom, natural window light",
+      "is_default_soft": true
+    },
+    {
+      "id": "bedroom_evening",
+      "intensity": ["soft", "playful", "after_dark"],
+      "label": "Evening bed",
+      "prompt": "shared bed, warm lamplight, linen sheets, intimate bedroom, soft shadows"
+    },
+    {
+      "id": "hotel_bed",
+      "intensity": ["soft", "playful", "after_dark"],
+      "label": "Hotel bed",
+      "prompt": "hotel bedroom, large bed, soft ambient light, neutral linens, private suite"
+    },
+    {
+      "id": "couch",
+      "intensity": ["soft", "playful"],
+      "label": "Couch",
+      "prompt": "living room couch, soft indoor light, casual intimate setting, home interior"
+    },
+    {
+      "id": "window",
+      "intensity": ["soft", "playful"],
+      "label": "By the window",
+      "prompt": "by a window, soft daylight, quiet bedroom corner, intimate and calm"
+    },
+    {
+      "id": "mirror",
+      "intensity": ["playful", "after_dark"],
+      "label": "Mirror",
+      "prompt": "bedroom with a mirror, warm indoor light, private domestic setting"
+    },
+    {
+      "id": "against_wall",
+      "intensity": ["playful", "after_dark"],
+      "label": "Against the wall",
+      "prompt": "intimate indoor room, plain wall, soft directional light, private setting"
+    },
+    {
+      "id": "shower",
+      "intensity": ["playful", "after_dark"],
+      "label": "Shower",
+      "prompt": "steamy shower, wet skin, glass and tiles, bathroom",
+      "optional": true,
+      "notes": "Only when user explicitly selects shower. Do not use as default."
+    }
+  ]
+}
