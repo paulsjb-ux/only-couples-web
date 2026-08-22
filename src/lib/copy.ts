@@ -26,7 +26,7 @@ export const COPY = {
 
 export const EMAILS = {
   waitlist:
-    "You’re on the list for Only Couples.\n\nA private studio for the two of you. We’ll write when it’s your turn — not before.",
+    "You’re on the list for The Other Room.\n\nA private studio for the two of you. We’ll write when it’s your turn — not before.",
   invite:
     "They opened a studio for the two of you.\n\nAdd your face when you’re ready. You can delete anything, including the whole album.",
   firstScene:
