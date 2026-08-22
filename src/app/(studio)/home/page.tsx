@@ -50,7 +50,7 @@ export default function HomePage() {
     <div>
       <div className="hero mb-8">
         <h1
-          className="text-2xl md:text-3xl font-medium mb-2"
+          className="text-2xl md:text-3xl font-medium mb-2 text-white"
           style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
         >
           The Other Room
