@@ -2,7 +2,7 @@ import Link from "next/link";
 
 /**
  * The Other Room — marketing homepage
- * Wire /studio or /sign-in to your real entry route.
+ * CTAs go to /login; middleware sends authenticated users to /home.
  */
 export default function HomePage() {
   return (
@@ -13,7 +13,7 @@ export default function HomePage() {
         </Link>
         <div className="nav-actions">
           <a href="#how">How it works</a>
-          <Link href="/studio">Sign in</Link>
+          <Link href="/login">Sign in</Link>
         </div>
       </header>
 
@@ -31,7 +31,7 @@ export default function HomePage() {
               public.
             </p>
             <div className="hero-cta">
-              <Link className="btn btn-primary" href="/studio">
+              <Link className="btn btn-primary" href="/login">
                 Come in
               </Link>
               <a className="btn btn-ghost" href="#how">
@@ -235,7 +235,7 @@ export default function HomePage() {
             Open the album.
           </h2>
           <p>Private scenes with your faces. Soft by default. Yours alone.</p>
-          <Link className="btn btn-primary" href="/studio">
+          <Link className="btn btn-primary" href="/login">
             Come in
           </Link>
         </div>
@@ -251,7 +251,7 @@ export default function HomePage() {
         <div className="footer-links">
           <a href="#privacy">Privacy</a>
           <a href="#how">How it works</a>
-          <Link href="/terms">Terms</Link>
+          <Link href="/privacy">Privacy policy</Link>
           <Link href="/contact">Contact</Link>
         </div>
       </footer>
