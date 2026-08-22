@@ -101,17 +101,17 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
               background: "linear-gradient(135deg, #8B4A54, #7A3E48, #5C2E36)",
             }}
           >
-            OC
+            TOR
           </div>
           <div>
             <div
               className="text-lg font-medium leading-tight"
               style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
             >
-              Only Couples
+              The Other Room
             </div>
             <div className="text-[11px] text-[var(--muted)] font-medium">
-              Private erotic studio
+              A private studio for the two of you
             </div>
           </div>
         </div>
@@ -144,7 +144,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
             className="text-base font-medium"
             style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
           >
-            Only Couples
+            The Other Room
           </div>
           <div className="w-10" /> {/* spacer */}
         </header>
@@ -165,13 +165,13 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
                       background: "linear-gradient(135deg, #8B4A54, #7A3E48, #5C2E36)",
                     }}
                   >
-                    OC
+                    TOR
                   </div>
                   <span
                     className="text-lg font-medium"
                     style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
                   >
-                    Only Couples
+                    The Other Room
                   </span>
                 </div>
                 <button
