@@ -1,0 +1,34 @@
+/* Readable text on cream / card backgrounds — import in layout or globals */
+:root {
+  --text: #1c1917;
+  --muted: #5c534c;
+  --line: #e7ddd3;
+  --accent: #3A1F24;
+}
+
+.text-\[var\(--muted\)\],
+.text-muted,
+[class*="text-[var(--muted)]"] {
+  color: var(--muted) !important;
+}
+
+.card {
+  color: var(--text);
+}
+
+.card .text-sm,
+.card .text-xs {
+  color: inherit;
+}
+
+/* Dark hero bands keep light type */
+.hero,
+.hero-soft,
+.hero-playful,
+.hero-intense {
+  color: #f5f0ea;
+}
+
+.hero a {
+  color: #f5f0ea;
+}

@@ -1,0 +1,24 @@
+/* The Other Room — brand tokens */
+:root {
+  --tor-black: #0a0a0a;
+  --tor-cream: #f5f0e8;
+  --tor-gold: #c4a574;
+  --tor-text-on-dark: #f5f0e8;
+  --tor-text-on-light: #1c1917;
+}
+
+.tor-wordmark-dark {
+  max-height: 2.5rem;
+  width: auto;
+}
+
+.tor-hero-lockup {
+  max-width: 28rem;
+  margin: 0 auto;
+}
+
+.tor-rings {
+  width: 4rem;
+  height: auto;
+  opacity: 0.9;
+}
