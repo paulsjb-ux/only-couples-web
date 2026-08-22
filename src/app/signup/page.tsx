@@ -48,8 +48,22 @@ export default function SignupPage() {
       return;
     }
 
-    // In a full implementation we would also create a studio row in the DB here
-    // via a server action or edge function.
+    // Create studio + membership (server route handles RLS / schema)
+    // Session may already be available after signUp when email confirm is off.
+    try {
+      const studioRes = await fetch("/api/studio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: studioName || "Our Studio" }),
+      });
+      const studioData = await studioRes.json().catch(() => ({}));
+      if (!studioRes.ok && studioRes.status !== 401) {
+        // Soft-fail: user can still log in later; studio can be created on first visit
+        console.warn("Studio create:", studioData.error || studioRes.status);
+      }
+    } catch (err) {
+      console.warn("Studio create network error", err);
+    }
 
     router.push("/home");
     router.refresh();
