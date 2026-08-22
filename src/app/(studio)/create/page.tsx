@@ -421,7 +421,7 @@ function CreateInner() {
     <div>
       <div className="hero mb-8">
         <h1
-          className="text-2xl font-medium mb-1"
+          className="text-2xl font-medium mb-1 text-white"
           style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
         >
           {sceneName}
