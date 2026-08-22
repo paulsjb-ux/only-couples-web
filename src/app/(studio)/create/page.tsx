@@ -548,7 +548,7 @@ function CreateInner() {
             <input
               ref={outfitFileRef}
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp,image/heic,.jpg,.jpeg,.png,.webp"
               className="hidden"
               onChange={(e) => {
                 const file = e.target.files?.[0];
@@ -709,9 +709,8 @@ function CreateInner() {
           <input
             ref={fileRef}
             type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
+            accept="image/jpeg,image/png,image/webp,image/heic,.jpg,.jpeg,.png,.webp"
+                        className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) void uploadCastPhoto(file, uploadRole);
