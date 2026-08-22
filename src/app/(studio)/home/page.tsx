@@ -53,7 +53,7 @@ export default function HomePage() {
           className="text-2xl md:text-3xl font-medium mb-2"
           style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
         >
-          Only Couples
+          The Other Room
         </h1>
         <p className="text-white/90 text-sm md:text-base max-w-lg">
           A private erotic studio for two — soft by default, intense when you choose.
@@ -97,7 +97,7 @@ export default function HomePage() {
       </div>
 
       <p className="mt-10 text-center text-xs text-[var(--muted)]">
-        Only Couples · private play studio · 18+
+        The Other Room · private studio · 18+
       </p>
     </div>
   );
