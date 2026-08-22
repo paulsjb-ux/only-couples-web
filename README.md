@@ -1,89 +1,108 @@
-# Only Couples — New Frontend
+# The Other Room
 
-Modern Next.js rebuild of the Only Couples private erotic studio.  
-Moves off Streamlit onto a proper commercial-ready frontend while keeping Supabase as the backend of record.
+A private erotic studio for consenting adults — **soft by default, intense when you choose**.  
+Formerly prototyped as “Only Couples.” Product name is **The Other Room**.
+
+Tagline: *A private studio for the two of you.*
+
+---
 
 ## Stack
 
-- **Next.js 15** (App Router) + TypeScript
-- **Tailwind CSS v4**
-- **Supabase** (Auth + Database + Storage) — you already have this
-- **Lucide React** for icons
-- Design system tuned for classy / high-end feel (deep rose, champagne gold, warm ivory)
+| Layer | Choice |
+|--------|--------|
+| Framework | **Next.js 15** (App Router) + TypeScript |
+| UI | Tailwind CSS v4, Lucide icons |
+| Auth / DB / Storage | **Supabase** (`@supabase/ssr` + `supabase-js`) |
+| Image generation | **ZenCreator** API (`SEEDREAM_5_PRO`) |
+| Hosting | Vercel |
+
+Design: restrained burgundy + cream + gold. Classy over sleazy. No public feeds.
+
+---
 
 ## Getting started
 
 ```bash
-cd only-couples-web
-
-# 1. Install dependencies
+# 1. Install
 npm install
 
-# 2. Copy env and fill in your Supabase values
+# 2. Environment
 cp .env.local.example .env.local
-# Edit .env.local with:
-#   NEXT_PUBLIC_SUPABASE_URL=
-#   NEXT_PUBLIC_SUPABASE_ANON_KEY=
-#   (and later ZENCREATOR_API_KEY)
+```
 
-# 3. Run the dev server
+Fill in `.env.local`:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+ZENCREATOR_API_KEY=your_zencreator_key
+```
+
+```bash
+# 3. Dev server (Turbopack)
 npm run dev
 ```
 
-Open http://localhost:3000
+Open [http://localhost:3000](http://localhost:3000).
 
-## Current status (Phase 1 — Frontend foundation)
+### Scripts
 
-### Done
-- Design system (colours, typography, components) — restrained burgundy + gold, no candy pink
-- Landing page
-- Login / Signup with 18+ + consent gates
-- Studio shell (desktop sidebar + mobile drawer)
-- Core pages:
-  - Home
-  - Scenes (Soft / Playful / Intense with intensity toggle)
-  - Your people
-  - Free play
-  - Library
-  - Account (credits + look defaults)
+| Command | Purpose |
+|---------|---------|
+| `npm run dev` | Local dev with Turbopack |
+| `npm run build` | Production build (**prefer `next build` without `--turbopack` on Vercel**) |
+| `npm start` | Serve production build |
+| `npm run lint` | ESLint |
 
-### Next (in priority order)
+> **Vercel note:** Use `"build": "next build"` in `package.json`. `next build --turbopack` has caused production build failures.
 
-1. **Supabase schema**  
-   - `studios` table  
-   - `people` (faces + roles)  
-   - `generations` / library  
-   - `credits` ledger  
-   - Couple linking
+---
 
-2. **Real auth protection**  
-   - Middleware that redirects unauthenticated users  
-   - Session handling with `@supabase/ssr`
+## What’s in this build
 
-3. **People upload flow**  
-   - Face upload → Supabase Storage  
-   - Role assignment (Wife / Husband / Lover)
+### Marketing (public)
+- Landing (`/`)
+- How it works, Pricing, About, Contact, Privacy
+- Login / Signup with **18+** and consent gates
 
-4. **Port the template catalog**  
-   - Move `catalog.py` data into TypeScript or a JSON/API  
-   - Real template cards with previews
+### Studio (auth required)
+| Route | Purpose |
+|-------|---------|
+| `/home` | Soft favourites + quick links |
+| `/scenes` | Catalog — Soft / Playful / Intense |
+| `/people` | Faces + body slots (wife, husband, lovers) |
+| `/create` | Free play / scene generate → preview → keep or discard |
+| `/library` | Private album of kept stills |
+| `/account` | Credits placeholder + look defaults |
+| `/join` | Partner invite code (create / redeem) |
 
-5. **Generation pipeline**  
-   - Server action or API route that calls ZenCreator  
-   - Job status + credit spend/refund  
-   - Results saved to library
+### APIs
+- `POST /api/generate` — ZenCreator pipeline (faces, optional outfit, multi-version, anatomy lock)
+- `POST` / `DELETE /api/library` — keep or remove from album
+- `POST` / `GET /api/studio` — create / fetch studio membership
 
-6. **Stripe credits**  
-   - Buy credit packs  
-   - Webhook to top up the ledger
+### Flow
+**Generate → Preview → Keep (album) or Discard**  
+Nothing is public. Previews are temporary until kept.
+
+### Outfit try-on
+On Create / Scenes: upload a garment image, pick wearer, generate with outfit lock + face identity from references.
+
+---
 
 ## Design principles (do not break)
 
-- Soft by default, intense only when deliberately chosen
-- Classy over sleazy (Killing Kittens energy)
-- Mobile-first, but looks premium on laptop
-- Private by design — no public feeds, no discovery
-- Consent language is always present
+1. **Soft first** — intense only when deliberately chosen  
+2. **Classy over sleazy** — members-club energy, not neon porn grid  
+3. **Private by design** — no discovery, no public gallery, no training on user photos  
+4. **Consent language always present**  
+5. **Couple studio is first-class**; solo is allowed but not the default UX  
+6. **Mobile-first**, premium on laptop  
+
+Brand assets live under `public/brand/` (wordmarks, rings, TOR monogram). See `docs/brand-kit.md`.
+
+---
 
 ## Project structure
 
@@ -91,27 +110,69 @@ Open http://localhost:3000
 src/
   app/
     page.tsx                 # Landing
-    login/                   # Login
-    signup/                  # Create studio
-    (studio)/                # Authenticated area
-      layout.tsx             # StudioShell
-      home/
-      scenes/
-      people/
-      create/
+    login/  signup/
+    about/ how-it-works/ pricing/ contact/ privacy/
+    (studio)/                # Auth-gated shell
+      home/ scenes/ people/ create/ library/ account/ join/
+    api/
+      generate/              # ZenCreator
       library/
-      account/
+      studio/
   components/
-    StudioShell.tsx          # Sidebar + mobile nav
+    StudioShell.tsx
+    marketing/nav.tsx        # MarketingNav + MarketingFooter
+    brand/                   # Wordmark, RingsIcon
   lib/
-    supabase/
-      client.ts
-      server.ts
-    utils.ts
+    scene-cores.ts           # Prompt cores per scene id
+    presets.ts               # Face/body presets
+    copy.ts                  # UI / email microcopy
+    supabase/                # browser + server clients
+middleware.ts                # Auth redirects (root only — do not also keep src/middleware.ts)
+docs/
+  brand-kit.md
+  private-album-spec.md
+public/brand/                # Logos, icons, hero
 ```
 
-## Notes for the original Streamlit app
+---
 
-- Keep the old Streamlit version running until the new frontend is feature-complete.
-- The excellent prompt catalog and intensity packs in `catalog.py` should be ported carefully — they are a core asset.
-- Credits, people, and gallery data currently live in local folders + optional Supabase Storage. We will migrate that data model into proper tables.
+## Supabase (minimum)
+
+Tables the app expects:
+
+- `studios` — shared workspace  
+- `studio_members` — user ↔ studio + role (`owner` \| `partner`)  
+- `people` — roles, `photo_path` / `photo_body` / `photo_angle`, body attrs  
+- `generations` — kept library rows (`result_url`, optional `storage_path`, `status`)  
+- `studio_invites` — optional partner codes  
+
+Storage buckets: **`people`**, **`library`** (RLS so users only access their studio paths).
+
+Album model details: `docs/private-album-spec.md`.
+
+---
+
+## Deploy (Vercel)
+
+1. Connect the GitHub repo; branch `main`.  
+2. Set environment variables (Production + Preview as needed):  
+   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `ZENCREATOR_API_KEY`  
+3. Build command should run **`next build`** (not Turbopack).  
+4. Push to `main` or use **Redeploy** on the Deployments tab.
+
+---
+
+## Roadmap (next)
+
+1. Harden Supabase schema + RLS (credits ledger, dual-approve delete)  
+2. Real credit check/spend on generate; Stripe packs  
+3. Job status polling UX for long gens  
+4. Full partner invite emails  
+5. Video kind end-to-end (UI accepts it; pipeline is stills-first today)
+
+---
+
+## Licence / use
+
+Private product. For consenting adults only. Personal use.  
+We do not train public models on your references. No public gallery.
