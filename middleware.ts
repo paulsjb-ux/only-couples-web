@@ -32,8 +32,17 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
+
+  // Marketing + legal pages are public
   const isPublic =
-    path === "/" || path.startsWith("/login") || path.startsWith("/signup");
+    path === "/" ||
+    path.startsWith("/login") ||
+    path.startsWith("/signup") ||
+    path.startsWith("/about") ||
+    path.startsWith("/how-it-works") ||
+    path.startsWith("/pricing") ||
+    path.startsWith("/privacy") ||
+    path.startsWith("/contact");
 
   if (!user && !isPublic) {
     return NextResponse.redirect(new URL("/login", request.url));
@@ -47,5 +56,13 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: [
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization)
+     * - favicon.ico, icons, brand assets
+     */
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
 };
