@@ -28,3 +28,30 @@ export function MarketingNav() {
     </header>
   );
 }
+
+export function MarketingFooter() {
+  return (
+    <footer className="border-t border-white/10 px-6 py-10 text-center text-xs text-[#f5f0e8]/50">
+      <p className="mb-2">
+        The Other Room is a private studio for consenting adults. Personal use. Your faces
+        stay in your studio.
+      </p>
+      <p className="flex flex-wrap justify-center gap-4">
+        <Link href="/privacy" className="hover:text-[#f5f0e8]">
+          Privacy
+        </Link>
+        <Link href="/pricing" className="hover:text-[#f5f0e8]">
+          Pricing
+        </Link>
+        <Link href="/contact" className="hover:text-[#f5f0e8]">
+          Contact
+        </Link>
+        <Link href="/about" className="hover:text-[#f5f0e8]">
+          About
+        </Link>
+        <span>18+</span>
+      </p>
+    </footer>
+  );
+}
+
