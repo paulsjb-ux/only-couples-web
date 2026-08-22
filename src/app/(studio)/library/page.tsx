@@ -51,7 +51,7 @@ export default function LibraryPage() {
       const href = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = href;
-      a.download = `only-couples-${id.slice(0, 8)}.jpg`;
+      a.download = `the-other-room-${id.slice(0, 8)}.jpg`;
       a.rel = "noopener";
       document.body.appendChild(a);
       a.click();
