@@ -112,7 +112,7 @@ export default function LibraryPage() {
         <div className="tor-library-grid">
           {items.map((item) => (
             <div key={item.id} className="card p-3">
-              <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-[#3A1F24]">
+              <div className="tor-library-frame">
                 {item.result_url ? (
                   <img
                     src={item.result_url}
