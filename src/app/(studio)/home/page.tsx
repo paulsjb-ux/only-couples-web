@@ -75,7 +75,7 @@ const secondaryBtn: React.CSSProperties = {
 
 export default function HomePage() {
   return (
-    <div style={{ position: "relative", zIndex: 5, pointerEvents: "auto", maxWidth: "100%", overflowX: "hidden" }}>
+    <div style={{ position: "relative", zIndex: 5, pointerEvents: "auto", maxWidth: "36rem", margin: "0 auto", overflowX: "hidden" }}>
       <div style={{ marginBottom: 32 }}>
         <h1
           style={{
