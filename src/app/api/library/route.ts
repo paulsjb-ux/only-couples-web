@@ -40,15 +40,39 @@ export async function POST(req: NextRequest) {
 
   if (!url) return NextResponse.json({ error: "Missing url" }, { status: 400 });
 
-  // Prefer columns that exist; soft-fail on optional ones if schema differs
+  // Promote preview → kept path so Library can re-sign durable URLs
+  let storagePath = path;
+  let finalUrl = url;
+  if (path && path.includes("/preview/")) {
+    const keptPath = path.replace("/preview/", "/kept/");
+    try {
+      await supabase.storage.from("library").copy(path, keptPath);
+      storagePath = keptPath;
+      const { data: signed } = await supabase.storage
+        .from("library")
+        .createSignedUrl(keptPath, 60 * 60 * 24 * 30);
+      if (signed?.signedUrl) finalUrl = signed.signedUrl;
+    } catch {
+      // keep original path/url
+    }
+  } else if (path) {
+    try {
+      const { data: signed } = await supabase.storage
+        .from("library")
+        .createSignedUrl(path, 60 * 60 * 24 * 30);
+      if (signed?.signedUrl) finalUrl = signed.signedUrl;
+    } catch {
+      /* */
+    }
+  }
+
   const row: Record<string, unknown> = {
     studio_id: studioId,
     kind,
     prompt,
-    result_url: url,
+    result_url: finalUrl,
   };
-  if (path) row.storage_path = path;
-  // status = kept (when column exists)
+  if (storagePath) row.storage_path = storagePath;
   row.status = "kept";
 
   const { data, error } = await supabase
@@ -58,23 +82,22 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error) {
-    // Retry without optional columns if schema is minimal
     const { data: data2, error: err2 } = await supabase
       .from("generations")
       .insert({
         studio_id: studioId,
         kind,
         prompt,
-        result_url: url,
+        result_url: finalUrl,
       })
       .select("id")
       .single();
 
     if (err2) return NextResponse.json({ error: err2.message }, { status: 500 });
-    return NextResponse.json({ ok: true, id: data2?.id, path });
+    return NextResponse.json({ ok: true, id: data2?.id, path: storagePath, url: finalUrl });
   }
 
-  return NextResponse.json({ ok: true, id: data?.id, path });
+  return NextResponse.json({ ok: true, id: data?.id, path: storagePath, url: finalUrl });
 }
 
 /**
