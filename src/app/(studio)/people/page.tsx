@@ -203,10 +203,10 @@ export default function PeoplePage() {
     onChange: (v: string) => void;
   }) {
     return (
-      <label className="block text-left">
-        <span className="text-xs font-semibold text-[var(--muted)]">{label}</span>
+      <label className="tor-select-wrap" style={{ textAlign: "left" }}>
+        <span className="tor-select-label">{label}</span>
         <select
-          className="mt-1 w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm"
+          className="tor-select"
           value={value || ""}
           onChange={(e) => onChange(e.target.value)}
         >
@@ -230,7 +230,7 @@ export default function PeoplePage() {
 
   return (
     <div>
-      <div className="studio-hero">
+      <div className="studio-hero mb-6">
         <h1
           className="text-2xl font-medium mb-1"
           style={{
@@ -348,7 +348,7 @@ export default function PeoplePage() {
                   })}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div className="tor-select-grid">
                   <Select
                     label="Age"
                     value={person?.age}
