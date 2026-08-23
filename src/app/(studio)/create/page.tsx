@@ -419,7 +419,7 @@ function CreateInner() {
 
   return (
     <div>
-      <div className="hero mb-8">
+      <div className="studio-hero mb-8">
         <h1
           className="text-2xl font-medium mb-1 text-white"
           style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
@@ -466,7 +466,7 @@ function CreateInner() {
                   <div className="flex flex-wrap gap-2 mt-2">
                     <button
                       type="button"
-                      className="btn btn-primary text-xs px-3 py-1.5"
+                      className="btn btn-studio-primary text-xs px-3 py-1.5"
                       onClick={() => saveOne(index)}
                       disabled={busy || item.saved}
                     >
@@ -620,7 +620,7 @@ function CreateInner() {
           </div>
         )}
 
-        <button className="btn btn-primary w-full sm:w-auto" onClick={generate} disabled={busy}>
+        <button className="btn btn-studio-primary w-full sm:w-auto" onClick={generate} disabled={busy}>
           {busy
             ? "Making…"
             : kind === "image" && versions > 1
