@@ -432,7 +432,7 @@ function CreateInner() {
       {/* Results first after generate — save controls at top of this block */}
       <div ref={previewRef}>
         {previews.length > 0 && (
-          <div className="card p-4 mb-8 max-w-2xl border-2 border-[var(--accent)]">
+          <div className="card p-3 sm:p-4 mb-8 w-full max-w-2xl border-2 border-[var(--accent)]">
             <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
               <p className="text-sm font-semibold text-[var(--text)]">
                 {previews.length > 1 ? `${previews.length} versions` : "Your image"}
@@ -449,17 +449,17 @@ function CreateInner() {
               Preview only — not in your album until you Keep. Discard removes it. Download is optional.
             </p>
             <div
-              className={`grid gap-4 ${
-                previews.length === 1 ? "grid-cols-1 max-w-sm" : "grid-cols-2"
+              className={`tor-preview-grid ${
+                previews.length === 1 ? "tor-preview-grid--single" : "tor-preview-grid--multi"
               }`}
             >
               {previews.map((item, index) => (
-                <div key={`${item.url}-${index}`} className="rounded-xl border border-[var(--line)] p-3 bg-white">
-                  <div className="relative w-full aspect-[3/4] rounded-xl overflow-hidden bg-[#3A1F24] ring-1 ring-black/10">
+                <div key={`${item.url}-${index}`} className="rounded-xl border border-[var(--line)] p-2 sm:p-3 bg-white min-w-0">
+                  <div className="relative w-full aspect-[3/4] max-h-[70vh] rounded-xl overflow-hidden bg-[#3A1F24] ring-1 ring-black/10">
                     <img
                       src={item.url}
                       alt={`Version ${index + 1}`}
-                      className="w-full h-full object-cover"
+                      className="tor-img"
                     />
                   </div>
                   <p className="text-xs text-[var(--muted)] mt-2">Version {index + 1}</p>
@@ -497,7 +497,7 @@ function CreateInner() {
       </div>
 
       {/* Create controls ABOVE the 12 presets */}
-      <div className="card p-4 mb-6 max-w-2xl space-y-5">
+      <div className="card p-3 sm:p-4 mb-6 w-full max-w-2xl space-y-5">
         <p className="text-sm font-semibold text-[var(--text)]">Create</p>
 
         <div className="flex flex-wrap gap-2">
@@ -620,7 +620,7 @@ function CreateInner() {
           </div>
         )}
 
-        <button className="btn btn-studio-primary w-full sm:w-auto" onClick={generate} disabled={busy}>
+        <button className="btn btn-studio-primary w-full" onClick={generate} disabled={busy}>
           {busy
             ? "Making…"
             : kind === "image" && versions > 1
@@ -631,7 +631,7 @@ function CreateInner() {
       </div>
 
       {/* Cast */}
-      <div className="card p-4 mb-6 max-w-2xl">
+      <div className="card p-3 sm:p-4 mb-6 w-full max-w-2xl">
         <p className="text-sm font-semibold mb-3 text-[var(--text)]">Cast</p>
         <div className="flex flex-wrap gap-2">
           {ALL_ROLES.map((r) => {
@@ -723,7 +723,7 @@ function CreateInner() {
         </p>
 
         <p className="text-sm font-semibold mt-5 mb-2 text-[var(--text)]">6 women</p>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-2 min-w-0">
           {WOMAN_PRESETS.map((p) => (
             <button
               key={p.id}
@@ -757,7 +757,7 @@ function CreateInner() {
         </div>
 
         <p className="text-sm font-semibold mt-5 mb-2 text-[var(--text)]">6 men</p>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-2 min-w-0">
           {MAN_PRESETS.map((p) => (
             <button
               key={p.id}
