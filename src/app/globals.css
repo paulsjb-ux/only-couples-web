@@ -697,3 +697,26 @@ html, body {
     min-height: 48px;
   }
 }
+
+
+/* People page photo slots — hard size on phone */
+.tor-people-slot.tor-thumb {
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 3 / 4;
+  max-height: 28vw;
+  min-height: 72px;
+  margin-left: auto;
+  margin-right: auto;
+}
+@media (min-width: 640px) {
+  .tor-people-slot.tor-thumb {
+    max-height: 140px;
+  }
+}
+
+/* Scenes cards never overflow */
+.tor-scenes-card {
+  max-width: 100%;
+  min-width: 0;
+}
