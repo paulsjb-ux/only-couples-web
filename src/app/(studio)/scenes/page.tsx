@@ -505,13 +505,13 @@ export default function ScenesPage() {
       ) : null}
 
 
+
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         {shown.map((tpl) => {
           const resultUrl = picFor(tpl.id, tpl.name);
           const needed = tpl.prefer
             .map((role) => inputs.find((i) => i.role === role))
             .filter(Boolean) as { role: string; url: string }[];
-          // Fallback: show any available faces if prefer not loaded
           const faces =
             needed.length > 0
               ? needed
@@ -524,11 +524,10 @@ export default function ScenesPage() {
                 background: "#fff",
                 borderRadius: 16,
                 border: "1px solid rgba(26,22,20,0.08)",
-                padding: "16px 16px 14px",
+                padding: "16px",
                 boxShadow: "0 1px 3px rgba(26,22,20,0.04)",
               }}
             >
-              {/* Title + Try */}
               <div
                 style={{
                   display: "flex",
@@ -584,80 +583,101 @@ export default function ScenesPage() {
                 {tpl.desc}
               </p>
 
-              {/* Input faces + result — same layout for every template */}
+              {/* 50% inputs | 50% output */}
               <div
                 style={{
-                  display: "flex",
-                  flexWrap: "wrap",
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
                   gap: 10,
-                  alignItems: "flex-end",
+                  width: "100%",
+                  alignItems: "stretch",
                 }}
               >
-                {faces.length === 0 ? (
-                  <Link
-                    href="/people"
-                    style={{ fontSize: 12, color: "#8B4A54", textDecoration: "underline" }}
-                  >
-                    Add faces
-                  </Link>
-                ) : (
-                  faces.map((face) => (
-                    <div
-                      key={face.role}
+                {/* LEFT — inputs */}
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 6,
+                    alignItems: "stretch",
+                    minWidth: 0,
+                    width: "100%",
+                  }}
+                >
+                  {faces.length === 0 ? (
+                    <Link
+                      href="/people"
                       style={{
-                        position: "relative",
-                        width: 72,
-                        height: 96,
+                        flex: 1,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        minHeight: 120,
                         borderRadius: 12,
-                        overflow: "hidden",
-                        flexShrink: 0,
-                        background: "#1C1917",
-                        boxShadow: "0 0 0 1px rgba(0,0,0,0.06)",
+                        background: "#F7F0EA",
+                        fontSize: 12,
+                        color: "#8B4A54",
+                        textDecoration: "underline",
                       }}
                     >
-                      <img
-                        src={face.url}
-                        alt=""
+                      Add faces
+                    </Link>
+                  ) : (
+                    faces.map((face) => (
+                      <div
+                        key={face.role}
                         style={{
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "cover",
-                          objectPosition: "top center",
-                          display: "block",
-                        }}
-                      />
-                      <span
-                        style={{
-                          position: "absolute",
-                          bottom: 4,
-                          left: 4,
-                          fontSize: 10,
-                          fontWeight: 600,
-                          color: "#fff",
-                          background: "rgba(0,0,0,0.55)",
-                          padding: "2px 6px",
-                          borderRadius: 6,
+                          position: "relative",
+                          flex: 1,
+                          minWidth: 0,
+                          aspectRatio: "3 / 4",
+                          borderRadius: 12,
+                          overflow: "hidden",
+                          background: "#1C1917",
                         }}
                       >
-                        input
-                      </span>
-                    </div>
-                  ))
-                )}
+                        <img
+                          src={face.url}
+                          alt=""
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "contain",
+                            objectPosition: "top center",
+                            display: "block",
+                          }}
+                        />
+                        <span
+                          style={{
+                            position: "absolute",
+                            bottom: 4,
+                            left: 4,
+                            fontSize: 10,
+                            fontWeight: 600,
+                            color: "#fff",
+                            background: "rgba(0,0,0,0.55)",
+                            padding: "2px 6px",
+                            borderRadius: 6,
+                          }}
+                        >
+                          input
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
 
-                {/* Result — real image or empty reserved slot (no blue ?) */}
+                {/* RIGHT — output */}
                 <div
                   style={{
                     position: "relative",
-                    width: resultUrl ? 120 : 72,
-                    height: 96,
+                    width: "100%",
+                    minWidth: 0,
+                    aspectRatio: "3 / 4",
                     borderRadius: 12,
                     overflow: "hidden",
-                    flexShrink: 0,
                     background: resultUrl
                       ? "#1C1917"
                       : "linear-gradient(145deg, #3a1f24, #7A3E48)",
-                    boxShadow: "0 0 0 1px rgba(0,0,0,0.06)",
                   }}
                 >
                   {resultUrl ? (
@@ -667,9 +687,10 @@ export default function ScenesPage() {
                       style={{
                         width: "100%",
                         height: "100%",
-                        objectFit: "cover",
-                        objectPosition: "top center",
+                        objectFit: "contain",
+                        objectPosition: "center center",
                         display: "block",
+                        background: "#1C1917",
                       }}
                       onError={(e) => {
                         (e.target as HTMLImageElement).style.display = "none";
