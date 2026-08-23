@@ -84,14 +84,16 @@ export default function LibraryPage() {
 
   return (
     <div>
-      <div className="hero mb-8">
+      <div className="studio-hero mb-6">
         <h1
-          className="text-2xl font-medium mb-1 text-white"
-          style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
+          className="text-2xl font-medium mb-1"
+          style={{ fontFamily: "var(--font-cormorant), Georgia, serif", color: "var(--text, #1a1614)" }}
         >
           Library
         </h1>
-        <p className="text-white/90 text-sm">Private album. Nothing is public. We don&apos;t train on your photos.</p>
+        <p className="text-sm" style={{ color: "var(--muted, #5c534c)" }}>
+          Private album. Nothing is public. We don&apos;t train on your photos.
+        </p>
       </div>
 
       {note && <p className="text-sm text-[var(--muted)] mb-4">{note}</p>}
@@ -107,7 +109,7 @@ export default function LibraryPage() {
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        <div className="tor-library-grid">
           {items.map((item) => (
             <div key={item.id} className="card p-3">
               <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-[#3A1F24]">
@@ -115,7 +117,7 @@ export default function LibraryPage() {
                   <img
                     src={item.result_url}
                     alt=""
-                    className="w-full h-full object-cover"
+                    className="tor-img"
                   />
                 ) : null}
               </div>
