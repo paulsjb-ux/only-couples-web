@@ -15,8 +15,7 @@ import {
   Menu,
   X,
 } from "lucide-react";
-import { useState } from "react";
-import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
 
 const NAV = [
   { href: "/home", label: "Home", icon: Home },
@@ -28,10 +27,31 @@ const NAV = [
   { href: "/join", label: "Join partner", icon: UserPlus },
 ];
 
+const TOR_MARK: React.CSSProperties = {
+  background: "linear-gradient(135deg, #8B4A54, #7A3E48, #5C2E36)",
+};
+
+/**
+ * Studio chrome — does NOT rely on Tailwind lg: breakpoints
+ * (those often fail under Tailwind v4 if not scanned).
+ * Uses matchMedia + explicit flex-direction: column for nav.
+ */
 export function StudioShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const apply = () => {
+      setIsDesktop(mq.matches);
+      if (mq.matches) setMobileOpen(false);
+    };
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
 
   async function handleLogout() {
     const supabase = createClient();
@@ -40,165 +60,335 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
     router.refresh();
   }
 
-  const NavLinks = ({ onNavigate }: { onNavigate?: () => void }) => (
-    <nav className="flex flex-col gap-1">
-      <div className="px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
-        Studio
-      </div>
-      {NAV.slice(0, 4).map((item) => {
-        const active = pathname === item.href || pathname.startsWith(item.href + "/");
-        const Icon = item.icon;
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={onNavigate}
-            className={cn(
-              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors",
-              active
-                ? "bg-[var(--accent-soft)] text-[var(--accent-2)] border border-[#E8D0D2]"
-                : "text-[var(--text)] hover:bg-[var(--accent-soft)]/60"
-            )}
-          >
-            <Icon size={18} strokeWidth={2} />
-            {item.label}
-          </Link>
-        );
-      })}
-
-      <div className="px-3 py-2 mt-4 text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
-        You
-      </div>
-      {NAV.slice(4).map((item) => {
-        const active = pathname === item.href;
-        const Icon = item.icon;
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={onNavigate}
-            className={cn(
-              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors",
-              active
-                ? "bg-[var(--accent-soft)] text-[var(--accent-2)] border border-[#E8D0D2]"
-                : "text-[var(--text)] hover:bg-[var(--accent-soft)]/60"
-            )}
-          >
-            <Icon size={18} strokeWidth={2} />
-            {item.label}
-          </Link>
-        );
-      })}
-    </nav>
-  );
-
-  return (
-    <div className="min-h-screen flex bg-[#faf7f5] text-[var(--text)]">
-      {/* Desktop sidebar */}
-      <aside className="hidden lg:flex w-[260px] shrink-0 flex-col border-r border-[var(--line)] bg-gradient-to-b from-white to-[#fff5f8] px-4 py-5">
-        <div className="flex items-center gap-3 px-2 pb-5 mb-2 border-b border-[var(--line)]">
-          <div
-            className="flex h-10 w-10 items-center justify-center rounded-xl text-white text-sm font-extrabold"
-            style={{
-              background: "linear-gradient(135deg, #8B4A54, #7A3E48, #5C2E36)",
-            }}
-          >
-            TOR
-          </div>
-          <div>
-            <div
-              className="text-lg font-medium leading-tight"
-              style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
-            >
-              The Other Room
-            </div>
-            <div className="text-[11px] text-[var(--muted)] font-medium">
-              A private studio for the two of you
-            </div>
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
-          <NavLinks />
-        </div>
-
-        <button
-          onClick={handleLogout}
-          className="mt-4 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-[var(--muted)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)] transition-colors"
+  function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
+    return (
+      <nav
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 4,
+          width: "100%",
+        }}
+      >
+        <div
+          style={{
+            padding: "8px 12px",
+            fontSize: 10,
+            letterSpacing: "0.2em",
+            textTransform: "uppercase",
+            color: "#8a7350",
+          }}
         >
-          <LogOut size={18} />
-          Log out
-        </button>
-      </aside>
+          Studio
+        </div>
+        {NAV.slice(0, 4).map((item) => {
+          const active =
+            pathname === item.href || pathname.startsWith(item.href + "/");
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={onNavigate}
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 12,
+                padding: "10px 12px",
+                borderRadius: 12,
+                fontSize: 14,
+                textDecoration: "none",
+                color: active ? "#1a1614" : "#5c534c",
+                background: active ? "rgba(232, 208, 210, 0.55)" : "transparent",
+                border: active
+                  ? "1px solid #E8D0D2"
+                  : "1px solid transparent",
+                width: "100%",
+                boxSizing: "border-box",
+              }}
+            >
+              <Icon size={18} strokeWidth={1.75} />
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
 
-      {/* Main area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Mobile top bar */}
-        <header className="lg:hidden sticky top-0 z-40 flex items-center justify-between gap-3 border-b border-[var(--line)] bg-white/95 backdrop-blur px-4 py-3">
-          <button
-            onClick={() => setMobileOpen(true)}
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--accent)] text-white"
-            aria-label="Open menu"
-          >
-            <Menu size={20} />
-          </button>
+        <div
+          style={{
+            padding: "8px 12px",
+            marginTop: 12,
+            fontSize: 10,
+            letterSpacing: "0.2em",
+            textTransform: "uppercase",
+            color: "#8a7350",
+          }}
+        >
+          You
+        </div>
+        {NAV.slice(4).map((item) => {
+          const active = pathname === item.href;
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={onNavigate}
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 12,
+                padding: "10px 12px",
+                borderRadius: 12,
+                fontSize: 14,
+                textDecoration: "none",
+                color: active ? "#1a1614" : "#5c534c",
+                background: active ? "rgba(232, 208, 210, 0.55)" : "transparent",
+                border: active
+                  ? "1px solid #E8D0D2"
+                  : "1px solid transparent",
+                width: "100%",
+                boxSizing: "border-box",
+              }}
+            >
+              <Icon size={18} strokeWidth={1.75} />
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
+    );
+  }
+
+  const sidebarInner = (
+    <>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "0 8px 20px",
+          marginBottom: 8,
+          borderBottom: "1px solid rgba(26,22,20,0.1)",
+        }}
+      >
+        <div
+          style={{
+            ...TOR_MARK,
+            width: 40,
+            height: 40,
+            borderRadius: 12,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#fff",
+            fontWeight: 800,
+            fontSize: 13,
+            flexShrink: 0,
+          }}
+        >
+          TOR
+        </div>
+        <div>
           <div
-            className="text-base font-medium"
-            style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
+            style={{
+              fontFamily: "var(--font-cormorant), Georgia, serif",
+              fontSize: 18,
+              color: "#1a1614",
+              lineHeight: 1.2,
+            }}
           >
             The Other Room
           </div>
-          <div className="w-10" /> {/* spacer */}
-        </header>
+          <div style={{ fontSize: 11, color: "#5c534c" }}>
+            A private studio for the two of you
+          </div>
+        </div>
+      </div>
+      <div style={{ flex: 1, overflowY: "auto", width: "100%" }}>
+        <NavLinks
+          onNavigate={isDesktop ? undefined : () => setMobileOpen(false)}
+        />
+      </div>
+      <button
+        type="button"
+        onClick={handleLogout}
+        style={{
+          marginTop: 16,
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "10px 12px",
+          borderRadius: 12,
+          border: "none",
+          background: "transparent",
+          color: "#5c534c",
+          fontSize: 14,
+          cursor: "pointer",
+          width: "100%",
+        }}
+      >
+        <LogOut size={18} strokeWidth={1.75} />
+        Log out
+      </button>
+    </>
+  );
+
+  return (
+    <div
+      style={{
+        minHeight: "100dvh",
+        display: "flex",
+        flexDirection: "row",
+        background: "#faf7f5",
+        color: "#1a1614",
+      }}
+    >
+      {/* Desktop sidebar only when isDesktop */}
+      {isDesktop && (
+        <aside
+          style={{
+            width: 260,
+            flexShrink: 0,
+            display: "flex",
+            flexDirection: "column",
+            padding: "20px 16px",
+            borderRight: "1px solid rgba(26,22,20,0.1)",
+            background: "linear-gradient(to bottom, #ffffff, #fff5f8)",
+          }}
+        >
+          {sidebarInner}
+        </aside>
+      )}
+
+      <div
+        style={{
+          flex: 1,
+          minWidth: 0,
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        {/* Mobile top bar */}
+        {!isDesktop && (
+          <header
+            style={{
+              position: "sticky",
+              top: 0,
+              zIndex: 40,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "12px 16px",
+              borderBottom: "1px solid rgba(26,22,20,0.1)",
+              background: "rgba(255,255,255,0.95)",
+              backdropFilter: "blur(10px)",
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setMobileOpen(true)}
+              aria-label="Open menu"
+              style={{
+                ...TOR_MARK,
+                width: 40,
+                height: 40,
+                borderRadius: 12,
+                border: "none",
+                color: "#fff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+              }}
+            >
+              <Menu size={20} />
+            </button>
+            <div
+              style={{
+                fontFamily: "var(--font-cormorant), Georgia, serif",
+                fontSize: 16,
+              }}
+            >
+              The Other Room
+            </div>
+            <div style={{ width: 40 }} />
+          </header>
+        )}
 
         {/* Mobile drawer */}
-        {mobileOpen && (
-          <div className="fixed inset-0 z-50 lg:hidden">
+        {!isDesktop && mobileOpen && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 50,
+            }}
+          >
             <div
-              className="absolute inset-0 bg-black/40"
+              role="presentation"
               onClick={() => setMobileOpen(false)}
+              style={{
+                position: "absolute",
+                inset: 0,
+                background: "rgba(0,0,0,0.45)",
+              }}
             />
-            <div className="absolute left-0 top-0 bottom-0 w-[280px] bg-white shadow-xl flex flex-col px-4 py-5">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div
-                    className="flex h-10 w-10 items-center justify-center rounded-xl text-white text-sm font-extrabold"
-                    style={{
-                      background: "linear-gradient(135deg, #8B4A54, #7A3E48, #5C2E36)",
-                    }}
-                  >
-                    TOR
-                  </div>
-                  <span
-                    className="text-lg font-medium"
-                    style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
-                  >
-                    The Other Room
-                  </span>
-                </div>
+            <div
+              style={{
+                position: "absolute",
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: "min(280px, 85vw)",
+                display: "flex",
+                flexDirection: "column",
+                padding: "20px 16px",
+                background: "#fff",
+                boxShadow: "0 8px 40px rgba(0,0,0,0.2)",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  marginBottom: 8,
+                }}
+              >
                 <button
+                  type="button"
                   onClick={() => setMobileOpen(false)}
-                  className="p-2 rounded-lg hover:bg-[var(--accent-soft)]"
+                  aria-label="Close menu"
+                  style={{
+                    border: "none",
+                    background: "transparent",
+                    padding: 8,
+                    cursor: "pointer",
+                    color: "#5c534c",
+                  }}
                 >
                   <X size={20} />
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto">
-                <NavLinks onNavigate={() => setMobileOpen(false)} />
-              </div>
-              <button
-                onClick={handleLogout}
-                className="mt-4 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-[var(--muted)]"
-              >
-                <LogOut size={18} />
-                Log out
-              </button>
+              {sidebarInner}
             </div>
           </div>
         )}
 
-        {/* Page content */}
-        <main className="flex-1 px-4 py-5 md:px-8 md:py-7 max-w-5xl mx-auto w-full">
+        <main
+          style={{
+            flex: 1,
+            width: "100%",
+            maxWidth: 1024,
+            margin: "0 auto",
+            padding: "20px 16px",
+            boxSizing: "border-box",
+            position: "relative",
+            zIndex: 1,
+            pointerEvents: "auto",
+          }}
+        >
           {children}
         </main>
       </div>
