@@ -285,14 +285,14 @@ export default function ScenesPage() {
 
   return (
     <div className="max-w-5xl mx-auto">
-      <div className={cn("hero mb-6", current.heroClass)}>
+      <div className="studio-hero mb-6">
         <h1
-          className="text-2xl font-medium mb-1 text-white"
-          style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
+          className="text-2xl font-medium mb-1"
+          style={{ fontFamily: "var(--font-cormorant), Georgia, serif", color: "var(--text, #1a1614)" }}
         >
           {current.label}
         </h1>
-        <p className="text-white/90 text-sm">{current.blurb}</p>
+        <p className="text-sm" style={{ color: "var(--muted, #5c534c)" }}>{current.blurb}</p>
       </div>
 
       <div className="flex flex-wrap items-center gap-4 mb-4">
@@ -361,7 +361,7 @@ export default function ScenesPage() {
                 </h2>
                 <Link
                   href={`/create?scene=${tpl.id}&cast=${tpl.prefer.join(",")}&name=${encodeURIComponent(tpl.name)}`}
-                  className="btn btn-primary shrink-0 text-sm px-3 py-2"
+                  className="btn btn-studio-primary shrink-0 text-sm px-3 py-2"
                 >
                   Try scene
                 </Link>
@@ -376,8 +376,8 @@ export default function ScenesPage() {
                     </Link>
                   ) : (
                     needed.map((face) => (
-                      <div key={face.role} className="relative w-[72px] h-[96px] rounded-xl overflow-hidden ring-1 ring-black/5">
-                        <img src={face.url} alt="" className="w-full h-full object-cover object-top" />
+                      <div key={face.role} className="relative w-[56px] h-[74px] sm:w-[72px] sm:h-[96px] rounded-xl overflow-hidden ring-1 ring-black/5 shrink-0">
+                        <img src={face.url} alt="" className="tor-img" />
                         <span className="absolute bottom-1 left-1 text-[9px] bg-black/55 text-white px-1.5 py-0.5 rounded-full">
                           input
                         </span>
@@ -385,9 +385,9 @@ export default function ScenesPage() {
                     ))
                   )}
                 </div>
-                <div className="relative w-[120px] sm:w-[140px] aspect-[3/4] rounded-xl overflow-hidden bg-gradient-to-br from-[#3A1F24] to-[#7A3E48] shrink-0 ring-1 ring-black/5">
+                <div className="relative w-[96px] sm:w-[140px] aspect-[3/4] max-h-[28vh] rounded-xl overflow-hidden bg-gradient-to-br from-[#3A1F24] to-[#7A3E48] shrink-0 ring-1 ring-black/5">
                   {pic ? (
-                    <img src={pic.url} alt="" className="w-full h-full object-cover" />
+                    <img src={pic.url} alt="" className="tor-img" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-white/25 text-[10px]">
                       result
