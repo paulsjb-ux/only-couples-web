@@ -330,8 +330,8 @@ export default function PeoplePage() {
                             fontWeight: 600,
                             color: "#fff",
                             background: "linear-gradient(135deg, #8B4A54, #7A3E48)",
-                            cursor: busyKey ? "not-allowed" : "pointer",
-                            opacity: busyKey ? 0.6 : 1,
+                            cursor: busy ? "not-allowed" : "pointer",
+                            opacity: busy ? 0.6 : 1,
                           }}
                         >
                           {busy ? "…" : url ? "Change" : "Add"}
