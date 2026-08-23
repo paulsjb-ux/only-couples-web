@@ -864,3 +864,6 @@ html, body {
     width: 100%;
   }
 }
+
+/* Wow library lightbox safe area */
+body.tor-lightbox-open { overflow: hidden; }
