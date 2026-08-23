@@ -504,10 +504,18 @@ export default function ScenesPage() {
         <p style={{ fontSize: 12, color: "#5c534c", marginBottom: 12 }}>{note}</p>
       ) : null}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         {shown.map((tpl) => {
           const resultUrl = picFor(tpl.id, tpl.name);
-          const face = inputs.find((f) => tpl.prefer.includes(f.role)) || inputs[0];
+          const needed = tpl.prefer
+            .map((role) => inputs.find((i) => i.role === role))
+            .filter(Boolean) as { role: string; url: string }[];
+          // Fallback: show any available faces if prefer not loaded
+          const faces =
+            needed.length > 0
+              ? needed
+              : inputs.slice(0, Math.min(2, inputs.length));
 
           return (
             <div
@@ -516,41 +524,95 @@ export default function ScenesPage() {
                 background: "#fff",
                 borderRadius: 16,
                 border: "1px solid rgba(26,22,20,0.08)",
-                overflow: "hidden",
+                padding: "16px 16px 14px",
                 boxShadow: "0 1px 3px rgba(26,22,20,0.04)",
               }}
             >
-              {/* Mood image if we have a kept result — never show broken ? */}
-              {resultUrl ? (
-                <div style={{ width: "100%", aspectRatio: "16 / 10", background: "#1C1917" }}>
-                  <img
-                    src={resultUrl}
-                    alt=""
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                      objectPosition: "top center",
-                      display: "block",
-                    }}
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
-                  />
-                </div>
-              ) : null}
+              {/* Title + Try */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  marginBottom: 8,
+                }}
+              >
+                <h2
+                  style={{
+                    fontFamily: "var(--font-cormorant), Georgia, serif",
+                    fontSize: 22,
+                    fontWeight: 500,
+                    margin: 0,
+                    color: "#1a1614",
+                    lineHeight: 1.2,
+                    flex: 1,
+                  }}
+                >
+                  {tpl.name}
+                </h2>
+                <Link
+                  href={`/create?scene=${tpl.id}&cast=${tpl.prefer.join(",")}&name=${encodeURIComponent(tpl.name)}`}
+                  style={{
+                    flexShrink: 0,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minHeight: 40,
+                    padding: "0 18px",
+                    borderRadius: 999,
+                    background: "linear-gradient(135deg, #8B4A54, #7A3E48)",
+                    color: "#fff",
+                    fontWeight: 600,
+                    fontSize: 13,
+                    textDecoration: "none",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Try scene
+                </Link>
+              </div>
 
-              <div style={{ padding: "16px 16px 14px" }}>
-                <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                  {face?.url ? (
+              <p
+                style={{
+                  fontSize: 14,
+                  color: "#5c534c",
+                  lineHeight: 1.45,
+                  margin: "0 0 14px",
+                }}
+              >
+                {tpl.desc}
+              </p>
+
+              {/* Input faces + result — same layout for every template */}
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 10,
+                  alignItems: "flex-end",
+                }}
+              >
+                {faces.length === 0 ? (
+                  <Link
+                    href="/people"
+                    style={{ fontSize: 12, color: "#8B4A54", textDecoration: "underline" }}
+                  >
+                    Add faces
+                  </Link>
+                ) : (
+                  faces.map((face) => (
                     <div
+                      key={face.role}
                       style={{
-                        width: 48,
-                        height: 64,
-                        borderRadius: 10,
+                        position: "relative",
+                        width: 72,
+                        height: 96,
+                        borderRadius: 12,
                         overflow: "hidden",
                         flexShrink: 0,
                         background: "#1C1917",
+                        boxShadow: "0 0 0 1px rgba(0,0,0,0.06)",
                       }}
                     >
                       <img
@@ -561,52 +623,75 @@ export default function ScenesPage() {
                           height: "100%",
                           objectFit: "cover",
                           objectPosition: "top center",
+                          display: "block",
                         }}
                       />
+                      <span
+                        style={{
+                          position: "absolute",
+                          bottom: 4,
+                          left: 4,
+                          fontSize: 10,
+                          fontWeight: 600,
+                          color: "#fff",
+                          background: "rgba(0,0,0,0.55)",
+                          padding: "2px 6px",
+                          borderRadius: 6,
+                        }}
+                      >
+                        input
+                      </span>
                     </div>
-                  ) : null}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <h2
-                      style={{
-                        fontFamily: "var(--font-cormorant), Georgia, serif",
-                        fontSize: 20,
-                        fontWeight: 500,
-                        margin: "0 0 4px",
-                        color: "#1a1614",
-                      }}
-                    >
-                      {tpl.name}
-                    </h2>
-                    <p
-                      style={{
-                        fontSize: 13,
-                        color: "#5c534c",
-                        lineHeight: 1.4,
-                        margin: "0 0 12px",
-                      }}
-                    >
-                      {tpl.desc}
-                    </p>
-                  </div>
-                </div>
+                  ))
+                )}
 
-                <Link
-                  href={`/create?scene=${tpl.id}&cast=${tpl.prefer.join(",")}&name=${encodeURIComponent(tpl.name)}`}
+                {/* Result — real image or empty reserved slot (no blue ?) */}
+                <div
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    minHeight: 44,
-                    borderRadius: 999,
-                    background: "linear-gradient(135deg, #8B4A54, #7A3E48)",
-                    color: "#fff",
-                    fontWeight: 600,
-                    fontSize: 14,
-                    textDecoration: "none",
+                    position: "relative",
+                    width: resultUrl ? 120 : 72,
+                    height: 96,
+                    borderRadius: 12,
+                    overflow: "hidden",
+                    flexShrink: 0,
+                    background: resultUrl
+                      ? "#1C1917"
+                      : "linear-gradient(145deg, #3a1f24, #7A3E48)",
+                    boxShadow: "0 0 0 1px rgba(0,0,0,0.06)",
                   }}
                 >
-                  Try scene
-                </Link>
+                  {resultUrl ? (
+                    <img
+                      src={resultUrl}
+                      alt=""
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        objectPosition: "top center",
+                        display: "block",
+                      }}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  ) : null}
+                  <span
+                    style={{
+                      position: "absolute",
+                      bottom: 4,
+                      left: 4,
+                      fontSize: 10,
+                      fontWeight: 600,
+                      color: "#fff",
+                      background: "rgba(0,0,0,0.55)",
+                      padding: "2px 6px",
+                      borderRadius: 6,
+                    }}
+                  >
+                    result
+                  </span>
+                </div>
               </div>
             </div>
           );
