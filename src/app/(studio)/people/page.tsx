@@ -258,33 +258,87 @@ export default function PeoplePage() {
                   {role.label}
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4 min-w-0">
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr 1fr",
+                    gap: 8,
+                    marginBottom: 16,
+                    width: "100%",
+                    minWidth: 0,
+                  }}
+                >
                   {SLOT_META.map((slot) => {
                     const url = slotUrl(person, slot.key);
                     const busy = busyKey === `${role.key}-${slot.key}`;
                     return (
-                      <div key={slot.key} className="text-center">
-                        <div className="tor-thumb tor-people-slot mb-2 bg-gradient-to-br from-[#1C1917] to-[#5C2E36] flex items-center justify-center">
+                      <div key={slot.key} style={{ textAlign: "center", minWidth: 0 }}>
+                        <div
+                          style={{
+                            width: "100%",
+                            aspectRatio: "3 / 4",
+                            maxHeight: 110,
+                            margin: "0 auto 8px",
+                            borderRadius: 12,
+                            overflow: "hidden",
+                            background: "linear-gradient(to bottom right, #1C1917, #5C2E36)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
                           {url ? (
                             <img
                               src={url}
                               alt={slot.label}
-                              className="tor-img"
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                                objectPosition: "top center",
+                                display: "block",
+                              }}
                             />
                           ) : (
-                            <span className="text-white/30 text-sm">{slot.label}</span>
+                            <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 12 }}>
+                              {slot.label}
+                            </span>
                           )}
                         </div>
-                        <div className="text-xs font-semibold mb-0.5">{slot.label}</div>
-                        <div className="text-[10px] text-[var(--muted)] mb-2 leading-tight">
+                        <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 2 }}>
+                          {slot.label}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 10,
+                            color: "#5c534c",
+                            marginBottom: 8,
+                            lineHeight: 1.25,
+                          }}
+                        >
                           {slot.hint}
                         </div>
-                        <label className="btn btn-studio-primary w-full text-[11px] cursor-pointer px-1 sm:px-2 py-1.5">
+                        <label
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            width: "100%",
+                            minHeight: 36,
+                            borderRadius: 999,
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: "#fff",
+                            background: "linear-gradient(135deg, #8B4A54, #7A3E48)",
+                            cursor: busyKey ? "not-allowed" : "pointer",
+                            opacity: busyKey ? 0.6 : 1,
+                          }}
+                        >
                           {busy ? "…" : url ? "Change" : "Add"}
                           <input
                             type="file"
                             accept="image/jpeg,image/png,image/webp,image/heic,.jpg,.jpeg,.png,.webp"
-                            className="hidden"
+                            style={{ display: "none" }}
                             disabled={busyKey !== null}
                             onChange={(e) => upload(role.key, slot.key, e.target.files?.[0])}
                           />
