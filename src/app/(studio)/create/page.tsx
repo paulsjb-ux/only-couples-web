@@ -419,10 +419,15 @@ function CreateInner() {
 
   return (
     <div>
-      <div className="studio-hero mb-8">
+      <div className="studio-hero">
         <h1
-          className="text-2xl font-medium mb-1" style={{ color: "var(--text, #1a1614)" }}
-          style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
+          style={{
+            fontFamily: "var(--font-cormorant), Georgia, serif",
+            color: "var(--tor-text, #1a1614)",
+            fontSize: "1.65rem",
+            fontWeight: 500,
+            margin: "0 0 0.35rem",
+          }}
         >
           {sceneName}
         </h1>
@@ -432,7 +437,7 @@ function CreateInner() {
       {/* Results first after generate — save controls at top of this block */}
       <div ref={previewRef}>
         {previews.length > 0 && (
-          <div className="card p-3 sm:p-4 mb-8 w-full max-w-2xl border-2 border-[var(--accent)]">
+          <div className="card" style={{ maxWidth: "36rem", borderColor: "var(--tor-accent)", borderWidth: 2 }}>
             <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
               <p className="text-sm font-semibold text-[var(--text)]">
                 {previews.length > 1 ? `${previews.length} versions` : "Your image"}
@@ -498,21 +503,21 @@ function CreateInner() {
       </div>
 
       {/* Create controls ABOVE the 12 presets */}
-      <div className="card p-3 sm:p-4 mb-6 w-full max-w-2xl space-y-5">
+      <div className="card tor-stack" style={{ maxWidth: "36rem" }}>
         <p className="text-sm font-semibold text-[var(--text)]">Create</p>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="tor-face-row">
           {shown.length === 0 && (
-            <p className="text-sm text-[var(--muted)]">Select cast below, or upload a photo.</p>
+            <p className="tor-help">Select cast below, or upload a photo.</p>
           )}
           {shown.map((f) => (
-            <div key={f.role} className="text-center">
-              <div className="w-14 h-[72px] rounded-xl overflow-hidden bg-[#3A1F24] ring-1 ring-black/10">
+            <div key={f.role} className="tor-face-chip">
+              <div className="frame">
                 {f.url && (
                   <img src={f.url} alt={f.role} className="tor-img" />
                 )}
               </div>
-              <div className="text-[10px] mt-1 text-[var(--text)]">
+              <div className="cap">
                 {ALL_ROLES.find((r) => r.key === f.role)?.label || f.role}
               </div>
             </div>
@@ -550,7 +555,7 @@ function CreateInner() {
               ref={outfitFileRef}
               type="file"
               accept="image/jpeg,image/png,image/webp,image/heic,.jpg,.jpeg,.png,.webp"
-              className="hidden"
+              style={{ display: "none" }}
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file) void uploadOutfit(file);
@@ -572,7 +577,7 @@ function CreateInner() {
           </div>
           {outfitPreview && (
             <div className="flex gap-3 items-start mb-2">
-              <div className="w-20 h-28 rounded-xl overflow-hidden bg-[#3A1F24] ring-1 ring-black/10 shrink-0">
+              <div style={{ width: 56, height: 74, borderRadius: 12, overflow: "hidden", background: "#3A1F24", flexShrink: 0 }}>
                 <img src={outfitPreview} alt="Outfit" className="w-full h-full object-cover" />
               </div>
               <div className="flex-1">
@@ -632,7 +637,7 @@ function CreateInner() {
       </div>
 
       {/* Cast */}
-      <div className="card p-3 sm:p-4 mb-6 w-full max-w-2xl">
+      <div className="card" style={{ maxWidth: "36rem" }}>
         <p className="text-sm font-semibold mb-3 text-[var(--text)]">Cast</p>
         <div className="flex flex-wrap gap-2">
           {ALL_ROLES.map((r) => {
@@ -711,7 +716,7 @@ function CreateInner() {
             ref={fileRef}
             type="file"
             accept="image/jpeg,image/png,image/webp,image/heic,.jpg,.jpeg,.png,.webp"
-                        className="hidden"
+                        style={{ display: "none" }}
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) void uploadCastPhoto(file, uploadRole);
@@ -724,20 +729,21 @@ function CreateInner() {
         </p>
 
         <p className="text-sm font-semibold mt-5 mb-2 text-[var(--text)]">6 women</p>
-        <div className="grid grid-cols-3 gap-2 min-w-0">
+        <div className="tor-preset-grid">
           {WOMAN_PRESETS.map((p) => (
             <button
               key={p.id}
               type="button"
               onClick={() => applyPreset(p)}
               disabled={busy}
-              className={
+              className="tor-preset-cell"
+              style={
                 picked === p.id
-                  ? "rounded-xl overflow-hidden ring-2 ring-[var(--accent)] text-left bg-white"
-                  : "rounded-xl overflow-hidden border border-[var(--line)] text-left bg-white"
+                  ? { boxShadow: "0 0 0 2px var(--tor-accent, #8b4a54)" }
+                  : undefined
               }
             >
-              <div className="aspect-[3/4] bg-gradient-to-br from-[#3A1F24] to-[#8B4A55]">
+              <div className="frame" style={{ background: "linear-gradient(to bottom right, #3A1F24, #8B4A55)" }}>
                 <img
                   src={`/presets/${p.id}.jpg`}
                   alt={p.name}
@@ -747,31 +753,30 @@ function CreateInner() {
                   }}
                 />
               </div>
-              <div className="px-2 py-1.5">
-                <div className="text-xs font-semibold leading-tight text-[var(--text)]">{p.name}</div>
-                <div className="text-[10px] text-[var(--muted)]">
-                  {p.age} · {p.body_shape}
-                </div>
+              <div className="meta">
+                <strong>{p.name}</strong>
+                <span>{p.age} · {p.body_shape}</span>
               </div>
             </button>
           ))}
         </div>
 
         <p className="text-sm font-semibold mt-5 mb-2 text-[var(--text)]">6 men</p>
-        <div className="grid grid-cols-3 gap-2 min-w-0">
+        <div className="tor-preset-grid">
           {MAN_PRESETS.map((p) => (
             <button
               key={p.id}
               type="button"
               onClick={() => applyPreset(p)}
               disabled={busy}
-              className={
+              className="tor-preset-cell"
+              style={
                 picked === p.id
-                  ? "rounded-xl overflow-hidden ring-2 ring-[var(--accent)] text-left bg-white"
-                  : "rounded-xl overflow-hidden border border-[var(--line)] text-left bg-white"
+                  ? { boxShadow: "0 0 0 2px var(--tor-accent, #8b4a54)" }
+                  : undefined
               }
             >
-              <div className="aspect-[3/4] bg-gradient-to-br from-[#1C1917] to-[#4A3B32]">
+              <div className="frame" style={{ background: "linear-gradient(to bottom right, #1C1917, #4A3B32)" }}>
                 <img
                   src={`/presets/${p.id}.jpg`}
                   alt={p.name}
@@ -781,11 +786,9 @@ function CreateInner() {
                   }}
                 />
               </div>
-              <div className="px-2 py-1.5">
-                <div className="text-xs font-semibold leading-tight text-[var(--text)]">{p.name}</div>
-                <div className="text-[10px] text-[var(--muted)]">
-                  {p.age} · {p.body_shape}
-                </div>
+              <div className="meta">
+                <strong>{p.name}</strong>
+                <span>{p.age} · {p.body_shape}</span>
               </div>
             </button>
           ))}
