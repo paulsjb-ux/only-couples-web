@@ -230,42 +230,75 @@ export default function ScenesPage() {
     void load();
   }, []);
 
+
   async function signLibraryUrl(
     supabase: ReturnType<typeof createClient>,
     path: string | null | undefined,
     fallbackUrl: string | null
-  ): Promise<string | null> {
+  ): Promise<{ url: string; path: string | null } | null> {
+    const tryPaths: string[] = [];
     if (path) {
-      const candidates = [path];
-      if (path.includes("/preview/")) candidates.push(path.replace("/preview/", "/kept/"));
-      if (path.includes("/kept/")) candidates.push(path.replace("/kept/", "/preview/"));
-      for (const c of candidates) {
-        try {
-          const { data, error } = await supabase.storage
-            .from("library")
-            .createSignedUrl(c, 60 * 60 * 24 * 7);
-          if (!error && data?.signedUrl) return data.signedUrl;
-        } catch {
-          /* next */
-        }
-      }
+      tryPaths.push(path);
+      if (path.includes("/preview/")) tryPaths.push(path.replace("/preview/", "/kept/"));
+      if (path.includes("/kept/")) tryPaths.push(path.replace("/kept/", "/preview/"));
     }
     if (fallbackUrl) {
       try {
         const m = fallbackUrl.match(/\/object\/(?:sign|public)\/library\/([^?]+)/);
         if (m?.[1]) {
           const recovered = decodeURIComponent(m[1]);
-          const { data, error } = await supabase.storage
-            .from("library")
-            .createSignedUrl(recovered, 60 * 60 * 24 * 7);
-          if (!error && data?.signedUrl) return data.signedUrl;
+          tryPaths.push(recovered);
+          if (recovered.includes("/preview/"))
+            tryPaths.push(recovered.replace("/preview/", "/kept/"));
+          if (recovered.includes("/kept/"))
+            tryPaths.push(recovered.replace("/kept/", "/preview/"));
         }
       } catch {
-        /* ignore */
+        /* */
       }
-      return fallbackUrl;
+    }
+    const seen = new Set<string>();
+    for (const c of tryPaths) {
+      if (!c || seen.has(c)) continue;
+      seen.add(c);
+      try {
+        const { data, error } = await supabase.storage
+          .from("library")
+          .createSignedUrl(c, 60 * 60 * 24 * 14);
+        if (!error && data?.signedUrl) return { url: data.signedUrl, path: c };
+      } catch {
+        /* next */
+      }
+    }
+    if (fallbackUrl && fallbackUrl.startsWith("http")) {
+      return { url: fallbackUrl, path: path || null };
     }
     return null;
+  }
+
+  async function listStudioFiles(
+    supabase: ReturnType<typeof createClient>,
+    sid: string
+  ): Promise<{ path: string; url: string }[]> {
+    const out: { path: string; url: string }[] = [];
+    for (const folder of [`${sid}/kept`, `${sid}/preview`, sid]) {
+      try {
+        const { data: files } = await supabase.storage.from("library").list(folder, {
+          limit: 100,
+          sortBy: { column: "created_at", order: "desc" },
+        });
+        if (!files) continue;
+        for (const f of files) {
+          if (!f?.name || !f.name.includes(".")) continue;
+          const objectPath = `${folder}/${f.name}`;
+          const signed = await signLibraryUrl(supabase, objectPath, null);
+          if (signed) out.push({ path: signed.path || objectPath, url: signed.url });
+        }
+      } catch {
+        /* continue */
+      }
+    }
+    return out;
   }
 
   async function load() {
@@ -279,7 +312,7 @@ export default function ScenesPage() {
         .select("studio_id")
         .eq("user_id", userData.user.id)
         .limit(1);
-      const sid = memberships?.[0]?.studio_id;
+      const sid = memberships?.[0]?.studio_id as string | undefined;
       if (!sid) return;
 
       const { data: people } = await supabase.from("people").select("*").eq("studio_id", sid);
@@ -293,61 +326,93 @@ export default function ScenesPage() {
       }
       setInputs(next);
 
-      // Prefer storage_path so we can re-sign expired result thumbs
-      let gens: { prompt?: string; result_url?: string; storage_path?: string }[] | null = null;
+      // Generations rows (kept + any with URLs)
+      let gens: {
+        prompt?: string | null;
+        result_url?: string | null;
+        storage_path?: string | null;
+        id?: string;
+      }[] = [];
       const full = await supabase
         .from("generations")
-        .select("prompt,result_url,storage_path")
+        .select("id,prompt,result_url,storage_path")
         .eq("studio_id", sid)
         .order("created_at", { ascending: false })
-        .limit(120);
+        .limit(150);
       if (full.error) {
         const basic = await supabase
           .from("generations")
-          .select("prompt,result_url")
+          .select("id,prompt,result_url")
           .eq("studio_id", sid)
           .order("created_at", { ascending: false })
-          .limit(120);
-        gens = basic.data as typeof gens;
+          .limit(150);
+        gens = (basic.data as typeof gens) || [];
       } else {
-        gens = full.data as typeof gens;
+        gens = (full.data as typeof gens) || [];
       }
 
       const mapped: { prompt: string; url: string; path?: string | null }[] = [];
-      for (const g of gens || []) {
-        if (!g.result_url && !g.storage_path) continue;
-        const url = await signLibraryUrl(supabase, g.storage_path, g.result_url || null);
-        if (url) {
+      for (const g of gens) {
+        const signed = await signLibraryUrl(
+          supabase,
+          g.storage_path,
+          g.result_url || null
+        );
+        if (signed) {
           mapped.push({
             prompt: g.prompt || "",
-            url,
-            path: g.storage_path || null,
+            url: signed.url,
+            path: signed.path,
           });
         }
       }
-      setResults(mapped);
-      if (mapped.length) {
-        setNote(`${mapped.length} scene image${mapped.length > 1 ? "s" : ""} restored from your album`);
-        setTimeout(() => setNote(""), 4000);
+
+      // Files on disk not linked to a readable URL
+      const files = await listStudioFiles(supabase, sid);
+      for (const f of files) {
+        const already = mapped.some(
+          (m) => m.path === f.path || m.url === f.url
+        );
+        if (!already) {
+          // prompt unknown — use path as prompt so filename matching can work
+          mapped.push({ prompt: f.path, url: f.url, path: f.path });
+        }
       }
+
+      setResults(mapped);
+      setNote(
+        mapped.length
+          ? `Found ${mapped.length} image${mapped.length > 1 ? "s" : ""} in your studio`
+          : "No kept images yet — Make a scene and Keep it"
+      );
+      setTimeout(() => setNote(""), 5000);
     } catch (e) {
       console.error(e);
       setNote("Could not load scene images");
     }
   }
 
+
   function picFor(id: string, name: string) {
     const needle = id.toLowerCase();
-    const nameNeedle = name.toLowerCase();
-    const hit = results.find((r) => {
+    const nameNeedle = (name || "").toLowerCase().trim();
+    // Prefer prompt that contains scene id
+    let hit = results.find((r) => {
       const p = String(r.prompt || "").toLowerCase();
+      const path = String(r.path || "").toLowerCase();
       return (
         p.includes(needle) ||
+        p.startsWith(needle + " |") ||
         p.startsWith(needle + "|") ||
-        p.includes("|" + needle) ||
-        (nameNeedle.length > 3 && p.includes(nameNeedle))
+        path.includes(needle)
       );
     });
+    if (!hit && nameNeedle.length > 2) {
+      hit = results.find((r) => {
+        const p = String(r.prompt || "").toLowerCase();
+        return p.includes(nameNeedle);
+      });
+    }
     return hit?.url || null;
   }
 
