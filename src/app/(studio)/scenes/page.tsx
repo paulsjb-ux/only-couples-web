@@ -218,279 +218,350 @@ const TEMPLATES = RAW.split("\n")
   })
   .filter((row) => row.id);
 
+
 export default function ScenesPage() {
   const [showIntense, setShowIntense] = useState(false);
-  const [showAll, setShowAll] = useState(false);
   const [mood, setMood] = useState<Mood>("soft");
   const [inputs, setInputs] = useState<{ role: string; url: string }[]>([]);
-  const [results, setResults] = useState<{ prompt: string; url: string }[]>([]);
+  const [results, setResults] = useState<{ prompt: string; url: string; path?: string | null }[]>([]);
+  const [note, setNote] = useState("");
 
   useEffect(() => {
-    load();
+    void load();
   }, []);
 
-  async function load() {
-    const supabase = createClient();
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return;
-    const { data: memberships } = await supabase
-      .from("studio_members")
-      .select("studio_id")
-      .eq("user_id", userData.user.id)
-      .limit(1);
-    const sid = memberships?.[0]?.studio_id;
-    if (!sid) return;
-
-    const { data: people } = await supabase.from("people").select("*").eq("studio_id", sid);
-    const next: { role: string; url: string }[] = [];
-    for (const person of people || []) {
-      if (!person.photo_path) continue;
-      const { data: signed } = await supabase.storage
-        .from("people")
-        .createSignedUrl(person.photo_path, 60 * 60);
-      if (signed?.signedUrl) next.push({ role: person.role, url: signed.signedUrl });
+  async function signLibraryUrl(
+    supabase: ReturnType<typeof createClient>,
+    path: string | null | undefined,
+    fallbackUrl: string | null
+  ): Promise<string | null> {
+    if (path) {
+      const candidates = [path];
+      if (path.includes("/preview/")) candidates.push(path.replace("/preview/", "/kept/"));
+      if (path.includes("/kept/")) candidates.push(path.replace("/kept/", "/preview/"));
+      for (const c of candidates) {
+        try {
+          const { data, error } = await supabase.storage
+            .from("library")
+            .createSignedUrl(c, 60 * 60 * 24 * 7);
+          if (!error && data?.signedUrl) return data.signedUrl;
+        } catch {
+          /* next */
+        }
+      }
     }
-    setInputs(next);
-
-    const { data: gens } = await supabase
-      .from("generations")
-      .select("prompt,result_url")
-      .eq("studio_id", sid)
-      .not("result_url", "is", null)
-      .order("created_at", { ascending: false });
-    setResults(
-      (gens || [])
-        .filter((g: { result_url?: string }) => g.result_url)
-        .map((g: { prompt?: string; result_url: string }) => ({
-          prompt: g.prompt || "",
-          url: g.result_url,
-        }))
-    );
-  }
-
-  function picFor(id: string, name: string) {
-    // Only show a result thumbnail that belongs to THIS scene id (not a random recent gen)
-    const needle = id.toLowerCase();
-    const hit = results.find((r) => {
-      const p = String(r.prompt || "").toLowerCase();
-      return p.includes(needle);
-    });
-    if (hit?.url) return { url: hit.url };
+    if (fallbackUrl) {
+      try {
+        const m = fallbackUrl.match(/\/object\/(?:sign|public)\/library\/([^?]+)/);
+        if (m?.[1]) {
+          const recovered = decodeURIComponent(m[1]);
+          const { data, error } = await supabase.storage
+            .from("library")
+            .createSignedUrl(recovered, 60 * 60 * 24 * 7);
+          if (!error && data?.signedUrl) return data.signedUrl;
+        }
+      } catch {
+        /* ignore */
+      }
+      return fallbackUrl;
+    }
     return null;
   }
 
-  const availableMoods: Mood[] = showIntense
-    ? ["soft", "playful", "intense"]
-    : ["soft", "playful"];
+  async function load() {
+    setNote("");
+    try {
+      const supabase = createClient();
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return;
+      const { data: memberships } = await supabase
+        .from("studio_members")
+        .select("studio_id")
+        .eq("user_id", userData.user.id)
+        .limit(1);
+      const sid = memberships?.[0]?.studio_id;
+      if (!sid) return;
 
-  const current = SECTIONS[mood];
+      const { data: people } = await supabase.from("people").select("*").eq("studio_id", sid);
+      const next: { role: string; url: string }[] = [];
+      for (const person of people || []) {
+        if (!person.photo_path) continue;
+        const { data: signed } = await supabase.storage
+          .from("people")
+          .createSignedUrl(person.photo_path, 60 * 60);
+        if (signed?.signedUrl) next.push({ role: person.role, url: signed.signedUrl });
+      }
+      setInputs(next);
+
+      // Prefer storage_path so we can re-sign expired result thumbs
+      let gens: { prompt?: string; result_url?: string; storage_path?: string }[] | null = null;
+      const full = await supabase
+        .from("generations")
+        .select("prompt,result_url,storage_path")
+        .eq("studio_id", sid)
+        .order("created_at", { ascending: false })
+        .limit(120);
+      if (full.error) {
+        const basic = await supabase
+          .from("generations")
+          .select("prompt,result_url")
+          .eq("studio_id", sid)
+          .order("created_at", { ascending: false })
+          .limit(120);
+        gens = basic.data as typeof gens;
+      } else {
+        gens = full.data as typeof gens;
+      }
+
+      const mapped: { prompt: string; url: string; path?: string | null }[] = [];
+      for (const g of gens || []) {
+        if (!g.result_url && !g.storage_path) continue;
+        const url = await signLibraryUrl(supabase, g.storage_path, g.result_url || null);
+        if (url) {
+          mapped.push({
+            prompt: g.prompt || "",
+            url,
+            path: g.storage_path || null,
+          });
+        }
+      }
+      setResults(mapped);
+      if (mapped.length) {
+        setNote(`${mapped.length} scene image${mapped.length > 1 ? "s" : ""} restored from your album`);
+        setTimeout(() => setNote(""), 4000);
+      }
+    } catch (e) {
+      console.error(e);
+      setNote("Could not load scene images");
+    }
+  }
+
+  function picFor(id: string, name: string) {
+    const needle = id.toLowerCase();
+    const nameNeedle = name.toLowerCase();
+    const hit = results.find((r) => {
+      const p = String(r.prompt || "").toLowerCase();
+      return (
+        p.includes(needle) ||
+        p.startsWith(needle + "|") ||
+        p.includes("|" + needle) ||
+        (nameNeedle.length > 3 && p.includes(nameNeedle))
+      );
+    });
+    return hit?.url || null;
+  }
+
   const templates = TEMPLATES.filter((t) => {
-    if (t.mood !== mood) return false;
-    if (!showAll && !LAUNCH_IDS.has(t.id)) return false;
+    if (!showIntense && t.mood === "intense") return false;
+    if (mood === "soft") return t.mood === "soft";
+    if (mood === "playful") return t.mood === "playful";
+    if (mood === "intense") return t.mood === "intense";
     return true;
+  }).filter((t) => {
+    // Short shelf: prefer launch set for soft when not after dark
+    if (showIntense) return true;
+    if (t.mood === "intense") return false;
+    return LAUNCH_IDS.has(t.id) || t.mood === "soft" || t.mood === "playful";
   });
 
+  // Soft shelf: max ~8 soft when soft selected
+  const shown =
+    mood === "soft" && !showIntense
+      ? templates.filter((t) => t.mood === "soft").slice(0, 8)
+      : mood === "playful" && !showIntense
+        ? templates.filter((t) => t.mood === "playful").slice(0, 8)
+        : templates;
+
+  const section = SECTIONS[mood === "intense" || showIntense ? "intense" : mood];
+
   return (
-    <div className="max-w-5xl mx-auto">
-      <div className="studio-hero mb-6">
-        <h1
-          className="text-2xl font-medium mb-1"
-          style={{ fontFamily: "var(--font-cormorant), Georgia, serif", color: "var(--text, #1a1614)" }}
-        >
-          {current.label}
-        </h1>
-        <p className="text-sm" style={{ color: "var(--muted, #5c534c)" }}>{current.blurb}</p>
-      </div>
+    <div style={{ maxWidth: "28rem", margin: "0 auto", paddingBottom: 48 }}>
+      <h1
+        style={{
+          fontFamily: "var(--font-cormorant), Georgia, serif",
+          fontSize: "1.75rem",
+          fontWeight: 500,
+          color: "#1a1614",
+          margin: "0 0 8px",
+        }}
+      >
+        {showIntense ? "After dark" : section.label}
+      </h1>
+      <p style={{ fontSize: 14, color: "#5c534c", lineHeight: 1.5, margin: "0 0 20px" }}>
+        {showIntense
+          ? "Further rooms — only while you keep them open."
+          : section.blurb}
+      </p>
 
-      <div className="flex flex-wrap items-center gap-4 mb-4">
-        <label className="flex items-center gap-2.5 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={showIntense}
-            onChange={(e) => {
-              setShowIntense(e.target.checked);
-              if (!e.target.checked && mood === "intense") setMood("soft");
-            }}
-            className="h-4 w-4 rounded accent-[var(--accent)]"
-          />
-          <span className="text-sm font-semibold">Show intense scenes</span>
-        </label>
-        <label className="flex items-center gap-2.5 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={showAll}
-            onChange={(e) => setShowAll(e.target.checked)}
-            className="h-4 w-4 rounded accent-[var(--accent)]"
-          />
-          <span className="text-sm font-semibold">Show all templates</span>
-        </label>
-      </div>
-
-      <div className="flex flex-wrap gap-2 mb-4">
-        {availableMoods.map((m) => (
+      {/* Mood chips only */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+        {(["soft", "playful"] as Mood[]).map((m) => (
           <button
             key={m}
-            onClick={() => setMood(m)}
-            className={cn(
-              "rounded-full px-4 py-2 text-sm font-bold transition-all",
-              mood === m
-                ? "bg-[var(--accent)] text-white shadow-md"
-                : "bg-white border border-[var(--line)] text-[var(--text)]"
-            )}
+            type="button"
+            onClick={() => {
+              setMood(m);
+              setShowIntense(false);
+            }}
+            style={{
+              minHeight: 36,
+              padding: "6px 16px",
+              borderRadius: 999,
+              border: "none",
+              fontWeight: 600,
+              fontSize: 13,
+              cursor: "pointer",
+              background:
+                !showIntense && mood === m
+                  ? "linear-gradient(135deg, #8B4A54, #7A3E48)"
+                  : "#F0E8E0",
+              color: !showIntense && mood === m ? "#fff" : "#1a1614",
+            }}
           >
             {SECTIONS[m].label}
           </button>
         ))}
       </div>
 
-      <div className="card p-4 mb-6 text-sm text-[var(--text)]/80">
-        <p className="font-semibold text-[var(--text)] mb-1">Launch set</p>
-        <p>
-          A short shelf first. One scene at a time. Tick Show all templates only if you want the old full list.
-        </p>
-      </div>
+      {/* Quiet further rooms */}
+      <button
+        type="button"
+        onClick={() => {
+          setShowIntense((v) => !v);
+          if (!showIntense) setMood("intense");
+        }}
+        style={{
+          background: "none",
+          border: "none",
+          padding: 0,
+          marginBottom: 20,
+          fontSize: 13,
+          color: "#8a7350",
+          textDecoration: "underline",
+          cursor: "pointer",
+        }}
+      >
+        {showIntense ? "Return to soft rooms" : "Further rooms"}
+      </button>
 
-      <div className="grid grid-cols-1 gap-3 sm:gap-4">
-        {templates.map((tpl) => {
-          const needed = tpl.prefer
-            .map((role) => inputs.find((i) => i.role === role))
-            .filter(Boolean) as { role: string; url: string }[];
-          const pic = picFor(tpl.id, tpl.name);
+      {note ? (
+        <p style={{ fontSize: 12, color: "#5c534c", marginBottom: 12 }}>{note}</p>
+      ) : null}
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {shown.map((tpl) => {
+          const resultUrl = picFor(tpl.id, tpl.name);
+          const face = inputs.find((f) => tpl.prefer.includes(f.role)) || inputs[0];
 
           return (
-            <div key={tpl.id} className="card p-3 sm:p-5 min-w-0">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between mb-2">
-                <h2
-                  className="text-lg sm:text-2xl leading-tight"
-                  style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
-                >
-                  {tpl.name}
-                </h2>
+            <div
+              key={tpl.id}
+              style={{
+                background: "#fff",
+                borderRadius: 16,
+                border: "1px solid rgba(26,22,20,0.08)",
+                overflow: "hidden",
+                boxShadow: "0 1px 3px rgba(26,22,20,0.04)",
+              }}
+            >
+              {/* Mood image if we have a kept result — never show broken ? */}
+              {resultUrl ? (
+                <div style={{ width: "100%", aspectRatio: "16 / 10", background: "#1C1917" }}>
+                  <img
+                    src={resultUrl}
+                    alt=""
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      objectPosition: "top center",
+                      display: "block",
+                    }}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = "none";
+                    }}
+                  />
+                </div>
+              ) : null}
+
+              <div style={{ padding: "16px 16px 14px" }}>
+                <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                  {face?.url ? (
+                    <div
+                      style={{
+                        width: 48,
+                        height: 64,
+                        borderRadius: 10,
+                        overflow: "hidden",
+                        flexShrink: 0,
+                        background: "#1C1917",
+                      }}
+                    >
+                      <img
+                        src={face.url}
+                        alt=""
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                          objectPosition: "top center",
+                        }}
+                      />
+                    </div>
+                  ) : null}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <h2
+                      style={{
+                        fontFamily: "var(--font-cormorant), Georgia, serif",
+                        fontSize: 20,
+                        fontWeight: 500,
+                        margin: "0 0 4px",
+                        color: "#1a1614",
+                      }}
+                    >
+                      {tpl.name}
+                    </h2>
+                    <p
+                      style={{
+                        fontSize: 13,
+                        color: "#5c534c",
+                        lineHeight: 1.4,
+                        margin: "0 0 12px",
+                      }}
+                    >
+                      {tpl.desc}
+                    </p>
+                  </div>
+                </div>
+
                 <Link
                   href={`/create?scene=${tpl.id}&cast=${tpl.prefer.join(",")}&name=${encodeURIComponent(tpl.name)}`}
-                  className="btn btn-studio-primary w-full sm:w-auto text-sm px-3 py-2 text-center"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minHeight: 44,
+                    borderRadius: 999,
+                    background: "linear-gradient(135deg, #8B4A54, #7A3E48)",
+                    color: "#fff",
+                    fontWeight: 600,
+                    fontSize: 14,
+                    textDecoration: "none",
+                  }}
                 >
                   Try scene
                 </Link>
-              </div>
-              <p className="text-sm text-[var(--muted)] mb-3 leading-snug">{tpl.desc}</p>
-
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: 8,
-                  alignItems: "flex-end",
-                }}
-              >
-                <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-                  {needed.length === 0 ? (
-                    <Link href="/people" className="text-xs underline self-center">
-                      Add faces
-                    </Link>
-                  ) : (
-                    needed.map((face) => (
-                      <div
-                        key={face.role}
-                        style={{
-                          position: "relative",
-                          width: 72,
-                          height: 96,
-                          borderRadius: 12,
-                          overflow: "hidden",
-                          flexShrink: 0,
-                          boxShadow: "0 0 0 1px rgba(0,0,0,0.06)",
-                          background: "#1C1917",
-                        }}
-                      >
-                        <img
-                          src={face.url}
-                          alt=""
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                            objectPosition: "top center",
-                            display: "block",
-                          }}
-                        />
-                        <span
-                          style={{
-                            position: "absolute",
-                            bottom: 4,
-                            left: 4,
-                            fontSize: 9,
-                            background: "rgba(0,0,0,0.55)",
-                            color: "#fff",
-                            padding: "2px 6px",
-                            borderRadius: 999,
-                          }}
-                        >
-                          input
-                        </span>
-                      </div>
-                    ))
-                  )}
-                </div>
-                <div
-                  style={{
-                    position: "relative",
-                    width: 144,
-                    height: 192,
-                    borderRadius: 14,
-                    overflow: "hidden",
-                    flexShrink: 0,
-                    background: "linear-gradient(to bottom right, #3A1F24, #7A3E48)",
-                    boxShadow: "0 2px 12px rgba(26,22,20,0.12)",
-                  }}
-                >
-                  {pic ? (
-                    <img
-                      src={pic.url}
-                      alt=""
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                        objectPosition: "top center",
-                        display: "block",
-                      }}
-                    />
-                  ) : (
-                    <div
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "rgba(255,255,255,0.25)",
-                        fontSize: 10,
-                      }}
-                    >
-                      result
-                    </div>
-                  )}
-                  <span
-                    style={{
-                      position: "absolute",
-                      bottom: 4,
-                      left: 4,
-                      fontSize: 9,
-                      background: "rgba(0,0,0,0.55)",
-                      color: "#fff",
-                      padding: "2px 6px",
-                      borderRadius: 999,
-                    }}
-                  >
-                    result
-                  </span>
-                </div>
               </div>
             </div>
           );
         })}
       </div>
+
+      {!shown.length ? (
+        <p style={{ fontSize: 14, color: "#5c534c", marginTop: 16 }}>
+          No scenes in this room yet.
+        </p>
+      ) : null}
     </div>
   );
 }
