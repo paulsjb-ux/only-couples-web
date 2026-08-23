@@ -230,14 +230,14 @@ export default function PeoplePage() {
 
   return (
     <div>
-      <div className="hero mb-8">
+      <div className="studio-hero mb-6">
         <h1
-          className="text-2xl font-medium mb-1 text-white"
+          className="text-2xl font-medium mb-1" style={{ color: "var(--text, #1a1614)" }}
           style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
         >
           Your people
         </h1>
-        <p className="text-white/90 text-sm">{message}</p>
+        <p className="text-sm text-[var(--muted)]">{message}</p>
       </div>
 
       {loading ? (
@@ -261,12 +261,12 @@ export default function PeoplePage() {
                     const busy = busyKey === `${role.key}-${slot.key}`;
                     return (
                       <div key={slot.key} className="text-center">
-                        <div className="aspect-[3/4] rounded-2xl overflow-hidden bg-gradient-to-br from-[#1C1917] to-[#5C2E36] flex items-center justify-center mb-2">
+                        <div className="tor-thumb mb-2 bg-gradient-to-br from-[#1C1917] to-[#5C2E36] flex items-center justify-center">
                           {url ? (
                             <img
                               src={url}
                               alt={slot.label}
-                              className="w-full h-full object-cover object-top"
+                              className="tor-img"
                             />
                           ) : (
                             <span className="text-white/30 text-sm">{slot.label}</span>
