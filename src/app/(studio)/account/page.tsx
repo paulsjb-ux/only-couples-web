@@ -46,24 +46,14 @@ export default function AccountPage() {
 
   return (
     <div>
-      <div className="studio-hero mb-8">
-        <h1
-          className="text-2xl md:text-3xl font-medium mb-2"
-          style={{
-            fontFamily: "var(--font-cormorant), Georgia, serif",
-            color: "var(--text)",
-          }}
-        >
-          Account
-        </h1>
-        <p className="text-sm" style={{ color: "var(--muted)" }}>
-          Studio settings, partner invite, and preferences.
-        </p>
+      <div className="studio-hero">
+        <h1>Account</h1>
+        <p>Studio settings, partner invite, and preferences.</p>
       </div>
 
-      <div className="space-y-6 max-w-lg">
+      <div className="tor-stack" style={{ maxWidth: "36rem" }}>
         {/* Invite partner */}
-        <div className="card p-5">
+        <div className="card">
           <div className="section-kicker">Partner</div>
           <h2
             className="text-lg font-medium mb-2"
@@ -110,11 +100,11 @@ export default function AccountPage() {
         </div>
 
         {/* Credits */}
-        <div className="card p-5">
+        <div className="card">
           <div className="section-kicker">Credits</div>
-          <div className="flex items-baseline gap-2 mb-3">
-            <span className="text-3xl font-extrabold tracking-tight">20</span>
-            <span className="text-sm" style={{ color: "var(--muted)" }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 12 }}>
+            <span style={{ fontSize: "1.75rem", fontWeight: 700, letterSpacing: "-0.02em" }}>20</span>
+            <span style={{ fontSize: "0.875rem", color: "var(--tor-muted, #5c534c)" }}>
               remaining
             </span>
           </div>
@@ -127,7 +117,7 @@ export default function AccountPage() {
         </div>
 
         {/* Privacy reminder */}
-        <div className="card p-5">
+        <div className="card">
           <div className="section-kicker">Privacy</div>
           <ul className="text-sm space-y-2" style={{ color: "var(--muted)" }}>
             <li>Photos stay in your studio — not used to train a public model.</li>
