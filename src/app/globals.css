@@ -586,52 +586,208 @@ a {
 
 
 
-/* ========== Mobile-first studio layout (v2 — hard image caps) ========== */
+
+/* ========== Studio UI system (compact, consistent) ========== */
+:root {
+  --tor-text: #1a1614;
+  --tor-muted: #5c534c;
+  --tor-accent: #8b4a54;
+  --tor-accent-2: #7a3e48;
+  --tor-gold: #c4a574;
+  --tor-line: rgba(26, 22, 20, 0.1);
+  --tor-panel: #ffffff;
+  --tor-page: #faf7f4;
+  --tor-radius: 14px;
+  --tor-radius-pill: 999px;
+  --tor-space: 12px;
+  --tor-space-lg: 20px;
+}
+
 html, body {
   overflow-x: hidden;
   max-width: 100vw;
 }
 
-/* All studio generated / portrait frames */
+.tor-page {
+  max-width: 36rem;
+  margin: 0 auto;
+  width: 100%;
+  min-width: 0;
+}
+
+.studio-hero {
+  margin-bottom: 1.25rem;
+}
+.studio-hero h1 {
+  font-family: var(--font-cormorant), Georgia, serif;
+  font-size: 1.65rem;
+  font-weight: 500;
+  color: var(--tor-text);
+  margin: 0 0 0.35rem;
+  line-height: 1.2;
+}
+.studio-hero p {
+  font-size: 0.875rem;
+  color: var(--tor-muted);
+  margin: 0;
+  line-height: 1.45;
+  max-width: 28rem;
+}
+
+.section-kicker {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--tor-gold);
+  margin-bottom: 0.5rem;
+}
+
+.card {
+  background: var(--tor-panel);
+  border: 1px solid var(--tor-line);
+  border-radius: var(--tor-radius);
+  box-shadow: 0 1px 2px rgba(26, 22, 20, 0.04);
+  padding: 0.9rem 1rem;
+  margin-bottom: 0.85rem;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.tor-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.tor-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--tor-text);
+  margin-bottom: 0.35rem;
+}
+
+.tor-help {
+  font-size: 0.75rem;
+  color: var(--tor-muted);
+  line-height: 1.4;
+  margin: 0.25rem 0 0;
+}
+
+.tor-input,
+.tor-select {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--tor-line);
+  border-radius: 12px;
+  background: #fff;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.875rem;
+  color: var(--tor-text);
+}
+
+.btn-studio-primary,
+.btn-studio-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 44px;
+  padding: 0.65rem 1.1rem;
+  border-radius: var(--tor-radius-pill);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+.btn-studio-primary {
+  color: #fff;
+  background: linear-gradient(135deg, var(--tor-accent), var(--tor-accent-2));
+  box-shadow: 0 4px 12px rgba(139, 74, 84, 0.22);
+}
+.btn-studio-secondary {
+  color: var(--tor-text);
+  background: #fff;
+  border: 1px solid var(--tor-line);
+}
+.btn-studio-primary:disabled,
+.btn-studio-secondary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.tor-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--tor-radius-pill);
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1px solid var(--tor-line);
+  background: #fff;
+  color: var(--tor-text);
+  cursor: pointer;
+}
+.tor-chip-on {
+  background: var(--tor-accent);
+  border-color: transparent;
+  color: #fff;
+}
+
 .tor-img {
   width: 100% !important;
   height: 100% !important;
-  max-width: 100% !important;
   object-fit: cover !important;
   object-position: top center !important;
   display: block !important;
 }
 
-/* Preview frame: never taller than ~55vh on phones, width follows 3:4 */
+.tor-face-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-end;
+}
+.tor-face-chip {
+  width: 56px;
+  flex-shrink: 0;
+  text-align: center;
+}
+.tor-face-chip .frame {
+  width: 56px;
+  height: 74px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #3a1f24;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.06);
+}
+.tor-face-chip .cap {
+  font-size: 10px;
+  margin-top: 4px;
+  color: var(--tor-text);
+  line-height: 1.2;
+}
+
 .tor-preview-frame {
   position: relative;
-  width: min(100%, 70vw, calc(55vh * 0.75)) !important;
-  max-width: 100% !important;
+  width: min(100%, 70vw, calc(52vh * 0.75));
+  max-width: 100%;
   aspect-ratio: 3 / 4;
-  max-height: 55vh;
-  margin-left: auto;
-  margin-right: auto;
-  border-radius: 0.75rem;
+  max-height: 52vh;
+  margin: 0 auto;
+  border-radius: 12px;
   overflow: hidden;
-  background: #3A1F24;
+  background: #3a1f24;
 }
-
-@media (min-width: 640px) {
-  .tor-preview-frame {
-    width: min(100%, 22rem, calc(70vh * 0.75)) !important;
-    max-height: 70vh;
-  }
-}
-
 .tor-preview-grid {
   display: grid;
   gap: 0.75rem;
   width: 100%;
-  min-width: 0;
   justify-items: center;
-}
-.tor-preview-grid--single {
-  grid-template-columns: 1fr;
 }
 .tor-preview-grid--multi {
   grid-template-columns: 1fr;
@@ -642,81 +798,69 @@ html, body {
   }
 }
 
-/* Library thumbs — compact on phone */
 .tor-library-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.5rem;
   width: 100%;
-  min-width: 0;
 }
 .tor-library-frame {
   position: relative;
   width: 100%;
   aspect-ratio: 3 / 4;
-  max-height: 40vh;
+  max-height: 38vh;
   overflow: hidden;
-  border-radius: 0.75rem;
-  background: #3A1F24;
+  border-radius: 12px;
+  background: #3a1f24;
 }
 @media (min-width: 640px) {
   .tor-library-grid {
     grid-template-columns: 1fr 1fr 1fr;
-    gap: 1rem;
+    gap: 0.75rem;
   }
-  .tor-library-frame {
-    max-height: none;
-  }
+  .tor-library-frame { max-height: none; }
 }
 
-.card {
-  max-width: 100%;
-  box-sizing: border-box;
+.tor-preset-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  width: 100%;
   min-width: 0;
 }
-
-/* People / outfit thumbs on create */
-.tor-thumb {
+.tor-preset-cell {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--tor-line);
+  background: #fff;
+  text-align: left;
+  padding: 0;
+  cursor: pointer;
+}
+.tor-preset-cell .frame {
   width: 100%;
   aspect-ratio: 3 / 4;
-  max-height: 120px;
+  max-height: 28vw;
   overflow: hidden;
-  border-radius: 0.75rem;
+  background: #3a1f24;
 }
-.tor-thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: top center;
+.tor-preset-cell .meta {
+  padding: 6px 8px;
+}
+.tor-preset-cell .meta strong {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tor-text);
+}
+.tor-preset-cell .meta span {
+  font-size: 10px;
+  color: var(--tor-muted);
 }
 
 @media (max-width: 639px) {
   .btn-studio-primary,
   .btn-studio-secondary {
     width: 100%;
-    min-height: 48px;
   }
-}
-
-
-/* People page photo slots — hard size on phone */
-.tor-people-slot.tor-thumb {
-  width: 100%;
-  max-width: 100%;
-  aspect-ratio: 3 / 4;
-  max-height: 28vw;
-  min-height: 72px;
-  margin-left: auto;
-  margin-right: auto;
-}
-@media (min-width: 640px) {
-  .tor-people-slot.tor-thumb {
-    max-height: 140px;
-  }
-}
-
-/* Scenes cards never overflow */
-.tor-scenes-card {
-  max-width: 100%;
-  min-width: 0;
 }
