@@ -48,26 +48,26 @@ const FAVOURITES = [
 export default function HomePage() {
   return (
     <div>
-      <div className="hero mb-8">
+      <div className="studio-hero mb-8">
         <h1
-          className="text-2xl md:text-3xl font-medium mb-2 text-white"
-          style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
+          className="text-2xl md:text-3xl font-medium mb-2"
+          style={{ fontFamily: "var(--font-cormorant), Georgia, serif", color: "var(--text)" }}
         >
           The Other Room
         </h1>
-        <p className="text-white/90 text-sm md:text-base max-w-lg">
+        <p className="text-sm md:text-base max-w-lg" style={{ color: "var(--muted)" }}>
           A private erotic studio for two — soft by default, intense when you choose.
         </p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-10">
-        <Link href="/scenes" className="btn btn-primary text-center">
+        <Link href="/scenes" className="btn btn-studio-primary text-center">
           Browse scenes
         </Link>
-        <Link href="/people" className="btn btn-secondary text-center">
+        <Link href="/people" className="btn btn-studio-secondary text-center">
           Your people
         </Link>
-        <Link href="/library" className="btn btn-secondary text-center">
+        <Link href="/library" className="btn btn-studio-secondary text-center">
           Library
         </Link>
       </div>
