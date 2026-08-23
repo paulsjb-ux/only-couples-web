@@ -484,3 +484,102 @@ a {
   font-size: 1rem;
   color: var(--cream);
 }
+
+/* —— Studio tokens: light / pink —— */
+:root {
+  --text: #1a1614;
+  --muted: #5c534c;
+  --panel: #ffffff;
+  --accent: #8b4a54;
+  --accent-2: #7a3e48;
+  --accent-soft: rgba(232, 208, 210, 0.45);
+  --line: rgba(243, 235, 224, 0.12);
+}
+
+/* Soften cards / buttons inside studio pages on dark bg */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  color: var(--cream);
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--cream-muted);
+  border-radius: 999px;
+  padding: 0.65rem 1.25rem;
+}
+
+.section-kicker {
+  font-size: 0.65rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 0.75rem;
+}
+
+/* —— Studio UI (light/pink in-app) —— */
+.studio-hero {
+  padding: 1.25rem 0 0.5rem;
+  /* NOT the marketing full-viewport .hero */
+}
+
+.btn-studio-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem 1.5rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(135deg, #8B4A54, #7A3E48);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(139, 74, 84, 0.25);
+  transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+  text-decoration: none;
+}
+.btn-studio-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(139, 74, 84, 0.3);
+  opacity: 0.95;
+}
+.btn-studio-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-studio-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem 1.5rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  background: #fff;
+  color: var(--text, #1a1614);
+  border: 1px solid rgba(26, 22, 20, 0.12);
+  box-shadow: 0 1px 3px rgba(26, 22, 20, 0.04);
+  transition: border-color 0.15s, background 0.15s;
+  text-decoration: none;
+}
+.btn-studio-secondary:hover {
+  border-color: #E8D0D2;
+  background: #fff8f9;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid rgba(26, 22, 20, 0.1);
+  border-radius: 1rem;
+  color: var(--text, #1a1614);
+  box-shadow: 0 1px 3px rgba(26, 22, 20, 0.04);
+}
