@@ -421,12 +421,12 @@ function CreateInner() {
     <div>
       <div className="studio-hero mb-8">
         <h1
-          className="text-2xl font-medium mb-1 text-white"
+          className="text-2xl font-medium mb-1" style={{ color: "var(--text, #1a1614)" }}
           style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
         >
           {sceneName}
         </h1>
-        <p className="text-white/90 text-sm">Choose who is in this scene, then generate.</p>
+        <p className="text-sm text-[var(--muted)]">Choose who is in this scene, then generate.</p>
       </div>
 
       {/* Results first after generate — save controls at top of this block */}
@@ -455,11 +455,12 @@ function CreateInner() {
             >
               {previews.map((item, index) => (
                 <div key={`${item.url}-${index}`} className="rounded-xl border border-[var(--line)] p-2 sm:p-3 bg-white min-w-0">
-                  <div className="relative w-full aspect-[3/4] max-h-[70vh] rounded-xl overflow-hidden bg-[#3A1F24] ring-1 ring-black/10">
+                  <div className="tor-preview-frame ring-1 ring-black/10">
                     <img
                       src={item.url}
                       alt={`Version ${index + 1}`}
                       className="tor-img"
+                      loading="lazy"
                     />
                   </div>
                   <p className="text-xs text-[var(--muted)] mt-2">Version {index + 1}</p>
@@ -508,7 +509,7 @@ function CreateInner() {
             <div key={f.role} className="text-center">
               <div className="w-14 h-[72px] rounded-xl overflow-hidden bg-[#3A1F24] ring-1 ring-black/10">
                 {f.url && (
-                  <img src={f.url} alt={f.role} className="w-full h-full object-cover object-top" />
+                  <img src={f.url} alt={f.role} className="tor-img" />
                 )}
               </div>
               <div className="text-[10px] mt-1 text-[var(--text)]">
@@ -740,7 +741,7 @@ function CreateInner() {
                 <img
                   src={`/presets/${p.id}.jpg`}
                   alt={p.name}
-                  className="w-full h-full object-cover object-top"
+                  className="tor-img"
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = "none";
                   }}
@@ -774,7 +775,7 @@ function CreateInner() {
                 <img
                   src={`/presets/${p.id}.jpg`}
                   alt={p.name}
-                  className="w-full h-full object-cover object-top"
+                  className="tor-img"
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = "none";
                   }}
