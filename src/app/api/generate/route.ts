@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getSceneCore } from "@/lib/scene-cores";
+import { buildPromptRules } from "@/lib/prompt-rules";
 
 const ZEN_BASE = "https://api.zencreator.pro/api/public/v1";
 
@@ -265,7 +266,34 @@ export async function POST(req: NextRequest) {
   const look =
     "LOOK: vertical 3:4 frame, ultra high-resolution luxury photoshoot, 85mm f/1.4, soft cinematic light, glossy hydrated skin, tack-sharp faces, magazine grade, 8k, no watermark, no text.";
 
-  const promptBase = [whoLine, faceLock, bodyLock, anatomy, outfitLock, core, look].filter(Boolean).join(" ");
+  const locationId = body.locationId ? String(body.locationId) : undefined;
+  const isSoftHero =
+    sceneId === "romance-morning" ||
+    sceneId === "soft-hero" ||
+    sceneId === "soft_hero_v1" ||
+    (!sceneId && !outfitPath);
+  const rules = buildPromptRules({
+    sceneId,
+    sceneName,
+    locationId,
+    personCount: Math.max(refs.length, wanted.length, 1),
+    isSoftHero,
+  });
+
+  const promptBase = [
+    whoLine,
+    faceLock,
+    bodyLock,
+    anatomy,
+    rules.anatomyPositive,
+    rules.locationLine,
+    outfitLock,
+    core,
+    look,
+    rules.negativeLine,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   async function runOne(versionIndex: number): Promise<string | null> {
     const variant = VERSION_VARIANTS[versionIndex] || "";
