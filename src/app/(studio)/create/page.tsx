@@ -276,6 +276,16 @@ function CreateInner() {
       );
       return;
     }
+    // Outfit scenes need an uploaded garment
+    const needsOutfit =
+      sceneId === "outfit-try-on" ||
+      sceneId === "who-wore-it-best" ||
+      (sceneName || "").toLowerCase().includes("outfit") ||
+      (sceneName || "").toLowerCase().includes("who wore");
+    if (needsOutfit && !outfitPath) {
+      alert("Upload an outfit photo first — dress, suit, lingerie, or any look.");
+      return;
+    }
     if (outfitPath && outfitWearer && !selected.includes(outfitWearer)) {
       setSelected((prev) => [...prev, outfitWearer]);
     }
@@ -604,24 +614,37 @@ function CreateInner() {
         {kind === "image" && (
           <div>
             <label className="block text-sm font-semibold mb-1.5 text-[var(--text)]">Versions</label>
-            <div className="flex flex-wrap gap-2">
-              {[1, 2, 3, 4].map((n) => (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              {[
+                { n: 1, label: "Base" },
+                { n: 2, label: "Wider" },
+                { n: 3, label: "Crop" },
+                { n: 4, label: "Mood" },
+              ].map(({ n, label }) => (
                 <button
                   key={n}
                   type="button"
                   onClick={() => setVersions(n)}
-                  className={`rounded-full px-4 py-2 text-sm font-bold border ${
-                    versions === n
-                      ? "bg-[var(--accent)] text-white border-transparent"
-                      : "bg-white border-[var(--line)] text-[var(--text)]"
-                  }`}
+                  style={{
+                    minHeight: 44,
+                    borderRadius: 12,
+                    border:
+                      versions === n
+                        ? "2px solid #8B4A54"
+                        : "1px solid rgba(26,22,20,0.12)",
+                    background: versions === n ? "rgba(139,74,84,0.08)" : "#fff",
+                    color: "#1a1614",
+                    fontWeight: 600,
+                    fontSize: 13,
+                    cursor: "pointer",
+                  }}
                 >
-                  {n}
+                  {n} · {label}
                 </button>
               ))}
             </div>
-            <p className="text-xs text-[var(--muted)] mt-1.5">
-              1 base · 2 wider frame · 3 tighter crop · 4 moodier light.
+            <p className="tor-help" style={{ marginTop: 8 }}>
+              Each version is a separate image. You Keep only the ones you want.
             </p>
           </div>
         )}
