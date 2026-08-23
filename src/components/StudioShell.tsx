@@ -382,11 +382,13 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
             width: "100%",
             maxWidth: 1024,
             margin: "0 auto",
-            padding: "20px 16px",
+            padding: "16px 12px 32px",
             boxSizing: "border-box",
             position: "relative",
             zIndex: 1,
             pointerEvents: "auto",
+            maxWidth: "100%",
+            overflowX: "hidden",
           }}
         >
           {children}
