@@ -230,7 +230,7 @@ export default function PeoplePage() {
 
   return (
     <div>
-      <div className="studio-hero mb-6">
+      <div className="studio-hero">
         <h1
           className="text-2xl font-medium mb-1"
           style={{
