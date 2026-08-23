@@ -1,25 +1,17 @@
-# Mobile-first — all studio screens
+# Wow UI package
 
-## Covers
-| Screen | Fixed |
-|--------|--------|
-| Shell / nav | Yes — matchMedia shell |
-| Home | Yes — stacked CTAs |
-| Create | Yes — preview max ~55vh, full-width forms |
-| Library | Yes — 2-col, cell max 40vh |
-| People | Yes — compact face/body thumbs |
-| Scenes | Yes — no full-viewport hero; smaller thumbs |
-| Account / Join | Already studio-hero (from earlier delta) |
-
-## Replace
-```text
-src/components/StudioShell.tsx
-src/app/globals.css
-src/app/(studio)/home/page.tsx
-src/app/(studio)/create/page.tsx
-src/app/(studio)/library/page.tsx
-src/app/(studio)/people/page.tsx
-src/app/(studio)/scenes/page.tsx
+## Files
+```
+src/app/(studio)/library/page.tsx   — album grid, clean titles, lightbox, re-signed URLs
+src/app/api/library/route.ts        — Keep promotes preview→kept + stores storage_path
+src/app/(studio)/create/page.tsx    — outfit required for outfit scenes; clearer versions
+src/app/globals.css                 — studio system (from ui-tidy)
 ```
 
-Commit → push → private tab after Vercel Ready.
+## Why Library showed "?" 
+Signed URLs expire. On load we re-sign from `storage_path`. On Keep we copy
+`preview/` → `kept/` and save a 30-day signed URL + path.
+
+## Deploy
+Replace files on main → push → Vercel Ready → private tab.
+New Keeps will display; old rows without storage_path may still fail until re-kept.
