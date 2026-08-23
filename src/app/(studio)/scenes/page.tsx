@@ -20,7 +20,7 @@ const SECTIONS = {
   },
   intense: {
     label: "After dark",
-    blurb: "Further rooms of the studio — only when you open them.",
+    blurb: "A short shelf first. Further rooms only when you open them.",
     heroClass: "hero-intense",
   },
 };
@@ -292,7 +292,7 @@ export default function ScenesPage() {
 
   return (
     <div className="max-w-5xl mx-auto">
-      <div className="studio-hero">
+      <div className="studio-hero mb-6">
         <h1
           className="text-2xl font-medium mb-1"
           style={{ fontFamily: "var(--font-cormorant), Georgia, serif", color: "var(--text, #1a1614)" }}
@@ -394,8 +394,8 @@ export default function ScenesPage() {
                         key={face.role}
                         style={{
                           position: "relative",
-                          width: 56,
-                          height: 74,
+                          width: 72,
+                          height: 96,
                           borderRadius: 12,
                           overflow: "hidden",
                           flexShrink: 0,
@@ -435,13 +435,13 @@ export default function ScenesPage() {
                 <div
                   style={{
                     position: "relative",
-                    width: 72,
-                    height: 96,
-                    borderRadius: 12,
+                    width: 144,
+                    height: 192,
+                    borderRadius: 14,
                     overflow: "hidden",
                     flexShrink: 0,
                     background: "linear-gradient(to bottom right, #3A1F24, #7A3E48)",
-                    boxShadow: "0 0 0 1px rgba(0,0,0,0.06)",
+                    boxShadow: "0 2px 12px rgba(26,22,20,0.12)",
                   }}
                 >
                   {pic ? (
