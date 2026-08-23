@@ -46,7 +46,7 @@ export default function JoinPage() {
 
   return (
     <div className="mx-auto max-w-md">
-      <div className="studio-hero mb-8">
+      <div className="studio-hero">
         <p
           className="text-xs uppercase tracking-[0.2em] mb-2"
           style={{ color: "var(--accent)" }}
