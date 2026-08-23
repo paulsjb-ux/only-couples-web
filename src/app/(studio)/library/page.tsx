@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
@@ -15,24 +15,9 @@ type Gen = {
 
 function prettyTitle(prompt: string | null): string {
   if (!prompt) return "Scene";
-  // "id | Name (cast)" or "Name"
   const pipe = prompt.split("|");
   const right = (pipe.length > 1 ? pipe.slice(1).join("|") : pipe[0]).trim();
-  const name = right.split("(")[0].trim();
-  return name || "Scene";
-}
-
-
-function pathFromUrl(url: string | null | undefined): string | null {
-  if (!url) return null;
-  try {
-    // supabase: .../object/sign/library/<path>?token=  or /object/public/library/<path>
-    const m = url.match(/\/object\/(?:sign|public)\/library\/([^?]+)/);
-    if (m?.[1]) return decodeURIComponent(m[1]);
-  } catch {
-    /* */
-  }
-  return null;
+  return right.split("(")[0].trim() || "Scene";
 }
 
 function prettyCast(prompt: string | null): string | null {
@@ -46,95 +31,230 @@ function prettyCast(prompt: string | null): string | null {
     .join(" · ");
 }
 
+function pathFromUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    const m = url.match(/\/object\/(?:sign|public)\/library\/([^?]+)/);
+    if (m?.[1]) return decodeURIComponent(m[1]);
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+function candidates(path: string): string[] {
+  const set = new Set<string>([path]);
+  if (path.includes("/preview/")) set.add(path.replace("/preview/", "/kept/"));
+  if (path.includes("/kept/")) set.add(path.replace("/kept/", "/preview/"));
+  const parts = path.split("/").filter(Boolean);
+  if (parts.length >= 2) {
+    const sid = parts[0];
+    const file = parts[parts.length - 1];
+    set.add(`${sid}/preview/${file}`);
+    set.add(`${sid}/kept/${file}`);
+  }
+  return [...set];
+}
+
 export default function LibraryPage() {
   const [items, setItems] = useState<Gen[]>([]);
+  const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
   const [lightbox, setLightbox] = useState<Gen | null>(null);
+  const [failedIds, setFailedIds] = useState<Record<string, boolean>>({});
 
-  const refreshUrls = useCallback(async (rows: Gen[]) => {
+  async function signAny(path: string): Promise<{ url: string; path: string } | null> {
     const supabase = createClient();
-    const out: Gen[] = [];
-    for (const original of rows) {
-      let url = original.result_url;
-      const path = original.storage_path || pathFromUrl(original.result_url);
-      if (path) {
-        try {
-          const { data, error } = await supabase.storage
-            .from("library")
-            .createSignedUrl(path, 60 * 60 * 24 * 7);
-          if (!error && data?.signedUrl) {
-            url = data.signedUrl;
-          }
-        } catch {
-          /* keep existing */
-        }
+    for (const p of candidates(path)) {
+      try {
+        const { data, error } = await supabase.storage
+          .from("library")
+          .createSignedUrl(p, 60 * 60 * 24 * 14);
+        if (!error && data?.signedUrl) return { url: data.signedUrl, path: p };
+      } catch {
+        /* next */
       }
-      out.push({ ...original, result_url: url, storage_path: path });
     }
-    return out;
-  }, []);
+    return null;
+  }
 
   async function load() {
-    const supabase = createClient();
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return;
-    const { data: memberships } = await supabase
-      .from("studio_members")
-      .select("studio_id")
-      .eq("user_id", userData.user.id)
-      .limit(1);
-    const sid = memberships?.[0]?.studio_id;
-    if (!sid) return;
+    setLoading(true);
+    setNote("");
+    try {
+      const supabase = createClient();
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData?.user) {
+        setNote("Sign in to see your album.");
+        setItems([]);
+        return;
+      }
 
-    // Try with storage_path; fall back if column missing
-    let data: Gen[] | null = null;
-    const full = await supabase
-      .from("generations")
-      .select("id, result_url, storage_path, prompt, kind, created_at")
-      .eq("studio_id", sid)
-      .order("created_at", { ascending: false })
-      .limit(60);
-    if (full.error) {
-      const basic = await supabase
+      const { data: memberships, error: memErr } = await supabase
+        .from("studio_members")
+        .select("studio_id")
+        .eq("user_id", userData.user.id)
+        .limit(1);
+
+      if (memErr) {
+        setNote("Could not load studio. Try refresh.");
+        setItems([]);
+        return;
+      }
+
+      const sid = memberships?.[0]?.studio_id as string | undefined;
+      if (!sid) {
+        setNote("No studio yet. Generate a scene and Keep it.");
+        setItems([]);
+        return;
+      }
+
+      // Minimal select first — never block page on optional columns
+      let rows: Gen[] = [];
+      const full = await supabase
         .from("generations")
-        .select("id, result_url, prompt, kind, created_at")
+        .select("id, result_url, storage_path, prompt, kind, created_at")
         .eq("studio_id", sid)
         .order("created_at", { ascending: false })
         .limit(60);
-      data = (basic.data as Gen[]) || [];
-    } else {
-      data = (full.data as Gen[]) || [];
-    }
 
-    const withUrls = await refreshUrls(data);
-    setItems(withUrls);
+      if (full.error) {
+        const basic = await supabase
+          .from("generations")
+          .select("id, result_url, prompt, kind, created_at")
+          .eq("studio_id", sid)
+          .order("created_at", { ascending: false })
+          .limit(60);
+        rows = (basic.data as Gen[]) || [];
+      } else {
+        rows = (full.data as Gen[]) || [];
+      }
+
+      // Show rows immediately (even with old URLs)
+      setItems(rows);
+      setLoading(false);
+
+      // Re-sign in background — failures must not crash the page
+      const refreshed: Gen[] = [];
+      for (const row of rows) {
+        const path = row.storage_path || pathFromUrl(row.result_url);
+        if (path) {
+          const signed = await signAny(path);
+          if (signed) {
+            refreshed.push({
+              ...row,
+              result_url: signed.url,
+              storage_path: signed.path,
+            });
+            continue;
+          }
+        }
+        refreshed.push(row);
+      }
+      setItems(refreshed);
+    } catch (e) {
+      console.error("library load", e);
+      setNote("Something went wrong loading the album. Pull to refresh.");
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
     void load();
   }, []);
 
+  async function findMissing() {
+    setBusy(true);
+    setNote("Searching storage…");
+    try {
+      const supabase = createClient();
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData?.user) {
+        setNote("Sign in first.");
+        return;
+      }
+      const { data: memberships } = await supabase
+        .from("studio_members")
+        .select("studio_id")
+        .eq("user_id", userData.user.id)
+        .limit(1);
+      const sid = memberships?.[0]?.studio_id as string | undefined;
+      if (!sid) {
+        setNote("No studio.");
+        return;
+      }
+
+      const found: { path: string; url: string }[] = [];
+      for (const folder of [`${sid}/kept`, `${sid}/preview`, sid]) {
+        try {
+          const { data: files } = await supabase.storage.from("library").list(folder, {
+            limit: 100,
+          });
+          if (!files) continue;
+          for (const f of files) {
+            if (!f?.name || !f.name.includes(".")) continue;
+            const objectPath = `${folder}/${f.name}`;
+            const signed = await signAny(objectPath);
+            if (signed) found.push(signed);
+          }
+        } catch {
+          /* continue */
+        }
+      }
+
+      // Re-sign current rows again
+      const next = [...items];
+      let fi = 0;
+      for (let i = 0; i < next.length; i++) {
+        const row = next[i];
+        const path = row.storage_path || pathFromUrl(row.result_url);
+        if (path) {
+          const signed = await signAny(path);
+          if (signed) {
+            next[i] = { ...row, result_url: signed.url, storage_path: signed.path };
+            continue;
+          }
+        }
+        if ((!row.result_url || failedIds[row.id]) && fi < found.length) {
+          const hit = found[fi++];
+          next[i] = { ...row, result_url: hit.url, storage_path: hit.path };
+        }
+      }
+      setItems(next);
+      setFailedIds({});
+      setNote(
+        found.length
+          ? `Checked storage (${found.length} files found). Updated what we could.`
+          : "No files found in storage. Generate again and Keep."
+      );
+    } catch (e) {
+      console.error(e);
+      setNote("Search failed. Try again later.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function downloadToDevice(url: string, id: string, title: string) {
     setBusy(true);
-    setNote("Preparing download…");
     try {
       const res = await fetch(url);
       const blob = await res.blob();
       const href = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = href;
-      const safe = title.replace(/[^a-z0-9]+/gi, "-").toLowerCase().slice(0, 40);
-      a.download = `the-other-room-${safe || id.slice(0, 8)}.jpg`;
-      a.rel = "noopener";
+      a.download = `the-other-room-${title.replace(/[^a-z0-9]+/gi, "-").toLowerCase().slice(0, 32) || id.slice(0, 8)}.jpg`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(href);
-      setNote("Saved. On iPhone: share sheet → Save Image. On Mac: check Downloads.");
+      setNote("Download started.");
     } catch {
       window.open(url, "_blank");
-      setNote("Opened image — long-press or right-click to save.");
+      setNote("Opened image — long-press to save.");
     } finally {
       setBusy(false);
     }
@@ -151,17 +271,17 @@ export default function LibraryPage() {
       });
       setItems((prev) => prev.filter((x) => x.id !== id));
       if (lightbox?.id === id) setLightbox(null);
-      setNote("Removed from album.");
+      setNote("Removed.");
     } catch {
-      alert("Delete failed");
+      setNote("Delete failed.");
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div style={{ maxWidth: "36rem", margin: "0 auto" }}>
-      <div className="studio-hero">
+    <div style={{ maxWidth: "36rem", margin: "0 auto", paddingBottom: 40 }}>
+      <div style={{ marginBottom: 20 }}>
         <h1
           style={{
             fontFamily: "var(--font-cormorant), Georgia, serif",
@@ -178,11 +298,69 @@ export default function LibraryPage() {
         </p>
       </div>
 
-      {note && (
-        <p style={{ fontSize: 13, color: "#5c534c", marginBottom: 16 }}>{note}</p>
-      )}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+        <button
+          type="button"
+          disabled={busy || loading}
+          onClick={() => void findMissing()}
+          style={{
+            minHeight: 40,
+            padding: "8px 16px",
+            borderRadius: 999,
+            border: "1.5px solid rgba(26,22,20,0.12)",
+            background: "#fff",
+            fontWeight: 600,
+            fontSize: 13,
+            cursor: "pointer",
+            color: "#1a1614",
+          }}
+        >
+          {busy ? "Working…" : "Find missing pictures"}
+        </button>
+        <button
+          type="button"
+          disabled={loading}
+          onClick={() => void load()}
+          style={{
+            minHeight: 40,
+            padding: "8px 16px",
+            borderRadius: 999,
+            border: "1.5px solid rgba(26,22,20,0.12)",
+            background: "#fff",
+            fontWeight: 600,
+            fontSize: 13,
+            cursor: "pointer",
+            color: "#1a1614",
+          }}
+        >
+          Refresh
+        </button>
+        <Link
+          href="/scenes"
+          style={{
+            minHeight: 40,
+            padding: "8px 16px",
+            borderRadius: 999,
+            background: "linear-gradient(135deg, #8B4A54, #7A3E48)",
+            color: "#fff",
+            fontWeight: 600,
+            fontSize: 13,
+            textDecoration: "none",
+            display: "inline-flex",
+            alignItems: "center",
+          }}
+        >
+          New scene
+        </Link>
+      </div>
 
-      {items.length === 0 ? (
+      {note ? (
+        <p style={{ fontSize: 13, color: "#5c534c", marginBottom: 16, lineHeight: 1.4 }}>{note}</p>
+      ) : null}
+
+      {loading ? (
+        <p style={{ fontSize: 14, color: "#5c534c" }}>Loading album…</p>
+      ) : items.length === 0 ? (
         <div
           style={{
             background: "#fff",
@@ -202,8 +380,8 @@ export default function LibraryPage() {
           >
             The album is empty
           </p>
-          <p style={{ fontSize: 14, color: "#5c534c", margin: "0 0 16px", lineHeight: 1.45 }}>
-            Start with a soft scene. Previews stay private until you Keep them.
+          <p style={{ fontSize: 14, color: "#5c534c", margin: "0 0 16px" }}>
+            Generate a scene, then Keep it here.
           </p>
           <Link
             href="/scenes"
@@ -225,19 +403,11 @@ export default function LibraryPage() {
           </Link>
         </div>
       ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr",
-            gap: 16,
-            maxWidth: 420,
-            margin: "0 auto",
-            width: "100%",
-          }}
-        >
+        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16, maxWidth: 420, margin: "0 auto" }}>
           {items.map((item) => {
             const title = prettyTitle(item.prompt);
             const cast = prettyCast(item.prompt);
+            const broken = failedIds[item.id] || !item.result_url;
             return (
               <div
                 key={item.id}
@@ -246,30 +416,23 @@ export default function LibraryPage() {
                   borderRadius: 16,
                   overflow: "hidden",
                   border: "1px solid rgba(26,22,20,0.08)",
-                  boxShadow: "0 1px 3px rgba(26,22,20,0.04)",
                 }}
               >
                 <button
                   type="button"
-                  onClick={() => item.result_url && setLightbox(item)}
+                  onClick={() => !broken && item.result_url && setLightbox(item)}
                   style={{
                     display: "block",
                     width: "100%",
                     padding: 0,
                     border: "none",
                     background: "#2a181c",
-                    cursor: item.result_url ? "pointer" : "default",
+                    cursor: broken ? "default" : "pointer",
                   }}
                 >
-                  <div
-                    style={{
-                      position: "relative",
-                      width: "100%",
-                      aspectRatio: "3 / 4",
-                      background: "#2a181c",
-                    }}
-                  >
-                    {item.result_url ? (
+                  <div style={{ width: "100%", aspectRatio: "3 / 4", position: "relative", background: "#2a181c" }}>
+                    {!broken && item.result_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={item.result_url}
                         alt={title}
@@ -280,9 +443,7 @@ export default function LibraryPage() {
                           objectPosition: "top center",
                           display: "block",
                         }}
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.opacity = "0.3";
-                        }}
+                        onError={() => setFailedIds((p) => ({ ...p, [item.id]: true }))}
                       />
                     ) : (
                       <div
@@ -290,15 +451,20 @@ export default function LibraryPage() {
                           position: "absolute",
                           inset: 0,
                           display: "flex",
+                          flexDirection: "column",
                           alignItems: "center",
                           justifyContent: "center",
-                          color: "rgba(255,255,255,0.4)",
-                          fontSize: 12,
-                          padding: 12,
+                          color: "rgba(255,255,255,0.6)",
+                          fontSize: 13,
+                          padding: 20,
                           textAlign: "center",
+                          gap: 8,
                         }}
                       >
-                        Image unavailable
+                        <span>Image couldn&apos;t load</span>
+                        <span style={{ fontSize: 12, opacity: 0.85 }}>
+                          Tap Find missing pictures, or generate again
+                        </span>
                       </div>
                     )}
                   </div>
@@ -309,40 +475,54 @@ export default function LibraryPage() {
                       fontFamily: "var(--font-cormorant), Georgia, serif",
                       fontSize: 16,
                       color: "#1a1614",
-                      lineHeight: 1.25,
                       marginBottom: 2,
                     }}
                   >
                     {title}
                   </div>
-                  {cast && (
-                    <div style={{ fontSize: 11, color: "#5c534c", marginBottom: 10 }}>
-                      {cast}
-                    </div>
+                  {cast ? (
+                    <div style={{ fontSize: 11, color: "#5c534c", marginBottom: 10 }}>{cast}</div>
+                  ) : null}
+                  {!broken && item.result_url ? (
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => downloadToDevice(item.result_url!, item.id, title)}
+                      style={{
+                        width: "100%",
+                        minHeight: 40,
+                        borderRadius: 999,
+                        border: "none",
+                        background: "linear-gradient(135deg, #8B4A54, #7A3E48)",
+                        color: "#fff",
+                        fontWeight: 600,
+                        fontSize: 13,
+                        cursor: "pointer",
+                        marginBottom: 6,
+                      }}
+                    >
+                      Download
+                    </button>
+                  ) : (
+                    <Link
+                      href="/scenes"
+                      style={{
+                        display: "block",
+                        textAlign: "center",
+                        minHeight: 40,
+                        lineHeight: "40px",
+                        borderRadius: 999,
+                        background: "#F7F0EA",
+                        color: "#1a1614",
+                        fontWeight: 600,
+                        fontSize: 13,
+                        textDecoration: "none",
+                        marginBottom: 6,
+                      }}
+                    >
+                      Generate again
+                    </Link>
                   )}
-                  <button
-                    type="button"
-                    disabled={busy || !item.result_url}
-                    onClick={() =>
-                      item.result_url &&
-                      downloadToDevice(item.result_url, item.id, title)
-                    }
-                    style={{
-                      width: "100%",
-                      minHeight: 40,
-                      borderRadius: 999,
-                      border: "none",
-                      background: "linear-gradient(135deg, #8B4A54, #7A3E48)",
-                      color: "#fff",
-                      fontWeight: 600,
-                      fontSize: 13,
-                      cursor: busy || !item.result_url ? "not-allowed" : "pointer",
-                      opacity: !item.result_url ? 0.5 : 1,
-                      marginBottom: 6,
-                    }}
-                  >
-                    Download
-                  </button>
                   <button
                     type="button"
                     disabled={busy}
@@ -367,11 +547,9 @@ export default function LibraryPage() {
         </div>
       )}
 
-      {/* Lightbox */}
-      {lightbox && lightbox.result_url && (
+      {lightbox?.result_url ? (
         <div
           role="dialog"
-          aria-modal="true"
           onClick={() => setLightbox(null)}
           style={{
             position: "fixed",
@@ -404,69 +582,15 @@ export default function LibraryPage() {
           >
             ×
           </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={lightbox.result_url}
-            alt={prettyTitle(lightbox.prompt)}
+            alt=""
             onClick={(e) => e.stopPropagation()}
-            style={{
-              maxWidth: "100%",
-              maxHeight: "85vh",
-              objectFit: "contain",
-              borderRadius: 12,
-            }}
+            style={{ maxWidth: "100%", maxHeight: "85vh", objectFit: "contain", borderRadius: 12 }}
           />
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              marginTop: 16,
-              display: "flex",
-              gap: 10,
-              width: "100%",
-              maxWidth: 320,
-            }}
-          >
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() =>
-                downloadToDevice(
-                  lightbox.result_url!,
-                  lightbox.id,
-                  prettyTitle(lightbox.prompt)
-                )
-              }
-              style={{
-                flex: 1,
-                minHeight: 48,
-                borderRadius: 999,
-                border: "none",
-                background: "linear-gradient(135deg, #8B4A54, #7A3E48)",
-                color: "#fff",
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
-            >
-              Download
-            </button>
-            <button
-              type="button"
-              onClick={() => setLightbox(null)}
-              style={{
-                flex: 1,
-                minHeight: 48,
-                borderRadius: 999,
-                border: "1px solid rgba(255,255,255,0.25)",
-                background: "transparent",
-                color: "#fff",
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
-            >
-              Close
-            </button>
-          </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
