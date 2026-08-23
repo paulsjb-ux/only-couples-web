@@ -2,73 +2,114 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 /**
- * Partner invite — MVP placeholder.
- * Wire to real invite tokens + /api/studio when ready.
+ * Partner invite — join via studio UUID from Account.
  */
 export default function JoinPage() {
+  const router = useRouter();
   const [code, setCode] = useState("");
   const [note, setNote] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setNote(null);
+    setError(null);
     if (!code.trim()) {
-      setNote("Enter the invite code from your partner.");
+      setError("Enter the invite code from your partner.");
       return;
     }
-    setNote(
-      "Invite codes are not connected yet. Ask your partner to share the studio from Account when that ships — or both use the same login for now."
-    );
+    setLoading(true);
+    try {
+      const res = await fetch("/api/studio/join", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: code.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || "Could not join");
+        setLoading(false);
+        return;
+      }
+      setNote(data.message || "Joined. Opening home…");
+      router.push("/home");
+      router.refresh();
+    } catch {
+      setError("Network error — try again");
+      setLoading(false);
+    }
   }
 
   return (
-    <div className="mx-auto max-w-md px-5 py-10">
-      <p className="text-xs uppercase tracking-widest mb-2" style={{ color: "var(--gold, #c4a574)" }}>
-        Partner
-      </p>
-      <h1
-        className="text-3xl mb-2"
-        style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
-      >
-        Join a studio
-      </h1>
-      <p className="text-sm mb-8" style={{ color: "var(--cream-muted, #c9bdb0)" }}>
-        Enter the invite code your partner sent. You&apos;ll share the same private
-        album.
-      </p>
+    <div className="mx-auto max-w-md">
+      <div className="studio-hero mb-8">
+        <p
+          className="text-xs uppercase tracking-[0.2em] mb-2"
+          style={{ color: "var(--accent)" }}
+        >
+          Partner
+        </p>
+        <h1
+          className="text-2xl md:text-3xl font-medium mb-2"
+          style={{
+            fontFamily: "var(--font-cormorant), Georgia, serif",
+            color: "var(--text)",
+          }}
+        >
+          Join a studio
+        </h1>
+        <p className="text-sm" style={{ color: "var(--muted)" }}>
+          Enter the invite code from Account on your partner&apos;s device. You
+          will share the same private album.
+        </p>
+      </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="card p-5 space-y-4">
         <div>
-          <label className="block text-sm mb-2" style={{ color: "var(--cream-muted, #c9bdb0)" }}>
+          <label
+            className="block text-sm font-semibold mb-1.5"
+            style={{ color: "var(--text)" }}
+          >
             Invite code
           </label>
           <input
             value={code}
             onChange={(e) => setCode(e.target.value)}
-            className="w-full rounded-xl border px-4 py-3.5"
-            style={{
-              borderColor: "rgba(243,235,224,0.15)",
-              background: "#1a1816",
-              color: "#f3ebe0",
-            }}
-            placeholder="e.g. TOR-XXXX"
+            className="w-full rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-sm"
+            placeholder="Studio ID from partner Account"
             autoComplete="off"
           />
         </div>
+        {error && (
+          <p className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-xl px-3 py-2">
+            {error}
+          </p>
+        )}
         {note && (
-          <p className="text-sm leading-relaxed" style={{ color: "var(--cream-muted, #c9bdb0)" }}>
+          <p className="text-sm" style={{ color: "var(--muted)" }}>
             {note}
           </p>
         )}
-        <button type="submit" className="btn btn-primary w-full" style={{ minHeight: "3rem" }}>
-          Join studio
+        <button
+          type="submit"
+          disabled={loading}
+          className="btn btn-studio-primary w-full disabled:opacity-60"
+        >
+          {loading ? "Joining…" : "Join studio"}
         </button>
       </form>
 
-      <p className="mt-8 text-center text-sm">
+      <p className="mt-8 text-center text-sm" style={{ color: "var(--muted)" }}>
         <Link href="/home" className="underline underline-offset-2">
           Back to home
+        </Link>
+        {" · "}
+        <Link href="/account" className="underline underline-offset-2">
+          Your invite code
         </Link>
       </p>
     </div>
