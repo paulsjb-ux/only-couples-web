@@ -232,8 +232,11 @@ export default function PeoplePage() {
     <div>
       <div className="studio-hero mb-6">
         <h1
-          className="text-2xl font-medium mb-1" style={{ color: "var(--text, #1a1614)" }}
-          style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
+          className="text-2xl font-medium mb-1"
+          style={{
+            fontFamily: "var(--font-cormorant), Georgia, serif",
+            color: "var(--text, #1a1614)",
+          }}
         >
           Your people
         </h1>
@@ -247,7 +250,7 @@ export default function PeoplePage() {
           {ROLES.map((role) => {
             const person = people.find((p) => p.role === role.key);
             return (
-              <div key={role.key} className="card p-5">
+              <div key={role.key} className="card p-3 sm:p-5">
                 <div
                   className="text-xl font-medium mb-4"
                   style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
@@ -255,13 +258,13 @@ export default function PeoplePage() {
                   {role.label}
                 </div>
 
-                <div className="grid grid-cols-3 gap-3 mb-4">
+                <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4 min-w-0">
                   {SLOT_META.map((slot) => {
                     const url = slotUrl(person, slot.key);
                     const busy = busyKey === `${role.key}-${slot.key}`;
                     return (
                       <div key={slot.key} className="text-center">
-                        <div className="tor-thumb mb-2 bg-gradient-to-br from-[#1C1917] to-[#5C2E36] flex items-center justify-center">
+                        <div className="tor-thumb tor-people-slot mb-2 bg-gradient-to-br from-[#1C1917] to-[#5C2E36] flex items-center justify-center">
                           {url ? (
                             <img
                               src={url}
@@ -276,7 +279,7 @@ export default function PeoplePage() {
                         <div className="text-[10px] text-[var(--muted)] mb-2 leading-tight">
                           {slot.hint}
                         </div>
-                        <label className="btn btn-primary w-full text-[11px] cursor-pointer px-2 py-1.5">
+                        <label className="btn btn-studio-primary w-full text-[11px] cursor-pointer px-1 sm:px-2 py-1.5">
                           {busy ? "…" : url ? "Change" : "Add"}
                           <input
                             type="file"
