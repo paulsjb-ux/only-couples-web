@@ -753,13 +753,13 @@ html, body {
   align-items: flex-end;
 }
 .tor-face-chip {
-  width: 56px;
+  width: 72px;
   flex-shrink: 0;
   text-align: center;
 }
 .tor-face-chip .frame {
-  width: 56px;
-  height: 74px;
+  width: 72px;
+  height: 96px;
   border-radius: 12px;
   overflow: hidden;
   background: #3a1f24;
@@ -774,12 +774,12 @@ html, body {
 
 .tor-preview-frame {
   position: relative;
-  width: min(100%, 70vw, calc(52vh * 0.75));
+  width: min(100%, 92vw, calc(78vh * 0.75));
   max-width: 100%;
   aspect-ratio: 3 / 4;
-  max-height: 52vh;
+  max-height: 78vh;
   margin: 0 auto;
-  border-radius: 12px;
+  border-radius: 14px;
   overflow: hidden;
   background: #3a1f24;
 }
@@ -867,3 +867,96 @@ html, body {
 
 /* Wow library lightbox safe area */
 body.tor-lightbox-open { overflow: hidden; }
+
+
+/* ===== Selection controls (chips + selects) ===== */
+.tor-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+}
+.tor-chip-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+}
+@media (min-width: 420px) {
+  .tor-chip-grid.tor-chip-grid-4 {
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+  }
+}
+.tor-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  border: 1.5px solid rgba(26, 22, 20, 0.12);
+  background: #fff;
+  color: #1a1614;
+  cursor: pointer;
+  box-sizing: border-box;
+  text-align: center;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.tor-chip-on {
+  background: linear-gradient(135deg, #8B4A54, #7A3E48);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(139, 74, 84, 0.22);
+}
+.tor-chip-warn {
+  opacity: 0.85;
+}
+.tor-select-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.tor-select-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8a7350;
+}
+.tor-select {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 40px 12px 14px;
+  border-radius: 14px;
+  border: 1.5px solid rgba(26, 22, 20, 0.12);
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235c534c' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  font-size: 15px;
+  font-weight: 500;
+  color: #1a1614;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+.tor-select:focus {
+  outline: none;
+  border-color: #8B4A54;
+  box-shadow: 0 0 0 3px rgba(139, 74, 84, 0.15);
+}
+.tor-select-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+@media (min-width: 400px) {
+  .tor-select-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
