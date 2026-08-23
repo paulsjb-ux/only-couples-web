@@ -741,7 +741,7 @@ html, body {
 .tor-img {
   width: 100% !important;
   height: 100% !important;
-  object-fit: cover !important;
+  object-fit: contain !important;
   object-position: top center !important;
   display: block !important;
 }
@@ -971,3 +971,11 @@ body.tor-lightbox-open { overflow: hidden; }
 
 /* Zen club */
 .studio-hero h1 { letter-spacing: -0.01em; }
+
+/* Full picture — no crop */
+.tor-preview-frame img,
+.tor-img {
+  object-fit: contain !important;
+  object-position: center center !important;
+  background: #1c1917;
+}
