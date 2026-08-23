@@ -74,7 +74,8 @@ function CreateInner() {
   const [note, setNote] = useState("");
   const [studioId, setStudioId] = useState<string | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
-  const [previews, setPreviews] = useState<PreviewItem[]>([]);
+  const [previews, setPreviews] = useState<PreviewItem[]>([])
+  const [ritualIndex, setRitualIndex] = useState(0);
   const [uploadRole, setUploadRole] = useState("female_lover");
   const previewRef = useRef<HTMLDivElement | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -331,6 +332,7 @@ function CreateInner() {
         return;
       }
       const promptBase = data.prompt || `${sceneId} | ${sceneName} (${who})`;
+      setRitualIndex(0);
       setPreviews(
         rawItems.map((it: { url: string; path?: string | null; id?: string | null }, i: number) => ({
           url: it.url,
@@ -395,8 +397,12 @@ function CreateInner() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ path: item.path, id: item.id }),
       });
-      setPreviews((prev) => prev.filter((_, i) => i !== index));
-      setNote("Deleted.");
+      setPreviews((prev) => {
+        const next = prev.filter((_, i) => i !== index);
+        setRitualIndex((ri) => Math.max(0, Math.min(ri, Math.max(0, next.length - 1))));
+        return next;
+      });
+      setNote("Discarded.");
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Delete failed");
     } finally {
@@ -429,6 +435,186 @@ function CreateInner() {
 
   return (
     <div>
+
+      {previews.length > 0 && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 200,
+            background: "#0c0a09",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "flex-end",
+            padding: "0 0 env(safe-area-inset-bottom, 0px)",
+          }}
+        >
+          {/* Image fills most of screen */}
+          <div
+            style={{
+              flex: 1,
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "12px 12px 0",
+              minHeight: 0,
+            }}
+          >
+            <img
+              src={previews[Math.min(ritualIndex, previews.length - 1)]?.url}
+              alt=""
+              style={{
+                maxWidth: "100%",
+                maxHeight: "100%",
+                width: "auto",
+                height: "auto",
+                objectFit: "contain",
+                borderRadius: 12,
+              }}
+            />
+          </div>
+
+          {/* Version dots */}
+          {previews.length > 1 && (
+            <div style={{ display: "flex", gap: 8, padding: "10px 0 4px" }}>
+              {previews.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setRitualIndex(i)}
+                  style={{
+                    width: i === ritualIndex ? 18 : 8,
+                    height: 8,
+                    borderRadius: 999,
+                    border: "none",
+                    background: i === ritualIndex ? "#8B4A54" : "rgba(255,255,255,0.35)",
+                    cursor: "pointer",
+                    padding: 0,
+                  }}
+                />
+              ))}
+            </div>
+          )}
+
+          <p
+            style={{
+              fontFamily: "var(--font-cormorant), Georgia, serif",
+              fontSize: 18,
+              color: "rgba(243,235,224,0.9)",
+              margin: "4px 0 12px",
+            }}
+          >
+            {previews[ritualIndex]?.saved ? "Kept in your album" : "Keep or let it go"}
+          </p>
+
+          {/* Actions */}
+          <div
+            style={{
+              width: "100%",
+              maxWidth: 420,
+              padding: "0 16px 20px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+            }}
+          >
+            <button
+              type="button"
+              disabled={busy || previews[ritualIndex]?.saved}
+              onClick={() => void saveOne(ritualIndex)}
+              style={{
+                minHeight: 52,
+                borderRadius: 999,
+                border: "none",
+                background: previews[ritualIndex]?.saved
+                  ? "rgba(255,255,255,0.12)"
+                  : "linear-gradient(135deg, #8B4A54, #7A3E48)",
+                color: "#fff",
+                fontWeight: 600,
+                fontSize: 16,
+                cursor: "pointer",
+              }}
+            >
+              {previews[ritualIndex]?.saved ? "Kept" : "Keep"}
+            </button>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void downloadOne(ritualIndex)}
+                style={{
+                  flex: 1,
+                  minHeight: 48,
+                  borderRadius: 999,
+                  border: "1px solid rgba(255,255,255,0.25)",
+                  background: "transparent",
+                  color: "#fff",
+                  fontWeight: 600,
+                  fontSize: 14,
+                  cursor: "pointer",
+                }}
+              >
+                Download
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void deleteOne(ritualIndex)}
+                style={{
+                  flex: 1,
+                  minHeight: 48,
+                  borderRadius: 999,
+                  border: "1px solid rgba(255,255,255,0.25)",
+                  background: "transparent",
+                  color: "#fff",
+                  fontWeight: 600,
+                  fontSize: 14,
+                  cursor: "pointer",
+                }}
+              >
+                Discard
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setPreviews([]);
+                setRitualIndex(0);
+                setNote("");
+              }}
+              style={{
+                minHeight: 40,
+                border: "none",
+                background: "transparent",
+                color: "rgba(255,255,255,0.5)",
+                fontSize: 13,
+                cursor: "pointer",
+                textDecoration: "underline",
+              }}
+            >
+              {previews.every((x) => x.saved)
+                ? "Back to studio"
+                : "Close without keeping the rest"}
+            </button>
+            {previews.some((x) => x.saved) && (
+              <a
+                href="/library"
+                style={{
+                  textAlign: "center",
+                  color: "#c4a574",
+                  fontSize: 13,
+                  textDecoration: "underline",
+                }}
+              >
+                Open album
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="studio-hero">
         <h1
           style={{
@@ -441,78 +627,31 @@ function CreateInner() {
         >
           {sceneName}
         </h1>
-        <p className="text-sm text-[var(--muted)]">Choose who is in this scene, then generate.</p>
+        <p className="text-sm text-[var(--muted)]">One path. Keep only what you want.</p>
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            marginTop: 14,
+            fontSize: 11,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            fontWeight: 600,
+            color: "#8a7350",
+          }}
+        >
+          <span>1 Who</span>
+          <span style={{ opacity: 0.35 }}>·</span>
+          <span>2 Make</span>
+          <span style={{ opacity: 0.35 }}>·</span>
+          <span>3 Keep</span>
+        </div>
       </div>
 
       {/* Results first after generate — save controls at top of this block */}
-      <div ref={previewRef}>
-        {previews.length > 0 && (
-          <div className="card" style={{ maxWidth: "36rem", borderColor: "var(--tor-accent)", borderWidth: 2 }}>
-            <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
-              <p className="text-sm font-semibold text-[var(--text)]">
-                {previews.length > 1 ? `${previews.length} versions` : "Your image"}
-              </p>
-              <div className="flex gap-3 text-sm">
-                {previews.some((p) => p.saved) && (
-                  <Link href="/library" className="underline text-[var(--text)]">
-                    Open library
-                  </Link>
-                )}
-              </div>
-            </div>
-            <p className="text-xs text-[var(--muted)] mb-3">
-              Preview only — not in your album until you Keep. Discard removes it. Download is optional.
-            </p>
-            <div
-              className={`tor-preview-grid ${
-                previews.length === 1 ? "tor-preview-grid--single" : "tor-preview-grid--multi"
-              }`}
-            >
-              {previews.map((item, index) => (
-                <div key={`${item.url}-${index}`} className="rounded-xl border border-[var(--line)] p-2 sm:p-3 bg-white min-w-0">
-                  <div className="tor-preview-frame ring-1 ring-black/10">
-                    <img
-                      src={item.url}
-                      alt={`Version ${index + 1}`}
-                      className="tor-img"
-                      loading="lazy"
-                    />
-                  </div>
-                  <p className="text-xs text-[var(--muted)] mt-2">Version {index + 1}</p>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    <button
-                      type="button"
-                      className="btn btn-studio-primary text-xs px-3 py-1.5"
-                      onClick={() => saveOne(index)}
-                      disabled={busy || item.saved}
-                    >
-                      {item.saved ? "Kept" : "Keep"}
-                    </button>
-                    <button
-                      type="button"
-                      className="rounded-full px-3 py-1.5 text-xs font-bold bg-white border border-[var(--line)] text-[var(--text)]"
-                      onClick={() => downloadOne(index)}
-                      disabled={busy}
-                    >
-                      Download
-                    </button>
-                    <button
-                      type="button"
-                      className="rounded-full px-3 py-1.5 text-xs font-bold bg-white border border-[var(--line)] text-[var(--text)]"
-                      onClick={() => deleteOne(index)}
-                      disabled={busy}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+      {/* Result ritual is full-screen overlay below */}
 
-      {/* Create controls ABOVE the 12 presets */}
+            {/* Create controls ABOVE the 12 presets */}
       <div className="card tor-stack" style={{ maxWidth: "36rem" }}>
         <p className="text-sm font-semibold text-[var(--text)]">Create</p>
 
@@ -651,12 +790,22 @@ function CreateInner() {
           </div>
         )}
 
-        <button className="btn btn-studio-primary w-full" onClick={generate} disabled={busy}>
+        <button
+          className="btn btn-studio-primary w-full"
+          onClick={generate}
+          disabled={busy}
+          style={{
+            position: "sticky",
+            bottom: 12,
+            zIndex: 20,
+            boxShadow: "0 8px 24px rgba(139,74,84,0.35)",
+          }}
+        >
           {busy
             ? "Making…"
             : kind === "image" && versions > 1
-              ? `Make ${versions} versions`
-              : "Use this scene"}
+              ? `Make ${versions}`
+              : "Make this scene"}
         </button>
         {note && <p className="text-sm text-[var(--muted)]">{note}</p>}
       </div>
@@ -750,7 +899,20 @@ function CreateInner() {
           From your phone camera roll or Mac. Becomes that role’s face lock.
         </p>
 
-        <p className="text-sm font-semibold mt-5 mb-2 text-[var(--text)]">6 women</p>
+        <details style={{ marginTop: 20 }}>
+          <summary
+            style={{
+              fontSize: 14,
+              fontWeight: 600,
+              color: "#5c534c",
+              cursor: "pointer",
+              listStyle: "none",
+              marginBottom: 12,
+            }}
+          >
+            Studio faces (optional)
+          </summary>
+        <p className="text-sm font-semibold mb-2 text-[var(--text)]">6 women</p>
         <div className="tor-preset-grid">
           {WOMAN_PRESETS.map((p) => (
             <button
@@ -815,6 +977,7 @@ function CreateInner() {
             </button>
           ))}
         </div>
+        </details>
       </div>
 
       <p className="text-sm max-w-2xl">
