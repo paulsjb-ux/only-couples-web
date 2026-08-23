@@ -1,77 +1,144 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+
 export default function AccountPage() {
+  const [studioId, setStudioId] = useState<string | null>(null);
+  const [studioName, setStudioName] = useState<string | null>(null);
+  const [role, setRole] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/studio");
+        const data = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (!res.ok) {
+          setLoadError(data.error || "Could not load studio");
+          return;
+        }
+        setStudioId(data.studio_id || null);
+        setRole(data.role || null);
+        setStudioName(data.studio?.name || null);
+      } catch {
+        if (!cancelled) setLoadError("Network error");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function copyCode() {
+    if (!studioId) return;
+    try {
+      await navigator.clipboard.writeText(studioId);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  }
+
   return (
     <div>
-      <div className="hero mb-8">
+      <div className="studio-hero mb-8">
         <h1
-          className="text-2xl font-medium mb-1 text-white"
-          style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
+          className="text-2xl md:text-3xl font-medium mb-2"
+          style={{
+            fontFamily: "var(--font-cormorant), Georgia, serif",
+            color: "var(--text)",
+          }}
         >
           Account
         </h1>
-        <p className="text-white/90 text-sm">
-          Studio settings, credits, and preferences.
+        <p className="text-sm" style={{ color: "var(--muted)" }}>
+          Studio settings, partner invite, and preferences.
         </p>
       </div>
 
       <div className="space-y-6 max-w-lg">
+        {/* Invite partner */}
+        <div className="card p-5">
+          <div className="section-kicker">Partner</div>
+          <h2
+            className="text-lg font-medium mb-2"
+            style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
+          >
+            Invite to this studio
+          </h2>
+          <p className="text-sm mb-4" style={{ color: "var(--muted)" }}>
+            Share this code. They sign up, open{" "}
+            <Link href="/join" className="underline">
+              Join
+            </Link>
+            , and enter it. Same private album.
+          </p>
+          {loadError && (
+            <p className="text-sm text-red-700 mb-3">{loadError}</p>
+          )}
+          {studioId ? (
+            <>
+              <div className="rounded-xl border border-[var(--line)] bg-[#faf7f5] px-4 py-3 font-mono text-xs break-all mb-3">
+                {studioId}
+              </div>
+              {studioName && (
+                <p className="text-xs mb-3" style={{ color: "var(--muted)" }}>
+                  Studio: {studioName}
+                  {role ? ` · ${role}` : ""}
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={copyCode}
+                className="btn btn-studio-primary text-sm"
+              >
+                {copied ? "Copied" : "Copy invite code"}
+              </button>
+            </>
+          ) : (
+            !loadError && (
+              <p className="text-sm" style={{ color: "var(--muted)" }}>
+                Loading studio…
+              </p>
+            )
+          )}
+        </div>
+
         {/* Credits */}
         <div className="card p-5">
           <div className="section-kicker">Credits</div>
           <div className="flex items-baseline gap-2 mb-3">
             <span className="text-3xl font-extrabold tracking-tight">20</span>
-            <span className="text-sm text-[var(--muted)]">remaining</span>
+            <span className="text-sm" style={{ color: "var(--muted)" }}>
+              remaining
+            </span>
           </div>
-          <p className="text-xs text-[var(--muted)] mb-4">
+          <p className="text-xs mb-4" style={{ color: "var(--muted)" }}>
             Images cost 1 credit · Videos cost 2 credits
           </p>
-          <button className="btn btn-primary w-full sm:w-auto">
+          <button type="button" className="btn btn-studio-secondary">
             Buy more credits
           </button>
         </div>
 
-        {/* Look defaults */}
+        {/* Privacy reminder */}
         <div className="card p-5">
-          <div className="section-kicker">Look defaults</div>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold mb-1.5">Intensity</label>
-              <select className="w-full rounded-xl border border-[var(--line)] bg-white px-4 py-2.5 text-sm">
-                <option>Soft</option>
-                <option selected>Sensual</option>
-                <option>Explicit</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold mb-1.5">Lighting</label>
-              <select className="w-full rounded-xl border border-[var(--line)] bg-white px-4 py-2.5 text-sm">
-                <option>Soft window</option>
-                <option>Bedroom lamp</option>
-                <option>Hotel night</option>
-                <option>Studio softbox</option>
-                <option>Golden hour</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold mb-1.5">Aspect ratio</label>
-              <select className="w-full rounded-xl border border-[var(--line)] bg-white px-4 py-2.5 text-sm">
-                <option>3:4</option>
-                <option>9:16</option>
-                <option>1:1</option>
-                <option>16:9</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Danger zone */}
-        <div className="card p-5 border-red-100">
-          <div className="section-kicker text-red-700">Danger zone</div>
-          <p className="text-sm text-[var(--muted)] mb-4">
-            Permanently delete your studio and all generated content.
+          <div className="section-kicker">Privacy</div>
+          <ul className="text-sm space-y-2" style={{ color: "var(--muted)" }}>
+            <li>Photos stay in your studio — not used to train a public model.</li>
+            <li>Preview → Keep or Discard. Nothing auto-saves to the album.</li>
+            <li>No public gallery by default.</li>
+          </ul>
+          <p className="mt-4 text-sm">
+            <Link href="/join" className="underline underline-offset-2">
+              Join a partner&apos;s studio
+            </Link>
           </p>
-          <button className="btn text-sm text-red-700 border border-red-200 bg-red-50 hover:bg-red-100">
-            Delete studio
-          </button>
         </div>
       </div>
     </div>
