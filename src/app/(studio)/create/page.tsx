@@ -535,15 +535,17 @@ function CreateInner() {
         </div>
 
         <div>
-          <label className="block text-sm font-semibold mb-1.5 text-[var(--text)]">Media</label>
-          <select
-            className="w-full rounded-xl border border-[var(--line)] bg-white px-4 py-2.5 text-sm text-[var(--text)]"
-            value={kind}
-            onChange={(e) => setKind(e.target.value)}
-          >
-            <option value="image">Image</option>
-            <option value="video">Video</option>
-          </select>
+          <div className="tor-select-wrap">
+            <span className="tor-select-label">Media</span>
+            <select
+              className="tor-select"
+              value={kind}
+              onChange={(e) => setKind(e.target.value)}
+            >
+              <option value="image">Image</option>
+              <option value="video">Video</option>
+            </select>
+          </div>
         </div>
 
         
@@ -593,7 +595,7 @@ function CreateInner() {
               <div className="flex-1">
                 <label className="block text-xs font-semibold mb-1 text-[var(--text)]">Who wears it</label>
                 <select
-                  className="w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--text)]"
+                  className="tor-select"
                   value={outfitWearer}
                   onChange={(e) => setOutfitWearer(e.target.value)}
                 >
@@ -661,8 +663,8 @@ function CreateInner() {
 
       {/* Cast */}
       <div className="card" style={{ maxWidth: "36rem" }}>
-        <p className="text-sm font-semibold mb-3 text-[var(--text)]">Cast</p>
-        <div className="flex flex-wrap gap-2">
+        <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 10, color: "#1a1614" }}>Cast</p>
+        <div className="tor-chip-grid tor-chip-grid-4">
           {ALL_ROLES.map((r) => {
             const on = selected.includes(r.key);
             const hasFace = allFaces.some((f) => f.role === r.key && f.url);
@@ -671,24 +673,23 @@ function CreateInner() {
                 key={r.key}
                 type="button"
                 onClick={() => toggleRole(r.key)}
-                className={
-                  on
-                    ? "rounded-full px-4 py-2 text-sm font-bold bg-[var(--accent)] text-white"
-                    : "rounded-full px-4 py-2 text-sm font-bold bg-white border border-[var(--line)] text-[var(--text)]"
-                }
+                className={`tor-chip${on ? " tor-chip-on" : ""}${!hasFace && on ? " tor-chip-warn" : ""}`}
+                style={{ width: "100%" }}
               >
                 {r.label}
-                {!hasFace ? " · no photo" : ""}
+                {on && !hasFace ? " · photo" : ""}
               </button>
             );
           })}
         </div>
-        <p className="text-xs text-[var(--muted)] mt-3">
-          Tap to add or remove. Each selected role needs a photo (preset, People, or upload).
+        <p className="tor-help" style={{ marginTop: 10 }}>
+          Tap to add or remove. Each selected role needs a photo.
         </p>
 
-        <p className="text-sm font-semibold mt-5 mb-2 text-[var(--text)]">Suggested partners</p>
-        <div className="flex flex-wrap gap-2">
+        <p style={{ fontSize: 14, fontWeight: 600, margin: "20px 0 10px", color: "#1a1614" }}>
+          Suggested partners
+        </p>
+        <div className="tor-chip-grid">
           {SUGGESTED.map((s) => {
             const on =
               selected.length === s.roles.length && s.roles.every((r) => selected.includes(r));
@@ -700,14 +701,11 @@ function CreateInner() {
                 key={s.label}
                 type="button"
                 onClick={() => setSelected(s.roles)}
-                className={
-                  on
-                    ? "rounded-full px-3 py-1.5 text-xs font-bold bg-[var(--accent)] text-white"
-                    : "rounded-full px-3 py-1.5 text-xs font-bold bg-[#F7F0EA] border border-[var(--line)] text-[var(--text)]"
-                }
+                className={`tor-chip${on ? " tor-chip-on" : ""}`}
+                style={{ width: "100%" }}
               >
                 {s.label}
-                {missing.length ? " · add photo" : ""}
+                {missing.length ? " · photo" : ""}
               </button>
             );
           })}
@@ -717,7 +715,8 @@ function CreateInner() {
         <p className="text-sm font-semibold mt-5 mb-2 text-[var(--text)]">Upload a face</p>
         <div className="flex flex-wrap items-center gap-2">
           <select
-            className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--text)]"
+            className="tor-select"
+            style={{ flex: 1, minWidth: 140 }}
             value={uploadRole}
             onChange={(e) => setUploadRole(e.target.value)}
           >
