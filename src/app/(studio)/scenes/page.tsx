@@ -198,18 +198,25 @@ soft-aftercare|Aftercare portrait|couple|soft|wife,husband|🌙|After — holdin
 soft-for-her|Undressed for her|couple|soft|wife,husband|🖤|He is nude for her gaze — her desire in frame
 `.trim();
 
-const TEMPLATES = RAW.split("\n").map((line) => {
-  const [id, name, group, mood, prefer, emoji, desc] = line.split("|");
-  return {
-    id,
-    name,
-    group,
-    mood: mood as Mood,
-    prefer: prefer.split(","),
-    emoji,
-    desc,
-  };
-});
+const TEMPLATES = RAW.split("\n")
+  .map((line) => line.trim())
+  .filter((line) => line.includes("|"))
+  .map((line) => {
+    const [id, name, group, mood, prefer, emoji, desc] = line.split("|");
+    return {
+      id: id || "",
+      name: name || "",
+      group: group || "solo",
+      mood: (mood as Mood) || "soft",
+      prefer: (prefer || "wife")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+      emoji: emoji || "",
+      desc: desc || "",
+    };
+  })
+  .filter((row) => row.id);
 
 export default function ScenesPage() {
   const [showIntense, setShowIntense] = useState(false);
