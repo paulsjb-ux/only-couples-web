@@ -84,7 +84,7 @@ export default function LibraryPage() {
 
   return (
     <div>
-      <div className="studio-hero mb-6">
+      <div className="studio-hero">
         <h1
           className="text-2xl font-medium mb-1"
           style={{ fontFamily: "var(--font-cormorant), Georgia, serif", color: "var(--text, #1a1614)" }}
