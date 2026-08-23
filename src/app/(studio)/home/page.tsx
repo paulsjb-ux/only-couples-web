@@ -1,89 +1,47 @@
 import Link from "next/link";
 
 const FAVOURITES = [
-  {
-    id: "romance-undress",
-    name: "Undressed",
-    desc: "The same pose and place — simply without clothes",
-    emoji: "✨",
-    cast: "wife",
-  },
-  {
-    id: "romance-kiss",
-    name: "In bed",
-    desc: "Quiet intimacy, warm light, close",
-    emoji: "💋",
-    cast: "wife,husband",
-  },
-  {
-    id: "romance-shower",
-    name: "After the shower",
-    desc: "Steam, soft light, a shared mirror moment",
-    emoji: "🚿",
-    cast: "wife,husband",
-  },
-  {
-    id: "romance-morning",
-    name: "Morning light",
-    desc: "White sheets, unhurried, smiling",
-    emoji: "🌅",
-    cast: "wife,husband",
-  },
-  {
-    id: "romance-massage",
-    name: "Soft light",
-    desc: "Her form in quiet, flattering light",
-    emoji: "🕯",
-    cast: "wife",
-  },
-  {
-    id: "zen-undress-v3",
-    name: "Seated, undressed",
-    desc: "Fashion pose held — clothing set aside",
-    emoji: "🖤",
-    cast: "wife",
-  },
+  { id: "romance-morning", name: "Morning light", desc: "White sheets, unhurried", cast: "wife,husband" },
+  { id: "romance-kiss", name: "In bed", desc: "Quiet intimacy, warm light", cast: "wife,husband" },
+  { id: "romance-undress", name: "Undressed", desc: "Same pose — simply without clothes", cast: "wife" },
+  { id: "romance-shower", name: "After the shower", desc: "Steam, soft light", cast: "wife,husband" },
 ];
-
-const primaryBtn: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: "14px 20px",
-  borderRadius: 999,
-  fontSize: 15,
-  fontWeight: 600,
-  textDecoration: "none",
-  color: "#fff",
-  background: "linear-gradient(135deg, #8B4A54, #7A3E48)",
-  boxShadow: "0 4px 14px rgba(139, 74, 84, 0.25)",
-  border: "none",
-  cursor: "pointer",
-  WebkitTapHighlightColor: "rgba(139,74,84,0.25)",
-  position: "relative",
-  zIndex: 5,
-  pointerEvents: "auto",
-};
-
-const secondaryBtn: React.CSSProperties = {
-  ...primaryBtn,
-  color: "#1a1614",
-  background: "#fff",
-  boxShadow: "0 1px 3px rgba(26,22,20,0.06)",
-  border: "1px solid rgba(26,22,20,0.12)",
-};
 
 export default function HomePage() {
   return (
-    <div style={{ position: "relative", zIndex: 5, pointerEvents: "auto", maxWidth: "36rem", margin: "0 auto", overflowX: "hidden" }}>
-      <div style={{ marginBottom: 32 }}>
+    <div style={{ maxWidth: "28rem", margin: "0 auto", paddingBottom: 48 }}>
+      {/* Door */}
+      <div
+        style={{
+          borderRadius: 20,
+          padding: "40px 28px 36px",
+          marginBottom: 36,
+          background: "linear-gradient(165deg, #2a181c 0%, #1a1214 55%, #3a1f24 100%)",
+          color: "#f3ebe0",
+          textAlign: "center",
+          boxShadow: "0 16px 40px rgba(26, 18, 20, 0.35)",
+        }}
+      >
+        <p
+          style={{
+            fontSize: 11,
+            letterSpacing: "0.28em",
+            textTransform: "uppercase",
+            color: "#c4a574",
+            margin: "0 0 16px",
+            fontWeight: 600,
+          }}
+        >
+          Private studio
+        </p>
         <h1
           style={{
             fontFamily: "var(--font-cormorant), Georgia, serif",
-            fontSize: "1.75rem",
+            fontSize: "2rem",
             fontWeight: 500,
-            marginBottom: 8,
-            color: "#1a1614",
+            margin: "0 0 12px",
+            lineHeight: 1.15,
+            color: "#f3ebe0",
           }}
         >
           The Other Room
@@ -91,76 +49,71 @@ export default function HomePage() {
         <p
           style={{
             fontSize: 15,
-            color: "#5c534c",
-            maxWidth: 480,
             lineHeight: 1.5,
+            color: "rgba(243,235,224,0.72)",
+            margin: "0 0 28px",
+            maxWidth: "16rem",
+            marginLeft: "auto",
+            marginRight: "auto",
           }}
         >
-          A private erotic studio for two — soft by default, intense when you
-          choose.
+          Together, or on your own. Soft by default.
         </p>
+        <Link
+          href="/scenes"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            minHeight: 52,
+            padding: "0 32px",
+            borderRadius: 999,
+            background: "linear-gradient(135deg, #8B4A54, #7A3E48)",
+            color: "#fff",
+            fontWeight: 600,
+            fontSize: 16,
+            textDecoration: "none",
+            boxShadow: "0 8px 24px rgba(139, 74, 84, 0.4)",
+          }}
+        >
+          Open a soft scene
+        </Link>
+        <div style={{ marginTop: 18 }}>
+          <Link
+            href="/join"
+            style={{ color: "rgba(243,235,224,0.55)", fontSize: 13, textDecoration: "underline" }}
+          >
+            Invite partner
+          </Link>
+        </div>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr",
-          gap: 12,
-          marginBottom: 40,
-        }}
-      >
-        <Link href="/scenes" style={primaryBtn}>
-          Browse scenes
-        </Link>
-        <Link href="/people" style={secondaryBtn}>
-          Your people
-        </Link>
-        <Link href="/library" style={secondaryBtn}>
-          Library
-        </Link>
-      </div>
-
-      <div
+      <p
         style={{
           fontSize: 11,
-          letterSpacing: "0.28em",
+          letterSpacing: "0.22em",
           textTransform: "uppercase",
           color: "#c4a574",
-          marginBottom: 12,
           fontWeight: 600,
+          marginBottom: 14,
         }}
       >
         Soft favourites
-      </div>
-      <p
-        style={{
-          fontSize: 14,
-          color: "#5c534c",
-          marginBottom: 20,
-          maxWidth: 520,
-        }}
-      >
-        Start with quiet intimacy. Eye contact, warmth, unhurried desire.
-        Intense scenes stay behind a toggle on the Scenes page.
       </p>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 12 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {FAVOURITES.map((tpl) => (
           <Link
             key={tpl.id}
             href={`/create?scene=${tpl.id}&cast=${tpl.cast}&name=${encodeURIComponent(tpl.name)}`}
             style={{
               display: "block",
-              padding: 16,
+              padding: "16px 18px",
               borderRadius: 16,
               background: "#fff",
-              border: "1px solid rgba(26,22,20,0.1)",
+              border: "1px solid rgba(26,22,20,0.08)",
               textDecoration: "none",
               color: "#1a1614",
-              boxShadow: "0 1px 3px rgba(26,22,20,0.04)",
-              position: "relative",
-              zIndex: 5,
-              pointerEvents: "auto",
             }}
           >
             <div
@@ -170,24 +123,15 @@ export default function HomePage() {
                 marginBottom: 4,
               }}
             >
-              {tpl.emoji} {tpl.name}
+              {tpl.name}
             </div>
-            <p style={{ fontSize: 12, color: "#5c534c", lineHeight: 1.4 }}>
-              {tpl.desc}
-            </p>
+            <div style={{ fontSize: 13, color: "#5c534c", lineHeight: 1.4 }}>{tpl.desc}</div>
           </Link>
         ))}
       </div>
 
-      <p
-        style={{
-          marginTop: 40,
-          textAlign: "center",
-          fontSize: 12,
-          color: "#5c534c",
-        }}
-      >
-        The Other Room · private studio · 18+
+      <p style={{ fontSize: 12, color: "#5c534c", marginTop: 28, textAlign: "center", lineHeight: 1.5 }}>
+        Nothing leaves this studio. Intense rooms stay closed until you open them.
       </p>
     </div>
   );
