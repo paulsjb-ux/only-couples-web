@@ -458,56 +458,47 @@ export default function ScenesPage() {
           : section.blurb}
       </p>
 
-      {/* Mood chips only */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
-        {(["soft", "playful"] as Mood[]).map((m) => (
-          <button
-            key={m}
-            type="button"
-            onClick={() => {
-              setMood(m);
-              setShowIntense(false);
-            }}
-            style={{
-              minHeight: 36,
-              padding: "6px 16px",
-              borderRadius: 999,
-              border: "none",
-              fontWeight: 600,
-              fontSize: 13,
-              cursor: "pointer",
-              background:
-                !showIntense && mood === m
-                  ? "linear-gradient(135deg, #8B4A54, #7A3E48)"
-                  : "#F0E8E0",
-              color: !showIntense && mood === m ? "#fff" : "#1a1614",
-            }}
-          >
-            {SECTIONS[m].label}
-          </button>
-        ))}
-      </div>
-
-      {/* Quiet further rooms */}
-      <button
-        type="button"
-        onClick={() => {
-          setShowIntense((v) => !v);
-          if (!showIntense) setMood("intense");
-        }}
+      {/* Same chip language as Cast / Create — no native checkboxes */}
+      <div
         style={{
-          background: "none",
-          border: "none",
-          padding: 0,
-          marginBottom: 20,
-          fontSize: 13,
-          color: "#8a7350",
-          textDecoration: "underline",
-          cursor: "pointer",
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 8,
+          marginBottom: 24,
         }}
       >
-        {showIntense ? "Return to soft rooms" : "Further rooms"}
-      </button>
+        {(
+          [
+            { key: "soft" as Mood, label: "Soft" },
+            { key: "playful" as Mood, label: "Playful" },
+            { key: "intense" as Mood, label: "After dark" },
+          ]
+        ).map((m) => {
+          const on =
+            m.key === "intense"
+              ? showIntense || mood === "intense"
+              : !showIntense && mood === m.key;
+          return (
+            <button
+              key={m.key}
+              type="button"
+              className={on ? "tor-chip tor-chip-on" : "tor-chip"}
+              onClick={() => {
+                if (m.key === "intense") {
+                  setShowIntense(true);
+                  setMood("intense");
+                } else {
+                  setShowIntense(false);
+                  setMood(m.key);
+                }
+              }}
+              style={{ minHeight: 44, padding: "10px 18px", fontSize: 14 }}
+            >
+              {m.label}
+            </button>
+          );
+        })}
+      </div>
 
       {note ? (
         <p style={{ fontSize: 12, color: "#5c534c", marginBottom: 12 }}>{note}</p>
