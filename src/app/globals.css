@@ -960,3 +960,14 @@ body.tor-lightbox-open { overflow: hidden; }
     grid-template-columns: 1fr 1fr 1fr;
   }
 }
+
+@keyframes torFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.tor-preview-frame {
+  animation: torFadeIn 0.2s ease-out;
+}
+
+/* Zen club */
+.studio-hero h1 { letter-spacing: -0.01em; }
