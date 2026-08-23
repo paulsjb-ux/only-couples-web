@@ -585,30 +585,53 @@ a {
 }
 
 
-/* ========== Mobile-first studio layout ========== */
+
+/* ========== Mobile-first studio layout (v2 — hard image caps) ========== */
 html, body {
   overflow-x: hidden;
   max-width: 100vw;
 }
 
+/* All studio generated / portrait frames */
 .tor-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: top center;
-  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  object-fit: cover !important;
+  object-position: top center !important;
+  display: block !important;
 }
 
-/* Generated previews: 1 col on phone, 2 only from sm up when multi */
+/* Preview frame: never taller than ~55vh on phones, width follows 3:4 */
+.tor-preview-frame {
+  position: relative;
+  width: min(100%, 70vw, calc(55vh * 0.75)) !important;
+  max-width: 100% !important;
+  aspect-ratio: 3 / 4;
+  max-height: 55vh;
+  margin-left: auto;
+  margin-right: auto;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: #3A1F24;
+}
+
+@media (min-width: 640px) {
+  .tor-preview-frame {
+    width: min(100%, 22rem, calc(70vh * 0.75)) !important;
+    max-height: 70vh;
+  }
+}
+
 .tor-preview-grid {
   display: grid;
   gap: 0.75rem;
   width: 100%;
   min-width: 0;
+  justify-items: center;
 }
 .tor-preview-grid--single {
   grid-template-columns: 1fr;
-  max-width: 100%;
 }
 .tor-preview-grid--multi {
   grid-template-columns: 1fr;
@@ -617,39 +640,60 @@ html, body {
   .tor-preview-grid--multi {
     grid-template-columns: 1fr 1fr;
   }
-  .tor-preview-grid--single {
-    max-width: 22rem;
-  }
 }
 
+/* Library thumbs — compact on phone */
 .tor-library-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
+  gap: 0.5rem;
   width: 100%;
   min-width: 0;
+}
+.tor-library-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  max-height: 40vh;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  background: #3A1F24;
 }
 @media (min-width: 640px) {
   .tor-library-grid {
     grid-template-columns: 1fr 1fr 1fr;
     gap: 1rem;
   }
+  .tor-library-frame {
+    max-height: none;
+  }
 }
 
-/* Cards never overflow phone width */
 .card {
   max-width: 100%;
   box-sizing: border-box;
   min-width: 0;
 }
 
-/* Studio shell content already padded; tighten phone */
+/* People / outfit thumbs on create */
+.tor-thumb {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  max-height: 120px;
+  overflow: hidden;
+  border-radius: 0.75rem;
+}
+.tor-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+}
+
 @media (max-width: 639px) {
   .btn-studio-primary,
   .btn-studio-secondary {
     width: 100%;
     min-height: 48px;
-    padding-left: 1rem;
-    padding-right: 1rem;
   }
 }
