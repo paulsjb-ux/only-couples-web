@@ -74,8 +74,7 @@ function CreateInner() {
   const [note, setNote] = useState("");
   const [studioId, setStudioId] = useState<string | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
-  const [previews, setPreviews] = useState<PreviewItem[]>([])
-  const [ritualIndex, setRitualIndex] = useState(0);
+  const [previews, setPreviews] = useState<PreviewItem[]>([]);
   const [uploadRole, setUploadRole] = useState("female_lover");
   const previewRef = useRef<HTMLDivElement | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -315,53 +314,61 @@ function CreateInner() {
           outfitWearer,
         }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setNote(data.error || "Generation failed");
-        alert(data.error || "Generation failed");
+        const msg = data.error || data.message || `Generation failed (${res.status})`;
+        setNote(msg);
+        alert(msg);
         return;
       }
-      const rawItems =
+      const rawItems: { url?: string; path?: string | null; id?: string | null }[] =
         Array.isArray(data.items) && data.items.length
           ? data.items
           : data.url
             ? [{ url: data.url, path: data.path || null, id: data.id || null }]
             : [];
-      if (!rawItems.length) {
-        setNote("No image came back");
-        return;
-      }
-      const promptBase = data.prompt || `${sceneId} | ${sceneName} (${who})`;
-      setRitualIndex(0);
+      const promptBase =
+        data.prompt || `${sceneId || "scene"} | ${sceneName} (${who})`;
       const built = rawItems
-        .map((it: { url?: string; path?: string | null; id?: string | null }, i: number) => {
-          const u = it?.url || (it as any)?.download_url || (it as any)?.image_url;
+        .map((it, i) => {
+          const u =
+            it?.url ||
+            (it as any)?.download_url ||
+            (it as any)?.image_url ||
+            (typeof it === "string" ? it : null);
           if (!u) return null;
           return {
             url: String(u),
-            path: it.path || null,
-            prompt: rawItems.length > 1 ? `${promptBase} · v${i + 1}` : promptBase,
+            path: it.path || data.path || null,
+            prompt:
+              rawItems.length > 1 ? `${promptBase} · v${i + 1}` : promptBase,
             kind: data.kind || kind,
             saved: false,
             id: it.id || null,
           };
         })
-        .filter(Boolean) as PreviewItem[];
+        .filter(Boolean) as {
+        url: string;
+        path: string | null;
+        prompt: string;
+        kind: string;
+        saved: boolean;
+        id: string | null;
+      }[];
       if (!built.length) {
-        setNote("No image URL in response");
-        alert("Generation returned no image URL");
+        setNote("No image URL returned from generate");
+        alert("No image URL returned from generate");
         return;
       }
       setPreviews(built);
-      // Ensure ritual opens on next paint
+      setNote(
+        `${built.length} ready — scroll up and tap Keep to save to your album.`
+      );
       try {
         window.scrollTo({ top: 0, behavior: "smooth" });
       } catch {
         /* */
       }
-      setNote(
-        `${rawItems.length} preview${rawItems.length > 1 ? "s" : ""} ready. Keep to add to your private album, or Discard.`
-      );
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Network error");
     } finally {
@@ -372,119 +379,53 @@ function CreateInner() {
   async function saveOne(index: number) {
     const item = previews[index];
     if (!item || item.saved) return;
+    if (!item.url) {
+      alert("No image URL to keep");
+      return;
+    }
     setBusy(true);
     setNote("Keeping in your album…");
     try {
-      // 1) Preferred: API
       const res = await fetch("/api/library", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           url: item.url,
           path: item.path,
-          kind: item.kind,
-          prompt: item.prompt,
+          kind: item.kind || "image",
+          prompt: item.prompt || "",
+          id: item.id || undefined,
         }),
       });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok) {
-        setPreviews((prev) =>
-          prev.map((p, i) =>
-            i === index
-              ? {
-                  ...p,
-                  saved: true,
-                  id: data.id || null,
-                  path: data.path || p.path,
-                  url: data.url || p.url,
-                }
-              : p
-          )
-        );
-        setNote("Kept — open Scenes or Library to see it.");
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch {
+        data = { error: `Keep failed with status ${res.status}` };
+      }
+      if (!res.ok) {
+        const msg =
+          data.error ||
+          data.message ||
+          `Keep failed (${res.status}). Check library bucket + generations table.`;
+        setNote(msg);
+        alert(msg);
         return;
       }
-
-      // 2) Client-side fallback if API fails
-      console.warn("library API failed, client keep", data);
-      const supabase = createClient();
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) throw new Error(data.error || "Not signed in");
-      const { data: memberships } = await supabase
-        .from("studio_members")
-        .select("studio_id")
-        .eq("user_id", userData.user.id)
-        .limit(1);
-      const sid = memberships?.[0]?.studio_id as string | undefined;
-      if (!sid) throw new Error("No studio");
-
-      let storagePath = item.path;
-      if (storagePath && storagePath.includes("/preview/")) {
-        const kept = storagePath.replace("/preview/", "/kept/");
-        try {
-          await supabase.storage.from("library").copy(storagePath, kept);
-          storagePath = kept;
-        } catch {
-          /* upload instead */
-        }
-      }
-      if (!storagePath || storagePath.includes("/preview/")) {
-        const imgRes = await fetch(item.url);
-        const bytes = await imgRes.arrayBuffer();
-        storagePath = `${sid}/kept/${Date.now()}-${index}.jpg`;
-        const { error: upErr } = await supabase.storage
-          .from("library")
-          .upload(storagePath, bytes, { contentType: "image/jpeg", upsert: true });
-        if (upErr) throw new Error(upErr.message);
-      }
-
-      let finalUrl = item.url;
-      const { data: signed } = await supabase.storage
-        .from("library")
-        .createSignedUrl(storagePath, 60 * 60 * 24 * 30);
-      if (signed?.signedUrl) finalUrl = signed.signedUrl;
-
-      const row: Record<string, unknown> = {
-        studio_id: sid,
-        kind: item.kind || "image",
-        prompt: item.prompt,
-        result_url: finalUrl,
-        storage_path: storagePath,
-        status: "kept",
-      };
-      const { data: inserted, error: insErr } = await supabase
-        .from("generations")
-        .insert(row)
-        .select("id")
-        .single();
-      if (insErr) {
-        // without storage_path column
-        const { data: ins2, error: insErr2 } = await supabase
-          .from("generations")
-          .insert({
-            studio_id: sid,
-            kind: item.kind || "image",
-            prompt: item.prompt,
-            result_url: finalUrl,
-          })
-          .select("id")
-          .single();
-        if (insErr2) throw new Error(insErr2.message);
-        setPreviews((prev) =>
-          prev.map((p, i) =>
-            i === index ? { ...p, saved: true, id: ins2?.id || null, path: storagePath, url: finalUrl } : p
-          )
-        );
-      } else {
-        setPreviews((prev) =>
-          prev.map((p, i) =>
-            i === index
-              ? { ...p, saved: true, id: inserted?.id || null, path: storagePath, url: finalUrl }
-              : p
-          )
-        );
-      }
-      setNote("Kept — open Scenes or Library to see it.");
+      setPreviews((prev) =>
+        prev.map((p, i) =>
+          i === index
+            ? {
+                ...p,
+                saved: true,
+                id: data.id || p.id || null,
+                path: data.path || p.path,
+                url: data.url || p.url,
+              }
+            : p
+        )
+      );
+      setNote("Kept — open Library or Scenes to see it.");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Save failed";
       setNote(msg);
@@ -505,12 +446,8 @@ function CreateInner() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ path: item.path, id: item.id }),
       });
-      setPreviews((prev) => {
-        const next = prev.filter((_, i) => i !== index);
-        setRitualIndex((ri) => Math.max(0, Math.min(ri, Math.max(0, next.length - 1))));
-        return next;
-      });
-      setNote("Discarded.");
+      setPreviews((prev) => prev.filter((_, i) => i !== index));
+      setNote("Deleted.");
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Delete failed");
     } finally {
@@ -543,283 +480,6 @@ function CreateInner() {
 
   return (
     <div>
-
-      {previews.length > 0 && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 99999,
-            background: "#0c0a09",
-            pointerEvents: "auto",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "flex-end",
-            padding: "0 0 env(safe-area-inset-bottom, 0px)",
-          }}
-        >
-          {/* Image fills most of screen */}
-          <div
-            style={{
-              flex: 1,
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "12px 12px 0",
-              minHeight: 0,
-            }}
-          >
-            <img
-              src={previews[Math.min(ritualIndex, previews.length - 1)]?.url}
-              alt=""
-              style={{
-                maxWidth: "100%",
-                maxHeight: "100%",
-                width: "auto",
-                height: "auto",
-                objectFit: "contain",
-                borderRadius: 12,
-              }}
-            />
-          </div>
-
-          {/* Version dots */}
-          {previews.length > 1 && (
-            <div style={{ display: "flex", gap: 8, padding: "10px 0 4px" }}>
-              {previews.map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setRitualIndex(i)}
-                  style={{
-                    width: i === ritualIndex ? 18 : 8,
-                    height: 8,
-                    borderRadius: 999,
-                    border: "none",
-                    background: i === ritualIndex ? "#8B4A54" : "rgba(255,255,255,0.35)",
-                    cursor: "pointer",
-                    padding: 0,
-                  }}
-                />
-              ))}
-            </div>
-          )}
-
-          <p
-            style={{
-              fontFamily: "var(--font-cormorant), Georgia, serif",
-              fontSize: 18,
-              color: "rgba(243,235,224,0.9)",
-              margin: "4px 0 12px",
-            }}
-          >
-            {previews[ritualIndex]?.saved ? "Kept in your album" : "Keep or let it go"}
-          </p>
-
-          {/* Actions */}
-          <div
-            style={{
-              width: "100%",
-              maxWidth: 420,
-              padding: "0 16px 20px",
-              display: "flex",
-              flexDirection: "column",
-              gap: 10,
-            }}
-          >
-            <button
-              type="button"
-              disabled={busy || previews[ritualIndex]?.saved}
-              onClick={() => void saveOne(ritualIndex)}
-              style={{
-                minHeight: 52,
-                borderRadius: 999,
-                border: "none",
-                background: previews[ritualIndex]?.saved
-                  ? "rgba(255,255,255,0.12)"
-                  : "linear-gradient(135deg, #8B4A54, #7A3E48)",
-                color: "#fff",
-                fontWeight: 600,
-                fontSize: 16,
-                cursor: "pointer",
-              }}
-            >
-              {previews[ritualIndex]?.saved ? "Kept" : "Keep"}
-            </button>
-            <div style={{ display: "flex", gap: 10 }}>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => void downloadOne(ritualIndex)}
-                style={{
-                  flex: 1,
-                  minHeight: 48,
-                  borderRadius: 999,
-                  border: "1px solid rgba(255,255,255,0.25)",
-                  background: "transparent",
-                  color: "#fff",
-                  fontWeight: 600,
-                  fontSize: 14,
-                  cursor: "pointer",
-                }}
-              >
-                Download
-              </button>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => void deleteOne(ritualIndex)}
-                style={{
-                  flex: 1,
-                  minHeight: 48,
-                  borderRadius: 999,
-                  border: "1px solid rgba(255,255,255,0.25)",
-                  background: "transparent",
-                  color: "#fff",
-                  fontWeight: 600,
-                  fontSize: 14,
-                  cursor: "pointer",
-                }}
-              >
-                Discard
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setPreviews([]);
-                setRitualIndex(0);
-                setNote("");
-              }}
-              style={{
-                minHeight: 40,
-                border: "none",
-                background: "transparent",
-                color: "rgba(255,255,255,0.5)",
-                fontSize: 13,
-                cursor: "pointer",
-                textDecoration: "underline",
-              }}
-            >
-              {previews.every((x) => x.saved)
-                ? "Back to studio"
-                : "Close without keeping the rest"}
-            </button>
-            {previews.some((x) => x.saved) && (
-              <a
-                href="/library"
-                style={{
-                  textAlign: "center",
-                  color: "#c4a574",
-                  fontSize: 13,
-                  textDecoration: "underline",
-                }}
-              >
-                Open album
-              </a>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Fallback Keep bar if overlay missed (still need Keep for Scenes) */}
-      {previews.length > 0 && (
-        <div
-          ref={previewRef}
-          style={{
-            position: "relative",
-            zIndex: 5,
-            marginBottom: 20,
-            padding: 16,
-            borderRadius: 16,
-            background: "#1a1214",
-            color: "#f3ebe0",
-          }}
-        >
-          <p style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: 18, margin: "0 0 12px" }}>
-            Preview ready
-          </p>
-          <div style={{ display: "flex", gap: 8, overflowX: "auto", marginBottom: 12 }}>
-            {previews.map((item, index) => (
-              <button
-                key={index}
-                type="button"
-                onClick={() => setRitualIndex(index)}
-                style={{
-                  border: index === ritualIndex ? "2px solid #8B4A54" : "2px solid transparent",
-                  borderRadius: 10,
-                  padding: 0,
-                  background: "none",
-                  cursor: "pointer",
-                }}
-              >
-                <img
-                  src={item.url}
-                  alt=""
-                  style={{ width: 72, height: 96, objectFit: "cover", borderRadius: 8, display: "block" }}
-                />
-              </button>
-            ))}
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <button
-              type="button"
-              disabled={busy || previews[ritualIndex]?.saved}
-              onClick={() => void saveOne(ritualIndex)}
-              style={{
-                minHeight: 48,
-                borderRadius: 999,
-                border: "none",
-                background: "linear-gradient(135deg, #8B4A54, #7A3E48)",
-                color: "#fff",
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
-            >
-              {previews[ritualIndex]?.saved ? "Kept — shows on Scenes" : "Keep in album"}
-            </button>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => void downloadOne(ritualIndex)}
-                style={{
-                  flex: 1,
-                  minHeight: 44,
-                  borderRadius: 999,
-                  border: "1px solid rgba(255,255,255,0.25)",
-                  background: "transparent",
-                  color: "#fff",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
-              >
-                Download
-              </button>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => void deleteOne(ritualIndex)}
-                style={{
-                  flex: 1,
-                  minHeight: 44,
-                  borderRadius: 999,
-                  border: "1px solid rgba(255,255,255,0.25)",
-                  background: "transparent",
-                  color: "#fff",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
-              >
-                Discard
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="studio-hero">
         <h1
           style={{
@@ -832,31 +492,94 @@ function CreateInner() {
         >
           {sceneName}
         </h1>
-        <p className="text-sm text-[var(--muted)]">One path. Keep only what you want.</p>
-        <div
-          style={{
-            display: "flex",
-            gap: 8,
-            marginTop: 14,
-            fontSize: 11,
-            letterSpacing: "0.12em",
-            textTransform: "uppercase",
-            fontWeight: 600,
-            color: "#8a7350",
-          }}
-        >
-          <span>1 Who</span>
-          <span style={{ opacity: 0.35 }}>·</span>
-          <span>2 Make</span>
-          <span style={{ opacity: 0.35 }}>·</span>
-          <span>3 Keep</span>
-        </div>
+        <p className="text-sm text-[var(--muted)]">Choose who is in this scene, then generate.</p>
+        <p style={{ fontSize: 12, color: "#8a7350", marginTop: 10, letterSpacing: "0.04em" }}>
+          Face · Scene · Keep
+        </p>
       </div>
 
-      {/* Results first after generate — save controls at top of this block */}
-      {/* Result ritual is full-screen overlay below */}
+      {/* Keep panel — sticky, always on top after generate */}
+      <div ref={previewRef}>
+        {previews.length > 0 && (
+          <div
+            className="card"
+            style={{
+              maxWidth: "36rem",
+              border: "2px solid #8B4A54",
+              position: "sticky",
+              top: 8,
+              zIndex: 60,
+              background: "#fff",
+              boxShadow: "0 12px 40px rgba(26,18,20,0.15)",
+            }}
+          >
+            <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+              <p className="text-sm font-semibold text-[var(--text)]">
+                {previews.length > 1
+                  ? `${previews.length} versions — Keep the ones you want`
+                  : "Your image — Keep or discard"}
+              </p>
+              <div className="flex gap-3 text-sm">
+                {previews.some((p) => p.saved) && (
+                  <Link href="/library" className="underline text-[var(--text)]">
+                    Open library
+                  </Link>
+                )}
+              </div>
+            </div>
+            <p className="text-xs text-[var(--muted)] mb-3">
+              Preview only — not in your album until you Keep. Discard removes it. Download is optional.
+            </p>
+            <div
+              className={`tor-preview-grid ${
+                previews.length === 1 ? "tor-preview-grid--single" : "tor-preview-grid--multi"
+              }`}
+            >
+              {previews.map((item, index) => (
+                <div key={`${item.url}-${index}`} className="rounded-xl border border-[var(--line)] p-2 sm:p-3 bg-white min-w-0">
+                  <div className="tor-preview-frame ring-1 ring-black/10">
+                    <img
+                      src={item.url}
+                      alt={`Version ${index + 1}`}
+                      className="tor-img"
+                      loading="lazy"
+                    />
+                  </div>
+                  <p className="text-xs text-[var(--muted)] mt-2">Version {index + 1}</p>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    <button
+                      type="button"
+                      className="btn btn-studio-primary text-xs px-3 py-1.5"
+                      onClick={() => saveOne(index)}
+                      disabled={busy || item.saved}
+                    >
+                      {item.saved ? "Kept" : "Keep"}
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-full px-3 py-1.5 text-xs font-bold bg-white border border-[var(--line)] text-[var(--text)]"
+                      onClick={() => downloadOne(index)}
+                      disabled={busy}
+                    >
+                      Download
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-full px-3 py-1.5 text-xs font-bold bg-white border border-[var(--line)] text-[var(--text)]"
+                      onClick={() => deleteOne(index)}
+                      disabled={busy}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
 
-            {/* Create controls ABOVE the 12 presets */}
+      {/* Create controls ABOVE the 12 presets */}
       <div className="card tor-stack" style={{ maxWidth: "36rem" }}>
         <p className="text-sm font-semibold text-[var(--text)]">Create</p>
 
@@ -901,11 +624,12 @@ function CreateInner() {
           <div className="flex flex-wrap items-center gap-2 mb-2">
             <button
               type="button"
-              className="rounded-full px-4 py-2 text-sm font-bold bg-white border border-[var(--line)] text-[var(--text)]"
               onClick={() => outfitFileRef.current?.click()}
               disabled={busy}
+              className="tor-chip"
+              style={{ minHeight: 48, padding: "12px 22px", fontSize: 15 }}
             >
-              Upload outfit
+              Upload outfit photo
             </button>
             <input
               ref={outfitFileRef}
@@ -959,38 +683,29 @@ function CreateInner() {
 
         {kind === "image" && (
           <div>
-            <label className="block text-sm font-semibold mb-1.5 text-[var(--text)]">Versions</label>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <p className="tor-select-label" style={{ marginBottom: 8 }}>
+              How many to make
+            </p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
               {[
-                { n: 1, label: "Base" },
-                { n: 2, label: "Wider" },
-                { n: 3, label: "Crop" },
-                { n: 4, label: "Mood" },
+                { n: 1, label: "One" },
+                { n: 2, label: "Two" },
+                { n: 3, label: "Three" },
+                { n: 4, label: "Four" },
               ].map(({ n, label }) => (
                 <button
                   key={n}
                   type="button"
                   onClick={() => setVersions(n)}
-                  style={{
-                    minHeight: 44,
-                    borderRadius: 12,
-                    border:
-                      versions === n
-                        ? "2px solid #8B4A54"
-                        : "1px solid rgba(26,22,20,0.12)",
-                    background: versions === n ? "rgba(139,74,84,0.08)" : "#fff",
-                    color: "#1a1614",
-                    fontWeight: 600,
-                    fontSize: 13,
-                    cursor: "pointer",
-                  }}
+                  className={versions === n ? "tor-chip tor-chip-on" : "tor-chip"}
+                  style={{ minHeight: 44, padding: "10px 18px", fontSize: 14 }}
                 >
-                  {n} · {label}
+                  {label}
                 </button>
               ))}
             </div>
-            <p className="tor-help" style={{ marginTop: 8 }}>
-              Each version is a separate image. You Keep only the ones you want.
+            <p className="tor-help" style={{ marginTop: 10 }}>
+              Same scene each time — only framing or light shifts slightly. Keep the ones you like.
             </p>
           </div>
         )}
@@ -1009,7 +724,7 @@ function CreateInner() {
           {busy
             ? "Making…"
             : kind === "image" && versions > 1
-              ? `Make ${versions}`
+              ? `Make ${versions} versions`
               : "Make this scene"}
         </button>
         {note && <p className="text-sm text-[var(--muted)]">{note}</p>}
@@ -1082,11 +797,12 @@ function CreateInner() {
           </select>
           <button
             type="button"
-            className="rounded-full px-4 py-2 text-sm font-bold bg-white border border-[var(--line)] text-[var(--text)]"
+            className="tor-chip"
+            style={{ minHeight: 48, padding: "12px 22px", fontSize: 15 }}
             onClick={() => fileRef.current?.click()}
             disabled={busy}
           >
-            Choose photo
+            Choose face photo
           </button>
           <input
             ref={fileRef}
@@ -1104,20 +820,7 @@ function CreateInner() {
           From your phone camera roll or Mac. Becomes that role’s face lock.
         </p>
 
-        <details style={{ marginTop: 20 }}>
-          <summary
-            style={{
-              fontSize: 14,
-              fontWeight: 600,
-              color: "#5c534c",
-              cursor: "pointer",
-              listStyle: "none",
-              marginBottom: 12,
-            }}
-          >
-            Studio faces (optional)
-          </summary>
-        <p className="text-sm font-semibold mb-2 text-[var(--text)]">6 women</p>
+        <p className="text-sm font-semibold mt-5 mb-2 text-[var(--text)]">6 women</p>
         <div className="tor-preset-grid">
           {WOMAN_PRESETS.map((p) => (
             <button
@@ -1182,7 +885,6 @@ function CreateInner() {
             </button>
           ))}
         </div>
-        </details>
       </div>
 
       <p className="text-sm max-w-2xl">
