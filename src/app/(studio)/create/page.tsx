@@ -333,16 +333,32 @@ function CreateInner() {
       }
       const promptBase = data.prompt || `${sceneId} | ${sceneName} (${who})`;
       setRitualIndex(0);
-      setPreviews(
-        rawItems.map((it: { url: string; path?: string | null; id?: string | null }, i: number) => ({
-          url: it.url,
-          path: it.path || null,
-          prompt: rawItems.length > 1 ? `${promptBase} · v${i + 1}` : promptBase,
-          kind: data.kind || kind,
-          saved: false,
-          id: it.id || null,
-        }))
-      );
+      const built = rawItems
+        .map((it: { url?: string; path?: string | null; id?: string | null }, i: number) => {
+          const u = it?.url || (it as any)?.download_url || (it as any)?.image_url;
+          if (!u) return null;
+          return {
+            url: String(u),
+            path: it.path || null,
+            prompt: rawItems.length > 1 ? `${promptBase} · v${i + 1}` : promptBase,
+            kind: data.kind || kind,
+            saved: false,
+            id: it.id || null,
+          };
+        })
+        .filter(Boolean) as PreviewItem[];
+      if (!built.length) {
+        setNote("No image URL in response");
+        alert("Generation returned no image URL");
+        return;
+      }
+      setPreviews(built);
+      // Ensure ritual opens on next paint
+      try {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } catch {
+        /* */
+      }
       setNote(
         `${rawItems.length} preview${rawItems.length > 1 ? "s" : ""} ready. Keep to add to your private album, or Discard.`
       );
@@ -376,9 +392,19 @@ function CreateInner() {
         return;
       }
       setPreviews((prev) =>
-        prev.map((p, i) => (i === index ? { ...p, saved: true, id: data.id || null } : p))
+        prev.map((p, i) =>
+          i === index
+            ? {
+                ...p,
+                saved: true,
+                id: data.id || null,
+                path: data.path || p.path,
+                url: data.url || p.url,
+              }
+            : p
+        )
       );
-      setNote("Kept in your private album.");
+      setNote("Kept in your album — it will show on Scenes and Library.");
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Save failed");
     } finally {
@@ -441,8 +467,9 @@ function CreateInner() {
           style={{
             position: "fixed",
             inset: 0,
-            zIndex: 200,
+            zIndex: 99999,
             background: "#0c0a09",
+            pointerEvents: "auto",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
@@ -611,6 +638,102 @@ function CreateInner() {
                 Open album
               </a>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Fallback Keep bar if overlay missed (still need Keep for Scenes) */}
+      {previews.length > 0 && (
+        <div
+          ref={previewRef}
+          style={{
+            position: "relative",
+            zIndex: 5,
+            marginBottom: 20,
+            padding: 16,
+            borderRadius: 16,
+            background: "#1a1214",
+            color: "#f3ebe0",
+          }}
+        >
+          <p style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: 18, margin: "0 0 12px" }}>
+            Preview ready
+          </p>
+          <div style={{ display: "flex", gap: 8, overflowX: "auto", marginBottom: 12 }}>
+            {previews.map((item, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => setRitualIndex(index)}
+                style={{
+                  border: index === ritualIndex ? "2px solid #8B4A54" : "2px solid transparent",
+                  borderRadius: 10,
+                  padding: 0,
+                  background: "none",
+                  cursor: "pointer",
+                }}
+              >
+                <img
+                  src={item.url}
+                  alt=""
+                  style={{ width: 72, height: 96, objectFit: "cover", borderRadius: 8, display: "block" }}
+                />
+              </button>
+            ))}
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <button
+              type="button"
+              disabled={busy || previews[ritualIndex]?.saved}
+              onClick={() => void saveOne(ritualIndex)}
+              style={{
+                minHeight: 48,
+                borderRadius: 999,
+                border: "none",
+                background: "linear-gradient(135deg, #8B4A54, #7A3E48)",
+                color: "#fff",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              {previews[ritualIndex]?.saved ? "Kept — shows on Scenes" : "Keep in album"}
+            </button>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void downloadOne(ritualIndex)}
+                style={{
+                  flex: 1,
+                  minHeight: 44,
+                  borderRadius: 999,
+                  border: "1px solid rgba(255,255,255,0.25)",
+                  background: "transparent",
+                  color: "#fff",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Download
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void deleteOne(ritualIndex)}
+                style={{
+                  flex: 1,
+                  minHeight: 44,
+                  borderRadius: 999,
+                  border: "1px solid rgba(255,255,255,0.25)",
+                  background: "transparent",
+                  color: "#fff",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Discard
+              </button>
+            </div>
           </div>
         </div>
       )}
