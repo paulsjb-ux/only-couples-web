@@ -64,14 +64,27 @@ export default function LibraryPage() {
   const [lightbox, setLightbox] = useState<Gen | null>(null);
   const [failedIds, setFailedIds] = useState<Record<string, boolean>>({});
 
-  async function signAny(path: string): Promise<{ url: string; path: string } | null> {
+  async function signAny(
+    path: string,
+    thumb = true
+  ): Promise<{ url: string; path: string } | null> {
     const supabase = createClient();
+    const transform = thumb
+      ? { transform: { width: 600, height: 800, resize: "contain" as const } }
+      : undefined;
     for (const p of candidates(path)) {
       try {
         const { data, error } = await supabase.storage
           .from("library")
-          .createSignedUrl(p, 60 * 60 * 24 * 14);
+          .createSignedUrl(p, 60 * 60 * 6, transform as any);
         if (!error && data?.signedUrl) return { url: data.signedUrl, path: p };
+        if (transform) {
+          const plain = await supabase.storage
+            .from("library")
+            .createSignedUrl(p, 60 * 60 * 6);
+          if (!plain.error && plain.data?.signedUrl)
+            return { url: plain.data.signedUrl, path: p };
+        }
       } catch {
         /* next */
       }
@@ -135,23 +148,23 @@ export default function LibraryPage() {
       setItems(rows);
       setLoading(false);
 
-      // Re-sign in background — failures must not crash the page
-      const refreshed: Gen[] = [];
-      for (const row of rows) {
-        const path = row.storage_path || pathFromUrl(row.result_url);
-        if (path) {
-          const signed = await signAny(path);
-          if (signed) {
-            refreshed.push({
-              ...row,
-              result_url: signed.url,
-              storage_path: signed.path,
-            });
-            continue;
+      // Re-sign in parallel — much faster
+      const refreshed = await Promise.all(
+        rows.map(async (row) => {
+          const path = row.storage_path || pathFromUrl(row.result_url);
+          if (path) {
+            const signed = await signAny(path, true);
+            if (signed) {
+              return {
+                ...row,
+                result_url: signed.url,
+                storage_path: signed.path,
+              };
+            }
           }
-        }
-        refreshed.push(row);
-      }
+          return row;
+        })
+      );
       setItems(refreshed);
     } catch (e) {
       console.error("library load", e);
