@@ -128,11 +128,15 @@ function refineAnatomyPrompt(men: number) {
   return `Keep the same people, faces, pose and lighting. Fix anatomy only: exactly ${men} penises, each attached only to a man at his hips. Remove any extra, anonymous, or floating penises. Women have only vulvas. No extra limbs or fused bodies.`;
 }
 
+
+const GLOBAL_NEGATIVES =
+  "wrong room, shower stall when not requested, bathroom tiles when not requested, steam mirror selfie when not requested, standing wet couple when not requested, different sex act than described, swapped positions, wrong number of people, extra limbs, fused bodies, deformed genitals, watermark, text overlay";
+
 const VERSION_VARIANTS = [
-  "", // v1 — base scene
-  "VARIATION: wider full-body framing, more of the room and posture visible, same people and act.",
-  "VARIATION: tighter intimate crop on faces and torsos, same people and act.",
-  "VARIATION: warmer side light, slightly moodier shadows, same people, pose family, and act.",
+  "", // v1 — base scene exactly as described
+  "CAMERA ONLY: slightly wider full-body framing; same people, same act, same room type as the scene description.",
+  "CAMERA ONLY: tighter crop on faces and torsos; same people, same act, same room type as the scene description.",
+  "LIGHT ONLY: warmer side light, softer shadows; same people, same act, same room type as the scene description.",
 ];
 
 export async function POST(req: NextRequest) {
@@ -265,7 +269,16 @@ export async function POST(req: NextRequest) {
   const look =
     "LOOK: vertical 3:4 frame, ultra high-resolution luxury photoshoot, 85mm f/1.4, soft cinematic light, glossy hydrated skin, tack-sharp faces, magazine grade, 8k, no watermark, no text.";
 
-  const promptBase = [whoLine, faceLock, bodyLock, anatomy, outfitLock, core, look].filter(Boolean).join(" ");
+  const locationGuard =
+    sceneId === "romance-shower" ||
+    sceneId === "soft-shower-laugh" ||
+    sceneId === "zen-shower-pose" ||
+    sceneId === "zen-foam-shower"
+      ? "Setting: bathroom shower as described."
+      : "Setting: match the scene description room. Not a shower unless the scene is a shower scene.";
+  const promptBase = [whoLine, faceLock, bodyLock, anatomy, outfitLock, core, locationGuard, look]
+    .filter(Boolean)
+    .join(" ");
 
   async function runOne(versionIndex: number): Promise<string | null> {
     const variant = VERSION_VARIANTS[versionIndex] || "";
@@ -281,6 +294,7 @@ export async function POST(req: NextRequest) {
         }
       : {
           positive_prompt: prompt,
+          negative_prompt: GLOBAL_NEGATIVES,
           ratio: "3:4",
           batch_size: 1,
           model: "SEEDREAM_5_PRO",
