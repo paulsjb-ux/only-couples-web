@@ -375,6 +375,7 @@ function CreateInner() {
     setBusy(true);
     setNote("Keeping in your album…");
     try {
+      // 1) Preferred: API
       const res = await fetch("/api/library", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -385,28 +386,109 @@ function CreateInner() {
           prompt: item.prompt,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setNote(data.error || "Save failed");
-        alert(data.error || "Save failed");
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setPreviews((prev) =>
+          prev.map((p, i) =>
+            i === index
+              ? {
+                  ...p,
+                  saved: true,
+                  id: data.id || null,
+                  path: data.path || p.path,
+                  url: data.url || p.url,
+                }
+              : p
+          )
+        );
+        setNote("Kept — open Scenes or Library to see it.");
         return;
       }
-      setPreviews((prev) =>
-        prev.map((p, i) =>
-          i === index
-            ? {
-                ...p,
-                saved: true,
-                id: data.id || null,
-                path: data.path || p.path,
-                url: data.url || p.url,
-              }
-            : p
-        )
-      );
-      setNote("Kept in your album — it will show on Scenes and Library.");
+
+      // 2) Client-side fallback if API fails
+      console.warn("library API failed, client keep", data);
+      const supabase = createClient();
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error(data.error || "Not signed in");
+      const { data: memberships } = await supabase
+        .from("studio_members")
+        .select("studio_id")
+        .eq("user_id", userData.user.id)
+        .limit(1);
+      const sid = memberships?.[0]?.studio_id as string | undefined;
+      if (!sid) throw new Error("No studio");
+
+      let storagePath = item.path;
+      if (storagePath && storagePath.includes("/preview/")) {
+        const kept = storagePath.replace("/preview/", "/kept/");
+        try {
+          await supabase.storage.from("library").copy(storagePath, kept);
+          storagePath = kept;
+        } catch {
+          /* upload instead */
+        }
+      }
+      if (!storagePath || storagePath.includes("/preview/")) {
+        const imgRes = await fetch(item.url);
+        const bytes = await imgRes.arrayBuffer();
+        storagePath = `${sid}/kept/${Date.now()}-${index}.jpg`;
+        const { error: upErr } = await supabase.storage
+          .from("library")
+          .upload(storagePath, bytes, { contentType: "image/jpeg", upsert: true });
+        if (upErr) throw new Error(upErr.message);
+      }
+
+      let finalUrl = item.url;
+      const { data: signed } = await supabase.storage
+        .from("library")
+        .createSignedUrl(storagePath, 60 * 60 * 24 * 30);
+      if (signed?.signedUrl) finalUrl = signed.signedUrl;
+
+      const row: Record<string, unknown> = {
+        studio_id: sid,
+        kind: item.kind || "image",
+        prompt: item.prompt,
+        result_url: finalUrl,
+        storage_path: storagePath,
+        status: "kept",
+      };
+      const { data: inserted, error: insErr } = await supabase
+        .from("generations")
+        .insert(row)
+        .select("id")
+        .single();
+      if (insErr) {
+        // without storage_path column
+        const { data: ins2, error: insErr2 } = await supabase
+          .from("generations")
+          .insert({
+            studio_id: sid,
+            kind: item.kind || "image",
+            prompt: item.prompt,
+            result_url: finalUrl,
+          })
+          .select("id")
+          .single();
+        if (insErr2) throw new Error(insErr2.message);
+        setPreviews((prev) =>
+          prev.map((p, i) =>
+            i === index ? { ...p, saved: true, id: ins2?.id || null, path: storagePath, url: finalUrl } : p
+          )
+        );
+      } else {
+        setPreviews((prev) =>
+          prev.map((p, i) =>
+            i === index
+              ? { ...p, saved: true, id: inserted?.id || null, path: storagePath, url: finalUrl }
+              : p
+          )
+        );
+      }
+      setNote("Kept — open Scenes or Library to see it.");
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Save failed");
+      const msg = err instanceof Error ? err.message : "Save failed";
+      setNote(msg);
+      alert(msg);
     } finally {
       setBusy(false);
     }
