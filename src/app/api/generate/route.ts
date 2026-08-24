@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getSceneCore } from "@/lib/scene-cores";
 
+export const runtime = "nodejs";
+export const maxDuration = 300; // 4 versions need long poll window
+
 const ZEN_BASE = "https://api.zencreator.pro/api/public/v1";
 
 function pushUrl(out: string[], v: unknown) {
@@ -316,8 +319,9 @@ export async function POST(req: NextRequest) {
     let urls = extractUrls(submitted);
     const genId = submitted.id || submitted.generation_id || submitted.data?.id;
     if (!urls.length && genId) {
-      for (let i = 0; i < 40; i++) {
-        await new Promise((r) => setTimeout(r, 3000));
+      const maxPolls = versions > 1 ? 24 : 40;
+      for (let i = 0; i < maxPolls; i++) {
+        await new Promise((r) => setTimeout(r, 2500));
         const poll = await fetch(`${ZEN_BASE}/generations/${genId}`, {
           headers: { Authorization: `Bearer ${key}` },
         });
@@ -343,18 +347,22 @@ export async function POST(req: NextRequest) {
     return urls[0] || null;
   }
 
-  // Run versions: v1 base; v2 wider camera; v3 tighter crop; v4 lighting (in parallel)
-  const jobs = Array.from({ length: versions }, (_, i) => runOne(i));
-  const settled = await Promise.allSettled(jobs);
-  let urls = settled
-    .filter((s): s is PromiseFulfilledResult<string | null> => s.status === "fulfilled")
-    .map((s) => s.value)
-    .filter((u): u is string => Boolean(u));
+  // Sequential versions — parallel 4x often hits platform timeout before URLs return
+  let urls: string[] = [];
+  const errors: string[] = [];
+  for (let i = 0; i < versions; i++) {
+    try {
+      const u = await runOne(i);
+      if (u) urls.push(u);
+      else errors.push(`v${i + 1}: no url`);
+    } catch (e: any) {
+      errors.push(`v${i + 1}: ${e?.message || e}`);
+    }
+  }
 
   if (!urls.length) {
-    const firstErr = settled.find((s) => s.status === "rejected") as PromiseRejectedResult | undefined;
-    const msg = firstErr?.reason?.message || "Timed out waiting for the image";
-    return NextResponse.json({ error: msg }, { status: 504 });
+    const msg = errors[0] || "Timed out waiting for the image";
+    return NextResponse.json({ error: msg, details: errors }, { status: 504 });
   }
 
   // Optional anatomy refine only for single 3-person result
@@ -478,6 +486,8 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({
+    partial: itemsOut.length < versions,
+    requested: versions,
     url: itemsOut[0]?.url || null,
     path: itemsOut[0]?.path || null,
     id: itemsOut[0]?.id || null,
