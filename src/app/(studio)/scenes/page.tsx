@@ -506,6 +506,7 @@ export default function ScenesPage() {
 
 
 
+
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         {shown.map((tpl) => {
           const resultUrl = picFor(tpl.id, tpl.name);
@@ -583,7 +584,7 @@ export default function ScenesPage() {
                 {tpl.desc}
               </p>
 
-              {/* 50% inputs | 50% output */}
+              {/* 50% compact face chips | 50% result hero */}
               <div
                 style={{
                   display: "grid",
@@ -593,7 +594,7 @@ export default function ScenesPage() {
                   alignItems: "stretch",
                 }}
               >
-                {/* LEFT — inputs */}
+                {/* LEFT — inputs fill frame (cover), no black bars */}
                 <div
                   style={{
                     display: "flex",
@@ -601,6 +602,7 @@ export default function ScenesPage() {
                     alignItems: "stretch",
                     minWidth: 0,
                     width: "100%",
+                    minHeight: 140,
                   }}
                 >
                   {faces.length === 0 ? (
@@ -611,7 +613,7 @@ export default function ScenesPage() {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        minHeight: 120,
+                        minHeight: 140,
                         borderRadius: 12,
                         background: "#F7F0EA",
                         fontSize: 12,
@@ -629,10 +631,10 @@ export default function ScenesPage() {
                           position: "relative",
                           flex: 1,
                           minWidth: 0,
-                          aspectRatio: "3 / 4",
                           borderRadius: 12,
                           overflow: "hidden",
                           background: "#1C1917",
+                          minHeight: 140,
                         }}
                       >
                         <img
@@ -641,7 +643,7 @@ export default function ScenesPage() {
                           style={{
                             width: "100%",
                             height: "100%",
-                            objectFit: "contain",
+                            objectFit: "cover",
                             objectPosition: "top center",
                             display: "block",
                           }}
@@ -666,13 +668,13 @@ export default function ScenesPage() {
                   )}
                 </div>
 
-                {/* RIGHT — output */}
+                {/* RIGHT — result fills frame */}
                 <div
                   style={{
                     position: "relative",
                     width: "100%",
                     minWidth: 0,
-                    aspectRatio: "3 / 4",
+                    minHeight: 140,
                     borderRadius: 12,
                     overflow: "hidden",
                     background: resultUrl
@@ -687,10 +689,9 @@ export default function ScenesPage() {
                       style={{
                         width: "100%",
                         height: "100%",
-                        objectFit: "contain",
+                        objectFit: "cover",
                         objectPosition: "center center",
                         display: "block",
-                        background: "#1C1917",
                       }}
                       onError={(e) => {
                         (e.target as HTMLImageElement).style.display = "none";
