@@ -361,8 +361,12 @@ function CreateInner() {
         return;
       }
       setPreviews(built);
+      const partial =
+        typeof data.requested === "number" && built.length < data.requested;
       setNote(
-        `${built.length} ready — scroll up and tap Keep to save to your album.`
+        partial
+          ? `${built.length} of ${data.requested} ready (others timed out). Keep the ones you have.`
+          : `${built.length} ready — scroll up and tap Keep to save to your album.`
       );
       try {
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -370,7 +374,11 @@ function CreateInner() {
         /* */
       }
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Network error");
+      alert(
+        err instanceof Error
+          ? err.message
+          : "Network error — try One or Two versions (Four can time out on mobile)."
+      );
     } finally {
       setBusy(false);
     }
