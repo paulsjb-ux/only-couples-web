@@ -437,7 +437,7 @@ export async function POST(req: NextRequest) {
       const img = await fetch(itemUrl);
       const bytes = await img.arrayBuffer();
       // preview prefix — not listed in album until Keep
-      path = `${studioId}/preview/${Date.now()}-${i}.jpg`;
+      path = `${studioId}/preview/${Date.now()}-${i}-${Math.random().toString(36).slice(2, 7)}.jpg`;
       await supabase.storage.from("library").upload(path, bytes, {
         contentType: "image/jpeg",
         upsert: true,
