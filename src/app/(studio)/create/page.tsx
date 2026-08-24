@@ -314,21 +314,21 @@ function CreateInner() {
           outfitWearer,
         }),
       });
-      const data = await res.json().catch(() => ({}));
+      const data = await res.json();
       if (!res.ok) {
-        const msg = data.error || data.message || `Generation failed (${res.status})`;
-        setNote(msg);
-        alert(msg);
+        setNote(data.error || "Generation failed");
+        alert(data.error || "Generation failed");
         return;
       }
+      const dataBody = data;
       const rawItems: { url?: string; path?: string | null; id?: string | null }[] =
-        Array.isArray(data.items) && data.items.length
-          ? data.items
-          : data.url
-            ? [{ url: data.url, path: data.path || null, id: data.id || null }]
+        Array.isArray(dataBody.items) && dataBody.items.length
+          ? dataBody.items
+          : dataBody.url
+            ? [{ url: dataBody.url, path: dataBody.path || null, id: dataBody.id || null }]
             : [];
       const promptBase =
-        data.prompt || `${sceneId || "scene"} | ${sceneName} (${who})`;
+        dataBody.prompt || `${sceneId || "scene"} | ${sceneName} (${who})`;
       const built = rawItems
         .map((it, i) => {
           const u =
@@ -339,10 +339,9 @@ function CreateInner() {
           if (!u) return null;
           return {
             url: String(u),
-            path: it.path || data.path || null,
-            prompt:
-              rawItems.length > 1 ? `${promptBase} · v${i + 1}` : promptBase,
-            kind: data.kind || kind,
+            path: it.path || null,
+            prompt: rawItems.length > 1 ? `${promptBase} · v${i + 1}` : promptBase,
+            kind: dataBody.kind || kind,
             saved: false,
             id: it.id || null,
           };
@@ -362,11 +361,11 @@ function CreateInner() {
       }
       setPreviews(built);
       const partial =
-        typeof data.requested === "number" && built.length < data.requested;
+        typeof dataBody.requested === "number" && built.length < dataBody.requested;
       setNote(
         partial
-          ? `${built.length} of ${data.requested} ready (others timed out). Keep the ones you have.`
-          : `${built.length} ready — scroll up and tap Keep to save to your album.`
+          ? `${built.length} of ${dataBody.requested} ready. Keep the ones you have.`
+          : `${built.length} ready — Keep to save to your album.`
       );
       try {
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -374,11 +373,7 @@ function CreateInner() {
         /* */
       }
     } catch (err: unknown) {
-      alert(
-        err instanceof Error
-          ? err.message
-          : "Network error — try One or Two versions (Four can time out on mobile)."
-      );
+      alert(err instanceof Error ? err.message : "Network error");
     } finally {
       setBusy(false);
     }
@@ -405,17 +400,9 @@ function CreateInner() {
           id: item.id || undefined,
         }),
       });
-      let data: any = {};
-      try {
-        data = await res.json();
-      } catch {
-        data = { error: `Keep failed with status ${res.status}` };
-      }
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const msg =
-          data.error ||
-          data.message ||
-          `Keep failed (${res.status}). Check library bucket + generations table.`;
+        const msg = data.error || data.message || `Keep failed (${res.status})`;
         setNote(msg);
         alert(msg);
         return;
@@ -433,13 +420,75 @@ function CreateInner() {
             : p
         )
       );
-      setNote("Kept — open Library or Scenes to see it.");
+      setNote("Kept — open Library to see it.");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Save failed";
       setNote(msg);
       alert(msg);
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function saveAll() {
+    const pending = previews
+      .map((p, i) => ({ p, i }))
+      .filter(({ p }) => !p.saved && p.url);
+    if (!pending.length) {
+      setNote("Nothing left to keep");
+      return;
+    }
+    setBusy(true);
+    let ok = 0;
+    let lastErr = "";
+    for (const { i } of pending) {
+      const item = previews[i];
+      if (!item?.url) continue;
+      try {
+        const res = await fetch("/api/library", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url: item.url,
+            path: item.path,
+            kind: item.kind || "image",
+            prompt: item.prompt || "",
+            id: item.id || undefined,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          lastErr = data.error || `Keep failed (${res.status})`;
+          continue;
+        }
+        ok += 1;
+        setPreviews((prev) =>
+          prev.map((p, j) =>
+            j === i
+              ? {
+                  ...p,
+                  saved: true,
+                  id: data.id || p.id || null,
+                  path: data.path || p.path,
+                  url: data.url || p.url,
+                }
+              : p
+          )
+        );
+      } catch (e: any) {
+        lastErr = e?.message || "Keep failed";
+      }
+    }
+    setBusy(false);
+    if (ok) {
+      setNote(
+        ok === pending.length
+          ? `Kept all ${ok} in your album.`
+          : `Kept ${ok} of ${pending.length}. ${lastErr}`
+      );
+    } else {
+      setNote(lastErr || "Keep failed");
+      alert(lastErr || "Keep failed");
     }
   }
 
@@ -506,28 +555,35 @@ function CreateInner() {
         </p>
       </div>
 
-      {/* Keep panel — sticky, always on top after generate */}
+      {/* Results first after generate — save controls at top of this block */}
       <div ref={previewRef}>
         {previews.length > 0 && (
-          <div
-            className="card"
-            style={{
-              maxWidth: "36rem",
-              border: "2px solid #8B4A54",
-              position: "sticky",
-              top: 8,
-              zIndex: 60,
-              background: "#fff",
-              boxShadow: "0 12px 40px rgba(26,18,20,0.15)",
-            }}
-          >
+          <div className="card" style={{ maxWidth: "36rem", borderColor: "var(--tor-accent)", borderWidth: 2 }}>
             <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
               <p className="text-sm font-semibold text-[var(--text)]">
-                {previews.length > 1
-                  ? `${previews.length} versions — Keep the ones you want`
-                  : "Your image — Keep or discard"}
+                {previews.length > 1 ? `${previews.length} versions — Keep the ones you want` : "Your image — Keep or discard"}
               </p>
-              <div className="flex gap-3 text-sm">
+              <div className="flex gap-3 text-sm items-center flex-wrap">
+                {previews.length > 1 && previews.some((p) => !p.saved) && (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void saveAll()}
+                    style={{
+                      minHeight: 40,
+                      padding: "0 16px",
+                      borderRadius: 999,
+                      border: "none",
+                      background: "linear-gradient(135deg, #8B4A54, #7A3E48)",
+                      color: "#fff",
+                      fontWeight: 600,
+                      fontSize: 13,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Keep all
+                  </button>
+                )}
                 {previews.some((p) => p.saved) && (
                   <Link href="/library" className="underline text-[var(--text)]">
                     Open library
@@ -632,10 +688,9 @@ function CreateInner() {
           <div className="flex flex-wrap items-center gap-2 mb-2">
             <button
               type="button"
+              className="rounded-full px-4 py-2 text-sm font-bold bg-white border border-[var(--line)] text-[var(--text)]"
               onClick={() => outfitFileRef.current?.click()}
               disabled={busy}
-              className="tor-chip"
-              style={{ minHeight: 48, padding: "12px 22px", fontSize: 15 }}
             >
               Upload outfit photo
             </button>
@@ -691,10 +746,8 @@ function CreateInner() {
 
         {kind === "image" && (
           <div>
-            <p className="tor-select-label" style={{ marginBottom: 8 }}>
-              How many to make
-            </p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            <label className="block text-sm font-semibold mb-1.5 text-[var(--text)]">Versions</label>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               {[
                 { n: 1, label: "One" },
                 { n: 2, label: "Two" },
@@ -712,8 +765,8 @@ function CreateInner() {
                 </button>
               ))}
             </div>
-            <p className="tor-help" style={{ marginTop: 10 }}>
-              Same scene each time — only framing or light shifts slightly. Keep the ones you like.
+            <p className="tor-help" style={{ marginTop: 8 }}>
+              Each version is a separate image. You Keep only the ones you want.
             </p>
           </div>
         )}
@@ -733,7 +786,7 @@ function CreateInner() {
             ? "Making…"
             : kind === "image" && versions > 1
               ? `Make ${versions} versions`
-              : "Make this scene"}
+              : "Use this scene"}
         </button>
         {note && <p className="text-sm text-[var(--muted)]">{note}</p>}
       </div>
@@ -805,8 +858,7 @@ function CreateInner() {
           </select>
           <button
             type="button"
-            className="tor-chip"
-            style={{ minHeight: 48, padding: "12px 22px", fontSize: 15 }}
+            className="rounded-full px-4 py-2 text-sm font-bold bg-white border border-[var(--line)] text-[var(--text)]"
             onClick={() => fileRef.current?.click()}
             disabled={busy}
           >
