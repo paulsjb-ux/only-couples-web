@@ -96,76 +96,29 @@ export default function LibraryPage() {
     setLoading(true);
     setNote("");
     try {
-      const supabase = createClient();
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData?.user) {
+      // Always load the album through the server route. The server refreshes
+      // private Supabase Storage signed URLs from the durable storage_path,
+      // so expired browser URLs can never make saved images disappear.
+      const res = await fetch("/api/library", {
+        method: "GET",
+        cache: "no-store",
+        credentials: "include",
+      });
+
+      if (res.status === 401) {
         setNote("Sign in to see your album.");
         setItems([]);
         return;
       }
 
-      const { data: memberships, error: memErr } = await supabase
-        .from("studio_members")
-        .select("studio_id")
-        .eq("user_id", userData.user.id)
-        .limit(1);
-
-      if (memErr) {
-        setNote("Could not load studio. Try refresh.");
-        setItems([]);
-        return;
+      if (!res.ok) {
+        throw new Error(`Library request failed (${res.status})`);
       }
 
-      const sid = memberships?.[0]?.studio_id as string | undefined;
-      if (!sid) {
-        setNote("No studio yet. Generate a scene and Keep it.");
-        setItems([]);
-        return;
-      }
-
-      // Minimal select first — never block page on optional columns
-      let rows: Gen[] = [];
-      const full = await supabase
-        .from("generations")
-        .select("id, result_url, storage_path, prompt, kind, created_at")
-        .eq("studio_id", sid)
-        .order("created_at", { ascending: false })
-        .limit(60);
-
-      if (full.error) {
-        const basic = await supabase
-          .from("generations")
-          .select("id, result_url, prompt, kind, created_at")
-          .eq("studio_id", sid)
-          .order("created_at", { ascending: false })
-          .limit(60);
-        rows = (basic.data as Gen[]) || [];
-      } else {
-        rows = (full.data as Gen[]) || [];
-      }
-
-      // Show rows immediately (even with old URLs)
+      const payload = (await res.json()) as { items?: Gen[] };
+      const rows = Array.isArray(payload.items) ? payload.items : [];
       setItems(rows);
-      setLoading(false);
-
-      // Re-sign in parallel — much faster
-      const refreshed = await Promise.all(
-        rows.map(async (row) => {
-          const path = row.storage_path || pathFromUrl(row.result_url);
-          if (path) {
-            const signed = await signAny(path, true);
-            if (signed) {
-              return {
-                ...row,
-                result_url: signed.url,
-                storage_path: signed.path,
-              };
-            }
-          }
-          return row;
-        })
-      );
-      setItems(refreshed);
+      setFailedIds({});
     } catch (e) {
       console.error("library load", e);
       setNote("Something went wrong loading the album. Pull to refresh.");
