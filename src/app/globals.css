@@ -972,10 +972,3 @@ body.tor-lightbox-open { overflow: hidden; }
 /* Zen club */
 .studio-hero h1 { letter-spacing: -0.01em; }
 
-/* Full picture — no crop */
-.tor-preview-frame img,
-.tor-img {
-  object-fit: contain !important;
-  object-position: center center !important;
-  background: #1c1917;
-}
