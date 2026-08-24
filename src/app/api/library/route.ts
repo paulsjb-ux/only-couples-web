@@ -1,21 +1,58 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createDirectClient } from "@supabase/supabase-js";
 
 async function studioOf() {
-  const supabase = await createClient();
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) {
+  const cookieClient = await createClient();
+
+  // getUser() verifies the JWT with Supabase Auth. Do not trust getSession()
+  // alone for identity decisions on the server.
+  const { data: userData, error: userError } = await cookieClient.auth.getUser();
+  if (userError || !userData.user) {
     return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
   }
-  const { data: memberships } = await supabase
+
+  // Re-use the verified browser session token explicitly for PostgREST/Storage.
+  // This avoids a server-cookie handoff edge case where auth.getUser() succeeds
+  // but subsequent RLS queries are sent without the user's bearer token.
+  const { data: sessionData } = await cookieClient.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  if (!accessToken) {
+    return { error: NextResponse.json({ error: "Session unavailable" }, { status: 401 }) };
+  }
+
+  const supabase = createDirectClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      global: {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      },
+      auth: { persistSession: false, autoRefreshToken: false },
+    }
+  );
+
+  const { data: memberships, error: membershipError } = await supabase
     .from("studio_members")
     .select("studio_id")
     .eq("user_id", userData.user.id)
     .limit(1);
+
+  if (membershipError) {
+    console.error("studio membership lookup failed", membershipError);
+    return {
+      error: NextResponse.json(
+        { error: "Could not load studio membership" },
+        { status: 500 }
+      ),
+    };
+  }
+
   const studioId = memberships?.[0]?.studio_id as string | undefined;
   if (!studioId) {
     return { error: NextResponse.json({ error: "No studio" }, { status: 400 }) };
   }
+
   return { supabase, studioId, userId: userData.user.id };
 }
 
@@ -45,8 +82,6 @@ export async function GET() {
     return NextResponse.json({ items: basic.data || [] });
   }
 
-  // Sign all stored images in parallel. The old sequential loop could make
-  // /api/library exceed Vercel's function duration when an album has many images.
   const items = await Promise.all(
     (data || []).map(async (row) => {
       let url = row.result_url as string | null;
@@ -75,7 +110,7 @@ export async function GET() {
               break;
             }
           } catch {
-            // Try the next candidate; never fail the whole album for one image.
+            // One bad object must not fail the whole album.
           }
         }
       }
