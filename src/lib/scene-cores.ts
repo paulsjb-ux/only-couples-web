@@ -145,11 +145,22 @@ export const SCENE_CORES: Record<string, string> = {
 export function getSceneCore(id: string, sceneName: string) {
   const core =
     SCENE_CORES[id] ||
-    `SCENE LOCK — ${sceneName}. Photorealistic intimate adult scene matching the title "${sceneName}" exactly. Keep the exact faces from the reference photos. Do not substitute a different sex act or a standing shower couple unless the title requires it.`;
-  // Hard anti-confusion for any scene that is not the generic shower selfie
-  const anti =
-    id === "romance-shower" || id === "soft-shower-laugh"
-      ? ""
-      : " FORBIDDEN unless the scene title requires it: casual standing shower mirror selfie as the whole frame; swapping the named sex act for a different act.";
-  return core + anti;
+    `SCENE LOCK — Act and setting must match the title "${sceneName}" exactly. Photorealistic intimate adult scene. Keep exact faces from the reference photos. Do not invent a different sex act, pose family, or room.`;
+
+  // Default: ban bathroom/shower takeover unless this is an explicit shower scene
+  const showerIds = new Set([
+    "romance-shower",
+    "soft-shower-laugh",
+    "zen-shower-pose",
+    "zen-foam-shower",
+    "anal-bathroom-pov",
+  ]);
+  const antiShower = showerIds.has(id)
+    ? " LOCATION: bathroom/shower is required for this title."
+    : " LOCATION LOCK: NOT a shower, NOT a bathroom, NOT wet tile, NOT a steam mirror selfie. Prefer bedroom, hotel room, living room, or the setting named in the scene text. Never replace the named act with a standing shower couple.";
+
+  const antiSwap =
+    " ACT LOCK: do not swap the named act for a different one. Follow the scene description literally (pose, who is where, what is happening).";
+
+  return `${core}${antiShower}${antiSwap}`;
 }
