@@ -498,6 +498,7 @@ export default function ScenesPage() {
 
 
 
+
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         {shown.map((tpl) => {
           const resultUrl = picFor(tpl.id, tpl.name);
@@ -508,22 +509,19 @@ export default function ScenesPage() {
             needed.length > 0
               ? needed
               : inputs.slice(0, Math.min(tpl.prefer.length || 2, inputs.length));
-          const isThree = faces.length >= 3;
 
-          const inputLabel = (text: string) => (
+          const pill = (text: string) => (
             <span
               style={{
                 position: "absolute",
-                bottom: 8,
-                left: "50%",
-                transform: "translateX(-50%)",
-                fontSize: 11,
-                fontWeight: 500,
+                bottom: 6,
+                left: 6,
+                fontSize: 10,
+                fontWeight: 600,
                 color: "#fff",
                 background: "rgba(30,30,30,0.85)",
-                padding: "3px 10px",
-                borderRadius: 10,
-                letterSpacing: "0.2px",
+                padding: "2px 8px",
+                borderRadius: 8,
               }}
             >
               {text}
@@ -553,13 +551,12 @@ export default function ScenesPage() {
                 <h2
                   style={{
                     fontFamily: "var(--font-cormorant), Georgia, serif",
-                    fontSize: 28,
-                    fontWeight: 400,
+                    fontSize: 22,
+                    fontWeight: 500,
                     margin: 0,
                     color: "#1a1614",
-                    lineHeight: 1.15,
+                    lineHeight: 1.2,
                     flex: 1,
-                    letterSpacing: "-0.02em",
                   }}
                 >
                   {tpl.name}
@@ -576,8 +573,8 @@ export default function ScenesPage() {
                     borderRadius: 999,
                     background: "linear-gradient(135deg, #8B4A54, #7A3E48)",
                     color: "#fff",
-                    fontWeight: 500,
-                    fontSize: 14,
+                    fontWeight: 600,
+                    fontSize: 13,
                     textDecoration: "none",
                     whiteSpace: "nowrap",
                   }}
@@ -588,199 +585,112 @@ export default function ScenesPage() {
 
               <p
                 style={{
-                  fontSize: 15,
-                  color: "#555",
+                  fontSize: 14,
+                  color: "#5c534c",
                   lineHeight: 1.45,
-                  margin: "0 0 16px",
+                  margin: "0 0 14px",
                 }}
               >
                 {tpl.desc}
               </p>
 
-              {isThree ? (
-                /* ===== 3 inputs: stacked left column + tall result (mockup) ===== */
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 12,
-                    width: "100%",
-                    minHeight: 280,
-                    alignItems: "stretch",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "38%",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 10,
-                      minWidth: 0,
-                    }}
-                  >
-                    {faces.slice(0, 3).map((face) => (
-                      <div
-                        key={face.role}
-                        style={{
-                          position: "relative",
-                          flex: 1,
-                          minHeight: 0,
-                          borderRadius: 14,
-                          overflow: "hidden",
-                          background: "#f0f0f0",
-                          boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-                        }}
-                      >
-                        <img
-                          src={face.url}
-                          alt=""
-                          loading="lazy"
-                          decoding="async"
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                            objectPosition: "top center",
-                            display: "block",
-                          }}
-                        />
-                        {inputLabel("input")}
-                      </div>
-                    ))}
-                  </div>
-                  <div
-                    style={{
-                      flex: 1,
-                      position: "relative",
-                      minWidth: 0,
-                      borderRadius: 16,
-                      overflow: "hidden",
-                      background: resultUrl
-                        ? "#1C1917"
-                        : "linear-gradient(145deg, #3a1f24, #7A3E48)",
-                      boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
-                    }}
-                  >
-                    {resultUrl ? (
-                      <img
-                        src={resultUrl}
-                        alt=""
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "cover",
-                          objectPosition: "center 15%",
-                          display: "block",
-                        }}
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = "none";
-                        }}
-                      />
-                    ) : null}
-                    {inputLabel("result")}
-                  </div>
-                </div>
-              ) : (
-                /* ===== 1–2 inputs: side-by-side 50/50 (unchanged) ===== */
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: 10,
-                    width: "100%",
-                    alignItems: "stretch",
-                  }}
-                >
-                  <div
+              {/* Row 1: inputs (1–3) */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    faces.length <= 1
+                      ? "1fr"
+                      : faces.length === 2
+                        ? "1fr 1fr"
+                        : "1fr 1fr 1fr",
+                  gap: 8,
+                  marginBottom: 8,
+                }}
+              >
+                {faces.length === 0 ? (
+                  <Link
+                    href="/people"
                     style={{
                       display: "flex",
-                      gap: 6,
-                      alignItems: "stretch",
-                      minWidth: 0,
-                      width: "100%",
-                      minHeight: 140,
-                    }}
-                  >
-                    {faces.length === 0 ? (
-                      <Link
-                        href="/people"
-                        style={{
-                          flex: 1,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          minHeight: 140,
-                          borderRadius: 12,
-                          background: "#F7F0EA",
-                          fontSize: 12,
-                          color: "#8B4A54",
-                          textDecoration: "underline",
-                        }}
-                      >
-                        Add faces
-                      </Link>
-                    ) : (
-                      faces.map((face) => (
-                        <div
-                          key={face.role}
-                          style={{
-                            position: "relative",
-                            flex: 1,
-                            minWidth: 0,
-                            borderRadius: 12,
-                            overflow: "hidden",
-                            background: "#1C1917",
-                            minHeight: 140,
-                          }}
-                        >
-                          <img
-                            src={face.url}
-                            alt=""
-                            style={{
-                              width: "100%",
-                              height: "100%",
-                              objectFit: "cover",
-                              objectPosition: "top center",
-                              display: "block",
-                            }}
-                          />
-                          {inputLabel("input")}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                  <div
-                    style={{
-                      position: "relative",
-                      width: "100%",
-                      minWidth: 0,
-                      minHeight: 140,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      minHeight: 100,
                       borderRadius: 12,
-                      overflow: "hidden",
-                      background: resultUrl
-                        ? "#1C1917"
-                        : "linear-gradient(145deg, #3a1f24, #7A3E48)",
+                      background: "#F7F0EA",
+                      fontSize: 12,
+                      color: "#8B4A54",
+                      textDecoration: "underline",
                     }}
                   >
-                    {resultUrl ? (
+                    Add faces
+                  </Link>
+                ) : (
+                  faces.map((face) => (
+                    <div
+                      key={face.role}
+                      style={{
+                        position: "relative",
+                        width: "100%",
+                        aspectRatio: "3 / 4",
+                        borderRadius: 12,
+                        overflow: "hidden",
+                        background: "#1C1917",
+                      }}
+                    >
                       <img
-                        src={resultUrl}
+                        src={face.url}
                         alt=""
+                        loading="lazy"
+                        decoding="async"
                         style={{
                           width: "100%",
                           height: "100%",
-                          objectFit: "cover",
-                          objectPosition: "center center",
+                          objectFit: "contain",
+                          objectPosition: "center",
                           display: "block",
                         }}
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = "none";
-                        }}
                       />
-                    ) : null}
-                    {inputLabel("result")}
-                  </div>
-                </div>
-              )}
+                      {pill("input")}
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Row 2: output full width */}
+              <div
+                style={{
+                  position: "relative",
+                  width: "100%",
+                  aspectRatio: "3 / 4",
+                  maxHeight: 360,
+                  borderRadius: 12,
+                  overflow: "hidden",
+                  background: resultUrl
+                    ? "#1C1917"
+                    : "linear-gradient(145deg, #3a1f24, #7A3E48)",
+                }}
+              >
+                {resultUrl ? (
+                  <img
+                    src={resultUrl}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "contain",
+                      objectPosition: "center",
+                      display: "block",
+                    }}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = "none";
+                    }}
+                  />
+                ) : null}
+                {pill("result")}
+              </div>
             </div>
           );
         })}
