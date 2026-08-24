@@ -435,15 +435,43 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  // Persist preview rows so Scenes can resolve result thumbs after Keep
+  // (Keep will insert/update with status kept; previews help path recovery)
+  const itemsOut: { url: string; path: string | null; id: string | null }[] = [];
+  for (const it of items) {
+    let id: string | null = null;
+    if (it.path || it.url) {
+      try {
+        const row: Record<string, unknown> = {
+          studio_id: studioId,
+          kind,
+          prompt,
+          result_url: it.url,
+          status: "preview",
+        };
+        if (it.path) row.storage_path = it.path;
+        const { data: ins } = await supabase
+          .from("generations")
+          .insert(row)
+          .select("id")
+          .single();
+        id = ins?.id || null;
+      } catch {
+        /* optional */
+      }
+    }
+    itemsOut.push({ ...it, id });
+  }
+
   return NextResponse.json({
-    url: items[0]?.url || null,
-    path: items[0]?.path || null,
-    id: null,
+    url: itemsOut[0]?.url || null,
+    path: itemsOut[0]?.path || null,
+    id: itemsOut[0]?.id || null,
     kind,
     prompt,
     saved: false,
     status: "preview",
-    versions: items.length,
-    items,
+    versions: itemsOut.length,
+    items: itemsOut,
   });
 }
