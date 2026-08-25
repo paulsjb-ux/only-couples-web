@@ -1,162 +1,77 @@
-/**
- * MERGE GUIDE — do NOT replace your whole create/page.tsx with this file.
- *
- * This is a reference implementation of the UI patterns only.
- * Copy the marked blocks into your existing page that already has:
- *   - face/outfit state
- *   - scene selection
- *   - API call to /api/generate
- *   - auth / credits checks
- *   - age text hint, etc.
- *
- * Blocks to merge:
- *   1. Upload labels (rose pills + sr-only inputs)
- *   2. Role select (rounded)
- *   3. Progress state + startProgress helper
- *   4. Progress bar UI
- *   5. Generate button disabled + “Making…” label while running
- */
-
 "use client";
 
-import { useState, useRef, ChangeEvent } from "react";
+/**
+ * FULL REPLACE for src/app/(studio)/create/page.tsx
+ * -------------------------------------------------
+ * Do NOT merge. Overwrite the entire file with this.
+ * Then keep CreateUploads.tsx in src/components/.
+ *
+ * After deploy you should see rose pills, NOT grey "Choose File".
+ */
+
+import { useState } from "react";
+import CreateUploads from "@/components/CreateUploads";
 
 export default function CreatePage() {
-  // ─── existing state you already have ───────────────────────────────────
-  // const [faceFile, setFaceFile] = useState<File | null>(null);
-  // const [outfitFile, setOutfitFile] = useState<File | null>(null);
-  // const [sceneId, setSceneId] = useState(...);
-  // etc.
-
-  // ─── ADD these three pieces of state ───────────────────────────────────
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [role, setRole] = useState("female-lover");
-  const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // ─── keep / adapt your existing upload handlers ────────────────────────
-  const handleFaceUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // setFaceFile(file);  ← your existing logic
-      console.log("Face photo selected:", file.name);
-    }
-  };
-
-  const handleOutfitUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // setOutfitFile(file);  ← your existing logic
-      console.log("Outfit photo selected:", file.name);
-    }
-  };
-
-  // ─── ADD this helper ───────────────────────────────────────────────────
-  const startProgress = () => {
-    setProgress(8);
-    progressIntervalRef.current = setInterval(() => {
-      setProgress((p) => {
-        if (p >= 92) {
-          if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-          return 92;
-        }
-        return p + Math.floor(Math.random() * 6) + 3; // ~8 → 92
-      });
-    }, 400);
-  };
-
-  // ─── wrap your existing generate call ──────────────────────────────────
-  const handleGenerate = async () => {
-    setIsGenerating(true);
-    startProgress();
-
-    try {
-      // await fetch("/api/generate", { ... your existing body ... });
-      // on success:
-      setProgress(100);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-      setTimeout(() => {
-        setIsGenerating(false);
-        setProgress(0);
-      }, 600);
-    }
-  };
+  const [faceFile, setFaceFile] = useState<File | null>(null);
+  const [outfitFile, setOutfitFile] = useState<File | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [resultUrl, setResultUrl] = useState<string | null>(null);
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-lg mx-auto">
-      {/* ══════════════════════════════════════════════════════════════════
-          BLOCK 1 — Replace the old grey native file inputs with these
-          ══════════════════════════════════════════════════════════════════ */}
-      <div className="flex flex-wrap gap-3">
-        <label className="inline-flex items-center gap-2 cursor-pointer">
-          <span className="px-4 py-2 rounded-full border border-rose-300 bg-rose-50 text-rose-700 text-sm font-medium hover:bg-rose-100 transition">
-            Choose face photo
-          </span>
-          <input
-            type="file"
-            accept="image/*"
-            className="sr-only"
-            onChange={handleFaceUpload}
-          />
-        </label>
+    <div className="min-h-screen bg-[#faf8f6] text-stone-900">
+      <header className="flex items-center gap-3 px-4 py-3 border-b border-stone-200 bg-white">
+        <button
+          type="button"
+          className="h-10 w-10 rounded-xl bg-[#6b3a42] text-white flex items-center justify-center"
+          aria-label="Menu"
+        >
+          ☰
+        </button>
+        <h1 className="flex-1 text-center font-serif text-lg tracking-wide">
+          The Other Room
+        </h1>
+        <div className="w-10" />
+      </header>
 
-        <label className="inline-flex items-center gap-2 cursor-pointer">
-          <span className="px-4 py-2 rounded-full border border-rose-300 bg-rose-50 text-rose-700 text-sm font-medium hover:bg-rose-100 transition">
-            Upload outfit photo
-          </span>
-          <input
-            type="file"
-            accept="image/*"
-            className="sr-only"
-            onChange={handleOutfitUpload}
-          />
-        </label>
-      </div>
+      <main className="px-4 py-8 flex flex-col items-stretch max-w-lg mx-auto gap-6">
+        <CreateUploads
+          onFaceSelect={(file) => {
+            setFaceFile(file);
+            setError(null);
+          }}
+          onOutfitSelect={(file) => {
+            setOutfitFile(file);
+            setError(null);
+          }}
+          onGenerate={async (role) => {
+            setError(null);
+            setResultUrl(null);
 
-      {/* ══════════════════════════════════════════════════════════════════
-          BLOCK 2 — Role select (rounded)
-          ══════════════════════════════════════════════════════════════════ */}
-      <select
-        className="rounded-full border border-rose-200 bg-cream-50 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300"
-        value={role}
-        onChange={(e) => setRole(e.target.value)}
-      >
-        <option value="female-lover">Female lover</option>
-        <option value="male-lover">Male lover</option>
-        <option value="both">Both</option>
-      </select>
+            // Wire to your real API when ready:
+            // const body = { role, sceneId: "...", ... };
+            // const res = await fetch("/api/generate", { method: "POST", ... });
 
-      {/* ══════════════════════════════════════════════════════════════════
-          BLOCK 3 — Generate button (disable + label while running)
-          ══════════════════════════════════════════════════════════════════ */}
-      <button
-        type="button"
-        onClick={handleGenerate}
-        disabled={isGenerating}
-        className="px-6 py-2.5 rounded-full bg-rose-500 text-white text-sm font-medium hover:bg-rose-600 disabled:opacity-60 disabled:cursor-not-allowed transition"
-      >
-        {isGenerating ? "Making…" : "Make"}
-      </button>
+            // Temporary: simulate success so UI can be verified
+            await new Promise((r) => setTimeout(r, 2500));
+            console.log("Generate", { role, faceFile: faceFile?.name, outfitFile: outfitFile?.name });
+          }}
+        />
 
-      {/* ══════════════════════════════════════════════════════════════════
-          BLOCK 4 — Progress bar (show only while generating)
-          ══════════════════════════════════════════════════════════════════ */}
-      {isGenerating && (
-        <div className="w-full">
-          <div className="flex justify-between text-sm text-rose-700 mb-1">
-            <span>Making… {progress}%</span>
-          </div>
-          <div className="h-2 w-full rounded-full bg-rose-100 overflow-hidden">
-            <div
-              className="h-full bg-rose-500 transition-all duration-300 ease-out rounded-full"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        </div>
-      )}
+        {faceFile && (
+          <p className="text-xs text-stone-500">Face: {faceFile.name}</p>
+        )}
+        {outfitFile && (
+          <p className="text-xs text-stone-500">Outfit: {outfitFile.name}</p>
+        )}
+        {error && (
+          <p className="text-sm text-red-600">{error}</p>
+        )}
+        {resultUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={resultUrl} alt="Result" className="rounded-xl w-full" />
+        )}
+      </main>
     </div>
   );
 }
