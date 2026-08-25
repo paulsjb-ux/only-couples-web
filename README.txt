@@ -1,39 +1,51 @@
-tor-ui-templates-progress
-=========================
+tor-combined — engines + speed + UI
+===================================
 
-FIX (2026-08-25): page.tsx now uses valid JSX handlers.
-Previous version had onChange={/* comment */} which broke the Vercel build.
+One package with everything from the last two updates.
 
-Changes in this package:
+CONTENTS
+--------
+src/lib/scene-cores.ts          After Dark templates + buildScenePrompt()
+src/lib/engines.ts              seedream-uncensored | flux-klein-nsfw | sdxl
 
-1. src/lib/scene-cores.ts
-   - Explicit After Dark templates with harder, anatomy-locked prompts
-   - Shared bedroom + negatives
-   - buildScenePrompt() helper
+src/app/api/generate/route.ts   Dual provider (Wiro Seedream + ZenCreator)
+src/app/api/warm/route.ts       Edge warm endpoint (kills cold starts)
 
-2. src/app/(studio)/create/page.tsx
-   - Self-contained, compilable reference implementation
-   - Rose primary + outline pill buttons for face/outfit uploads (sr-only inputs)
-   - Rounded select for roles
-   - Timed progress bar: 8% → 92% while loading, 100% on complete
-   - Label “Making… N%”
-   - Real onChange handlers (handleFaceUpload / handleOutfitUpload)
+src/components/CreateUploads.tsx    Rose pills + progress bar
+src/components/CreatePageClient.tsx Wires uploads + engine picker + generate
 
-3. src/app/api/generate/route.ts
-   - Wired buildScenePrompt() into the generation path
+src/app/fonts.ts                next/font + display:swap
+src/app/layout-snippet.tsx      How to apply fonts in root layout
+src/app/(studio)/create/loading.tsx     Instant skeleton
+src/app/(studio)/create/page-snippet.tsx dynamic() import pattern
 
-How to integrate:
-- Copy scene-cores.ts into src/lib/
-- Merge the UI patterns (labels, select, progress bar, startProgress) into your real create/page.tsx
-- In your generate route, import and call buildScenePrompt() as shown
+src/middleware-snippet.ts       Auth gate for /create
+vercel-cron-snippet.json        Cron every 5 min → /api/warm
 
-Still open / external:
-- Top up ZenCreator credits at app.zencreator.pro/billing if Makes fail
-- Auth/studio membership already fixed earlier
+SETUP ORDER
+-----------
+1. Copy src/lib/* and the two API routes.
+2. Set env:
+     WIRO_API_KEY=...
+     ZENCREATOR_API_KEY=...
+3. Merge fonts + layout snippet; remove old manual font links.
+4. Add create/loading.tsx.
+5. Point create/page.tsx at the dynamic CreatePageClient pattern
+   (or merge CreateUploads into your existing page).
+6. Optional: middleware + vercel cron for warm.
+7. Adjust ZenCreator model/tool names in generate/route.ts to match your docs.
 
-Product notes addressed:
-- Age selection remains text hint only
-- Face photo still drives identity
-- After Dark scenes now have explicit cores to reduce standing portraits / weak penetration / anatomy errors
-- Grey upload buttons replaced with rose/cream matching UI
-- “Making…” is now a real progress bar
+ENGINES
+-------
+seedream-uncensored  → Wiro   (~$0.03)   default — best cost/quality
+flux-klein-nsfw      → ZenCreator        best anatomy
+sdxl                 → ZenCreator        cheap drafts
+
+SPEED
+-----
+- Fonts: text visible immediately
+- Create JS isolated from homepage
+- loading.tsx skeleton
+- /api/warm + cron ≈ removes ~1s cold TTFB
+
+After deploy, hard-reload and check TTFB on /.

@@ -1,0 +1,26 @@
+COMBINED CHECKLIST
+==================
+
+ENGINES
+[ ] scene-cores.ts + engines.ts copied
+[ ] generate/route.ts copied; ZenCreator model names fixed
+[ ] WIRO_API_KEY + ZENCREATOR_API_KEY set
+[ ] Default engine = seedream-uncensored
+
+UI
+[ ] CreateUploads in project
+[ ] Create page uses rose pills (sr-only inputs) + progress bar
+[ ] Engine selector wired (or default only)
+
+SPEED
+[ ] fonts.ts + layout (display:swap, drop unused weights)
+[ ] create/loading.tsx
+[ ] create page dynamic-imported
+[ ] /api/warm + vercel.json cron
+[ ] Redeploy and re-measure TTFB
+
+VERIFY
+[ ] Homepage warm TTFB well under 200ms
+[ ] Create shows skeleton then rose UI
+[ ] Generate with seedream-uncensored works
+[ ] Generate with flux-klein-nsfw works
