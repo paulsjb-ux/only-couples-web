@@ -1,0 +1,49 @@
+HOW TO REPLACE THE GREY "Choose File" CONTROLS
+==============================================
+
+Your live page still shows the browser’s native grey inputs.
+That means this component is not mounted yet.
+
+1. Copy:
+     src/components/CreateUploads.tsx
+   into your project at the same path.
+
+2. In your real create/page.tsx (or CreatePageClient):
+
+     import CreateUploads from "@/components/CreateUploads";
+
+3. DELETE or comment out the old block that renders:
+     - plain text “Choose face photo”
+     - native <input type="file"> (the grey “Choose File”)
+     - “outfit photo” + native input
+     - the cramped Female lover + Make controls
+
+4. Put this in its place:
+
+     <CreateUploads
+       onFaceSelect={(file) => {
+         // your setFaceFile(file) / upload logic
+       }}
+       onOutfitSelect={(file) => {
+         // your setOutfitFile(file) / upload logic
+       }}
+       onGenerate={async (role) => {
+         // your existing generate / fetch("/api/generate") call
+       }}
+     />
+
+5. Deploy. After deploy you should see:
+     - Rose outline pills (not grey “Choose File”)
+     - Rounded role select
+     - Make button that shows “Making…”
+     - Progress bar: 8% → 92% → 100% with label “Making… N%”
+
+Progress timing (inside the component)
+--------------------------------------
+  startProgress() sets 8%
+  every 400ms adds ~3–8% until 92%
+  on success → 100%
+  after ~700ms resets
+
+Do not leave the old native <input type="file"> visible.
+If you still see “Choose File / no file selected”, the old markup is still on the page.
