@@ -2,10 +2,6 @@
 
 import { useState, useRef, ChangeEvent } from "react";
 
-/**
- * FULL REPLACE for: src/app/(studio)/create/page.tsx
- * After deploy you should see rose pills, NOT grey "Choose File".
- */
 export default function CreatePage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -39,7 +35,6 @@ export default function CreatePage() {
     setIsGenerating(true);
     startProgress();
     try {
-      // TODO: call /api/generate
       await new Promise((r) => setTimeout(r, 2500));
       setProgress(100);
     } catch (err) {
@@ -55,29 +50,18 @@ export default function CreatePage() {
 
   return (
     <div className="flex flex-col gap-6 p-6 max-w-lg mx-auto min-h-screen bg-[#faf8f6]">
-      {/* Rose pills — native inputs hidden */}
       <div className="flex flex-wrap gap-3">
         <label className="inline-flex items-center gap-2 cursor-pointer">
           <span className="px-4 py-2 rounded-full border border-rose-300 bg-rose-50 text-rose-700 text-sm font-medium">
             Choose face photo
           </span>
-          <input
-            type="file"
-            accept="image/*"
-            className="sr-only"
-            onChange={handleFaceUpload}
-          />
+          <input type="file" accept="image/*" className="sr-only" onChange={handleFaceUpload} />
         </label>
         <label className="inline-flex items-center gap-2 cursor-pointer">
           <span className="px-4 py-2 rounded-full border border-rose-300 bg-rose-50 text-rose-700 text-sm font-medium">
             Upload outfit photo
           </span>
-          <input
-            type="file"
-            accept="image/*"
-            className="sr-only"
-            onChange={handleOutfitUpload}
-          />
+          <input type="file" accept="image/*" className="sr-only" onChange={handleOutfitUpload} />
         </label>
       </div>
 
