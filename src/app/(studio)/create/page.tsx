@@ -27,7 +27,6 @@ const ALL_ROLES = [
   { key: "male_lover", label: "Male lover" },
 ];
 
-// Opposite-sex lovers by default: his lover = woman, her lover = man
 const SUGGESTED = [
   { label: "Just us", roles: ["wife", "husband"] },
   { label: "Him + his lover", roles: ["husband", "female_lover"] },
@@ -142,7 +141,6 @@ function CreateInner() {
     return supabase.from("people").insert({ studio_id: studioId, role, ...row });
   }
 
-  /** Apply preset: save body/look AND upload the preset JPG so generate gets a face ref */
   async function applyPreset(preset: LoverPreset) {
     if (!studioId) {
       alert("Studio not ready");
@@ -189,7 +187,6 @@ function CreateInner() {
     }
   }
 
-  /** Upload a photo from phone/Mac into a cast role */
   async function uploadCastPhoto(file: File, role: string) {
     if (!studioId) {
       alert("Studio not ready");
@@ -222,7 +219,6 @@ function CreateInner() {
       setBusy(false);
     }
   }
-
 
   async function uploadOutfit(file: File) {
     if (!studioId) {
@@ -276,7 +272,6 @@ function CreateInner() {
       );
       return;
     }
-    // Outfit scenes need an uploaded garment
     const needsOutfit =
       sceneId === "outfit-try-on" ||
       sceneId === "who-wore-it-best" ||
@@ -512,7 +507,6 @@ function CreateInner() {
     }
   }
 
-  /** Download for Photos/Files — works on Mac; on iPhone opens share/save flow */
   async function downloadOne(index: number) {
     const item = previews[index];
     if (!item?.url) return;
@@ -555,7 +549,6 @@ function CreateInner() {
         </p>
       </div>
 
-      {/* Results first after generate — save controls at top of this block */}
       <div ref={previewRef}>
         {previews.length > 0 && (
           <div className="card" style={{ maxWidth: "36rem", borderColor: "var(--tor-accent)", borderWidth: 2 }}>
@@ -643,7 +636,6 @@ function CreateInner() {
         )}
       </div>
 
-      {/* Create controls ABOVE the 12 presets */}
       <div className="card tor-stack" style={{ maxWidth: "36rem" }}>
         <p className="text-sm font-semibold text-[var(--text)]">Create</p>
 
@@ -679,7 +671,6 @@ function CreateInner() {
           </div>
         </div>
 
-        
         <div className="border-t border-[var(--line)] pt-4">
           <p className="text-sm font-semibold mb-1.5 text-[var(--text)]">Add me in this outfit</p>
           <p className="text-xs text-[var(--muted)] mb-2">
@@ -791,7 +782,6 @@ function CreateInner() {
         {note && <p className="text-sm text-[var(--muted)]">{note}</p>}
       </div>
 
-      {/* Cast */}
       <div className="card" style={{ maxWidth: "36rem" }}>
         <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 10, color: "#1a1614" }}>Cast</p>
         <div className="tor-chip-grid tor-chip-grid-4">
@@ -841,7 +831,6 @@ function CreateInner() {
           })}
         </div>
 
-        {/* Upload from phone / Mac */}
         <p className="text-sm font-semibold mt-5 mb-2 text-[var(--text)]">Upload a face</p>
         <div className="flex flex-wrap items-center gap-2">
           <select
@@ -868,7 +857,7 @@ function CreateInner() {
             ref={fileRef}
             type="file"
             accept="image/jpeg,image/png,image/webp,image/heic,.jpg,.jpeg,.png,.webp"
-                        style={{ display: "none" }}
+            style={{ display: "none" }}
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) void uploadCastPhoto(file, uploadRole);
@@ -877,7 +866,7 @@ function CreateInner() {
           />
         </div>
         <p className="text-xs text-[var(--muted)] mt-1.5">
-          From your phone camera roll or Mac. Becomes that role’s face lock.
+          From your phone camera roll or Mac. Becomes that role&apos;s face lock.
         </p>
 
         <p className="text-sm font-semibold mt-5 mb-2 text-[var(--text)]">6 women</p>
