@@ -1,21 +1,44 @@
-// Relevant UI + progress sections for The Other Room create page
-// Integrate these patterns into your existing page.tsx.
-// This file is a self-contained, compilable reference implementation.
+/**
+ * MERGE GUIDE — do NOT replace your whole create/page.tsx with this file.
+ *
+ * This is a reference implementation of the UI patterns only.
+ * Copy the marked blocks into your existing page that already has:
+ *   - face/outfit state
+ *   - scene selection
+ *   - API call to /api/generate
+ *   - auth / credits checks
+ *   - age text hint, etc.
+ *
+ * Blocks to merge:
+ *   1. Upload labels (rose pills + sr-only inputs)
+ *   2. Role select (rounded)
+ *   3. Progress state + startProgress helper
+ *   4. Progress bar UI
+ *   5. Generate button disabled + “Making…” label while running
+ */
 
 "use client";
 
 import { useState, useRef, ChangeEvent } from "react";
 
 export default function CreatePage() {
+  // ─── existing state you already have ───────────────────────────────────
+  // const [faceFile, setFaceFile] = useState<File | null>(null);
+  // const [outfitFile, setOutfitFile] = useState<File | null>(null);
+  // const [sceneId, setSceneId] = useState(...);
+  // etc.
+
+  // ─── ADD these three pieces of state ───────────────────────────────────
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [role, setRole] = useState("female-lover");
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // ─── keep / adapt your existing upload handlers ────────────────────────
   const handleFaceUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // TODO: wire to your face upload / identity logic
+      // setFaceFile(file);  ← your existing logic
       console.log("Face photo selected:", file.name);
     }
   };
@@ -23,11 +46,12 @@ export default function CreatePage() {
   const handleOutfitUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // TODO: wire to your outfit upload logic
+      // setOutfitFile(file);  ← your existing logic
       console.log("Outfit photo selected:", file.name);
     }
   };
 
+  // ─── ADD this helper ───────────────────────────────────────────────────
   const startProgress = () => {
     setProgress(8);
     progressIntervalRef.current = setInterval(() => {
@@ -41,19 +65,19 @@ export default function CreatePage() {
     }, 400);
   };
 
+  // ─── wrap your existing generate call ──────────────────────────────────
   const handleGenerate = async () => {
     setIsGenerating(true);
     startProgress();
 
     try {
-      // TODO: call your /api/generate endpoint
-      // On success:
+      // await fetch("/api/generate", { ... your existing body ... });
+      // on success:
       setProgress(100);
     } catch (err) {
       console.error(err);
     } finally {
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-      // Keep 100% visible briefly, then reset if desired
       setTimeout(() => {
         setIsGenerating(false);
         setProgress(0);
@@ -63,7 +87,9 @@ export default function CreatePage() {
 
   return (
     <div className="flex flex-col gap-6 p-6 max-w-lg mx-auto">
-      {/* Upload buttons — rose primary + outline pills, sr-only native inputs */}
+      {/* ══════════════════════════════════════════════════════════════════
+          BLOCK 1 — Replace the old grey native file inputs with these
+          ══════════════════════════════════════════════════════════════════ */}
       <div className="flex flex-wrap gap-3">
         <label className="inline-flex items-center gap-2 cursor-pointer">
           <span className="px-4 py-2 rounded-full border border-rose-300 bg-rose-50 text-rose-700 text-sm font-medium hover:bg-rose-100 transition">
@@ -90,7 +116,9 @@ export default function CreatePage() {
         </label>
       </div>
 
-      {/* Role select — rounded */}
+      {/* ══════════════════════════════════════════════════════════════════
+          BLOCK 2 — Role select (rounded)
+          ══════════════════════════════════════════════════════════════════ */}
       <select
         className="rounded-full border border-rose-200 bg-cream-50 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300"
         value={role}
@@ -101,7 +129,9 @@ export default function CreatePage() {
         <option value="both">Both</option>
       </select>
 
-      {/* Generate button */}
+      {/* ══════════════════════════════════════════════════════════════════
+          BLOCK 3 — Generate button (disable + label while running)
+          ══════════════════════════════════════════════════════════════════ */}
       <button
         type="button"
         onClick={handleGenerate}
@@ -111,7 +141,9 @@ export default function CreatePage() {
         {isGenerating ? "Making…" : "Make"}
       </button>
 
-      {/* Generation progress bar */}
+      {/* ══════════════════════════════════════════════════════════════════
+          BLOCK 4 — Progress bar (show only while generating)
+          ══════════════════════════════════════════════════════════════════ */}
       {isGenerating && (
         <div className="w-full">
           <div className="flex justify-between text-sm text-rose-700 mb-1">
