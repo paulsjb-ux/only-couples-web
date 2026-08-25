@@ -1,363 +1,965 @@
 "use client";
 
-import { useState, useRef, ChangeEvent } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+import { WOMAN_PRESETS, MAN_PRESETS, type LoverPreset } from "@/lib/presets";
 
-const hideFile: React.CSSProperties = {
-  position: "absolute",
-  width: 1,
-  height: 1,
-  padding: 0,
-  margin: -1,
-  overflow: "hidden",
-  clip: "rect(0, 0, 0, 0)",
-  whiteSpace: "nowrap",
-  border: 0,
+const SCENE_NAMES: Record<string, string> = {
+  "romance-undress": "Taking her clothes off",
+  "romance-naked-together": "Male + Female Undresser",
+  "romance-kiss": "Intimate Bed Scene",
+  "romance-shower": "After Shower Couple",
+  "romance-morning": "Bedroom Smile",
+  "erotic-missionary": "Missionary",
+  "erotic-cowgirl": "Cowgirl",
+  "spicy-ffm": "Two women + him",
+  "spicy-mmf": "Two men + her",
+  "spicy-dp": "Double penetration",
+  "spicy-anal": "Anal",
 };
 
-const pill: React.CSSProperties = {
-  display: "inline-block",
-  padding: "10px 16px",
-  borderRadius: 9999,
-  border: "1px solid #fda4af",
-  background: "#fff1f2",
-  color: "#be123c",
-  fontSize: 14,
-  fontWeight: 500,
-};
-
-const card: React.CSSProperties = {
-  flex: 1,
-  minWidth: 140,
-  background: "#fff",
-  borderRadius: 16,
-  border: "1px solid #fce7f3",
-  padding: 16,
-  textAlign: "center",
-};
-
-const selectStyle: React.CSSProperties = {
-  width: "100%",
-  borderRadius: 9999,
-  border: "1px solid #fecdd3",
-  padding: "12px 16px",
-  fontSize: 14,
-  background: "#fff",
-  color: "#1c1917",
-  marginBottom: 12,
-};
-
-const SOFT_SCENES = [
-  { id: "soft-embrace", label: "Soft embrace" },
-  { id: "playful", label: "Playful" },
-  { id: "close-portrait", label: "Close portrait" },
+const ALL_ROLES = [
+  { key: "wife", label: "Wife" },
+  { key: "husband", label: "Husband" },
+  { key: "female_lover", label: "Female lover" },
+  { key: "male_lover", label: "Male lover" },
 ];
 
-const AFTER_DARK = [
-  { id: "in-bed", label: "In bed" },
-  { id: "spread-open", label: "Spread open" },
-  { id: "filled", label: "Filled" },
-  { id: "marked", label: "Marked" },
-  { id: "bbc", label: "BBC" },
-  { id: "he-watches", label: "He watches" },
-  { id: "mmf", label: "MMF" },
-  { id: "double", label: "Double" },
-  { id: "doggystyle-double", label: "Doggystyle Double" },
-  { id: "ffm", label: "FFM" },
-  { id: "pov-anal", label: "POV Anal" },
-  { id: "hungry-oral", label: "Hungry oral" },
+// Opposite-sex lovers by default: his lover = woman, her lover = man
+const SUGGESTED = [
+  { label: "Just us", roles: ["wife", "husband"] },
+  { label: "Him + his lover", roles: ["husband", "female_lover"] },
+  { label: "Her + her lover", roles: ["wife", "male_lover"] },
+  { label: "Two women + him", roles: ["wife", "female_lover", "husband"] },
+  { label: "Two men + her", roles: ["wife", "husband", "male_lover"] },
+  { label: "Wife only", roles: ["wife"] },
+  { label: "Husband only", roles: ["husband"] },
 ];
 
-export default function CreatePage() {
-  const [youFile, setYouFile] = useState<File | null>(null);
-  const [partnerFile, setPartnerFile] = useState<File | null>(null);
-  const [outfitFile, setOutfitFile] = useState<File | null>(null);
-  const [youPreview, setYouPreview] = useState<string | null>(null);
-  const [partnerPreview, setPartnerPreview] = useState<string | null>(null);
-  const [role, setRole] = useState("female-lover");
-  const [intensity, setIntensity] = useState<"soft" | "after-dark">("soft");
-  const [sceneId, setSceneId] = useState("soft-embrace");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
+type FaceRow = {
+  role: string;
+  url: string | null;
+  look?: string | null;
+  name?: string | null;
+};
 
-  const onFile = (
-    e: ChangeEvent<HTMLInputElement>,
-    who: "you" | "partner" | "outfit"
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    if (who === "you") {
-      setYouFile(file);
-      setYouPreview(url);
-    } else if (who === "partner") {
-      setPartnerFile(file);
-      setPartnerPreview(url);
-    } else {
-      setOutfitFile(file);
+type PreviewItem = {
+  url: string;
+  path: string | null;
+  prompt: string;
+  kind: string;
+  saved?: boolean;
+  id?: string | null;
+};
+
+function CreateInner() {
+  const params = useSearchParams();
+  const sceneId = params.get("scene");
+  const sceneName =
+    params.get("name") ||
+    (sceneId ? SCENE_NAMES[sceneId] || sceneId.replace(/-/g, " ") : "Free play");
+  const defaultCast = (params.get("cast") || "wife").split(",").filter(Boolean);
+
+  const [allFaces, setAllFaces] = useState<FaceRow[]>([]);
+  const [selected, setSelected] = useState<string[]>(defaultCast);
+  const [kind, setKind] = useState("image");
+  const [versions, setVersions] = useState(1);
+  const [outfitPath, setOutfitPath] = useState<string | null>(null);
+  const [outfitPreview, setOutfitPreview] = useState<string | null>(null);
+  const [outfitWearer, setOutfitWearer] = useState("wife");
+  const outfitFileRef = useRef<HTMLInputElement | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState("");
+  const [studioId, setStudioId] = useState<string | null>(null);
+  const [picked, setPicked] = useState<string | null>(null);
+  const [previews, setPreviews] = useState<PreviewItem[]>([]);
+  const [uploadRole, setUploadRole] = useState("female_lover");
+  const previewRef = useRef<HTMLDivElement | null>(null);
+  const fileRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  useEffect(() => {
+    if (previews.length > 0 && previewRef.current) {
+      previewRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
-  };
+  }, [previews]);
 
-  const scenes = intensity === "soft" ? SOFT_SCENES : AFTER_DARK;
-
-  const startProgress = () => {
-    setProgress(8);
-    progressRef.current = setInterval(() => {
-      setProgress((p) => {
-        if (p >= 92) {
-          if (progressRef.current) clearInterval(progressRef.current);
-          return 92;
-        }
-        return p + Math.floor(Math.random() * 6) + 3;
+  async function load() {
+    const supabase = createClient();
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) return;
+    const { data: memberships } = await supabase
+      .from("studio_members")
+      .select("studio_id")
+      .eq("user_id", userData.user.id)
+      .limit(1);
+    const sid = memberships?.[0]?.studio_id as string | undefined;
+    if (!sid) return;
+    setStudioId(sid);
+    const { data: people } = await supabase.from("people").select("*").eq("studio_id", sid);
+    const next: FaceRow[] = [];
+    for (const person of people || []) {
+      let url: string | null = null;
+      if (person.photo_path) {
+        const { data: signed } = await supabase.storage
+          .from("people")
+          .createSignedUrl(person.photo_path, 60 * 60);
+        url = signed?.signedUrl || null;
+      }
+      next.push({
+        role: person.role,
+        url,
+        look: person.look,
+        name: person.name,
       });
-    }, 400);
-  };
+    }
+    setAllFaces(next);
+  }
 
-  const handleGenerate = async () => {
-    if (isGenerating) return;
-    if (!youFile || !partnerFile) {
-      alert("Add a face photo for both of you first.");
+  async function upsertPerson(
+    role: string,
+    payload: Record<string, string | null>,
+    photoPath?: string
+  ) {
+    const supabase = createClient();
+    const { data: people } = await supabase
+      .from("people")
+      .select("id,role")
+      .eq("studio_id", studioId!);
+    const found = (people || []).find((p: { role: string }) => p.role === role);
+    const row = {
+      ...payload,
+      ...(photoPath ? { photo_path: photoPath } : {}),
+    };
+    if (found?.id) {
+      return supabase.from("people").update(row).eq("id", found.id);
+    }
+    return supabase.from("people").insert({ studio_id: studioId, role, ...row });
+  }
+
+  /** Apply preset: save body/look AND upload the preset JPG so generate gets a face ref */
+  async function applyPreset(preset: LoverPreset) {
+    if (!studioId) {
+      alert("Studio not ready");
       return;
     }
-    setIsGenerating(true);
-    startProgress();
+    const role = preset.sex === "f" ? "female_lover" : "male_lover";
+    setBusy(true);
+    setNote(`Loading ${preset.name}…`);
     try {
-      // TODO: POST /api/generate
-      // body: { youFile, partnerFile, outfitFile, role, sceneId, intensity }
-      console.log("Generate", {
-        role,
-        sceneId,
-        intensity,
-        you: youFile.name,
-        partner: partnerFile.name,
-        outfit: outfitFile?.name,
-      });
-      await new Promise((r) => setTimeout(r, 2500));
-      setProgress(100);
-    } catch (err) {
-      console.error(err);
+      const res = await fetch(`/presets/${preset.id}.jpg`);
+      if (!res.ok) throw new Error("Preset image missing — put JPGs in public/presets/");
+      const blob = await res.blob();
+      const path = `${studioId}/${role}-preset-${preset.id}.jpg`;
+      const supabase = createClient();
+      const { error: upErr } = await supabase.storage
+        .from("people")
+        .upload(path, blob, { contentType: "image/jpeg", upsert: true });
+      if (upErr) throw new Error(upErr.message);
+
+      const row: Record<string, string | null> = {
+        name: preset.name,
+        age: preset.age,
+        body_shape: preset.body_shape,
+        breasts: preset.breasts || null,
+        penis: preset.penis || null,
+        look: preset.look,
+      };
+      let { error } = await upsertPerson(role, row, path);
+      if (error && String(error.message).toLowerCase().includes("look")) {
+        const { look: _l, ...without } = row;
+        ({ error } = await upsertPerson(role, without, path));
+      }
+      if (error) throw new Error(error.message);
+
+      setPicked(preset.id);
+      setSelected((prev) => (prev.includes(role) ? prev : [...prev, role]));
+      setNote(`Using ${preset.name} as ${role === "female_lover" ? "female lover" : "male lover"}`);
+      await load();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Could not apply preset");
+      setNote("");
     } finally {
-      if (progressRef.current) clearInterval(progressRef.current);
-      setTimeout(() => {
-        setIsGenerating(false);
-        setProgress(0);
-      }, 700);
+      setBusy(false);
     }
-  };
+  }
+
+  /** Upload a photo from phone/Mac into a cast role */
+  async function uploadCastPhoto(file: File, role: string) {
+    if (!studioId) {
+      alert("Studio not ready");
+      return;
+    }
+    setBusy(true);
+    setNote("Uploading photo…");
+    try {
+      const path = `${studioId}/${role}-${Date.now()}.jpg`;
+      const supabase = createClient();
+      const { error: upErr } = await supabase.storage
+        .from("people")
+        .upload(path, file, { contentType: file.type || "image/jpeg", upsert: true });
+      if (upErr) throw new Error(upErr.message);
+
+      const { error } = await upsertPerson(
+        role,
+        { name: file.name.replace(/\.[^.]+$/, "") || role },
+        path
+      );
+      if (error) throw new Error(error.message);
+
+      setSelected((prev) => (prev.includes(role) ? prev : [...prev, role]));
+      setNote(`Photo set for ${ALL_ROLES.find((r) => r.key === role)?.label || role}`);
+      await load();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Upload failed");
+      setNote("");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+
+  async function uploadOutfit(file: File) {
+    if (!studioId) {
+      alert("Studio not ready");
+      return;
+    }
+    setBusy(true);
+    setNote("Uploading outfit…");
+    try {
+      const path = `${studioId}/outfit/${Date.now()}.jpg`;
+      const supabase = createClient();
+      const { error } = await supabase.storage
+        .from("library")
+        .upload(path, file, { contentType: file.type || "image/jpeg", upsert: true });
+      if (error) throw new Error(error.message);
+      const { data: signed } = await supabase.storage
+        .from("library")
+        .createSignedUrl(path, 60 * 60);
+      setOutfitPath(path);
+      setOutfitPreview(signed?.signedUrl || null);
+      setNote("Outfit ready — choose who wears it, then generate.");
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Outfit upload failed");
+      setNote("");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function toggleRole(role: string) {
+    setSelected((prev) => {
+      if (prev.includes(role)) {
+        if (prev.length === 1) return prev;
+        return prev.filter((r) => r !== role);
+      }
+      return [...prev, role];
+    });
+  }
+
+  async function generate() {
+    if (selected.length === 0) {
+      alert("Choose at least one person");
+      return;
+    }
+    const missing = selected.filter((r) => !allFaces.some((f) => f.role === r && f.url));
+    if (missing.length) {
+      alert(
+        `Add a photo for: ${missing
+          .map((r) => ALL_ROLES.find((x) => x.key === r)?.label || r)
+          .join(", ")}`
+      );
+      return;
+    }
+    // Outfit scenes need an uploaded garment
+    const needsOutfit =
+      sceneId === "outfit-try-on" ||
+      sceneId === "who-wore-it-best" ||
+      (sceneName || "").toLowerCase().includes("outfit") ||
+      (sceneName || "").toLowerCase().includes("who wore");
+    if (needsOutfit && !outfitPath) {
+      alert("Upload an outfit photo first — dress, suit, lingerie, or any look.");
+      return;
+    }
+    if (outfitPath && outfitWearer && !selected.includes(outfitWearer)) {
+      setSelected((prev) => [...prev, outfitWearer]);
+    }
+    setBusy(true);
+    setPreviews([]);
+    const n = kind === "image" ? versions : 1;
+    setNote(
+      n > 1
+        ? `Making ${n} versions. This can take a couple of minutes…`
+        : "Making the image. This can take a minute…"
+    );
+    const who = selected.join(",");
+    try {
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sceneName: outfitPath && !sceneId ? (sceneName === "Free play" ? "Outfit try-on" : sceneName) : sceneName,
+          sceneId: outfitPath && !sceneId ? "outfit-try-on" : sceneId,
+          who: outfitPath && outfitWearer && !selected.includes(outfitWearer)
+            ? [...selected, outfitWearer].join(",")
+            : who,
+          kind,
+          versions: n,
+          outfitPath,
+          outfitWearer,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setNote(data.error || "Generation failed");
+        alert(data.error || "Generation failed");
+        return;
+      }
+      const dataBody = data;
+      const rawItems: { url?: string; path?: string | null; id?: string | null }[] =
+        Array.isArray(dataBody.items) && dataBody.items.length
+          ? dataBody.items
+          : dataBody.url
+            ? [{ url: dataBody.url, path: dataBody.path || null, id: dataBody.id || null }]
+            : [];
+      const promptBase =
+        dataBody.prompt || `${sceneId || "scene"} | ${sceneName} (${who})`;
+      const built = rawItems
+        .map((it, i) => {
+          const u =
+            it?.url ||
+            (it as any)?.download_url ||
+            (it as any)?.image_url ||
+            (typeof it === "string" ? it : null);
+          if (!u) return null;
+          return {
+            url: String(u),
+            path: it.path || null,
+            prompt: rawItems.length > 1 ? `${promptBase} · v${i + 1}` : promptBase,
+            kind: dataBody.kind || kind,
+            saved: false,
+            id: it.id || null,
+          };
+        })
+        .filter(Boolean) as {
+        url: string;
+        path: string | null;
+        prompt: string;
+        kind: string;
+        saved: boolean;
+        id: string | null;
+      }[];
+      if (!built.length) {
+        setNote("No image URL returned from generate");
+        alert("No image URL returned from generate");
+        return;
+      }
+      setPreviews(built);
+      const partial =
+        typeof dataBody.requested === "number" && built.length < dataBody.requested;
+      setNote(
+        partial
+          ? `${built.length} of ${dataBody.requested} ready. Keep the ones you have.`
+          : `${built.length} ready — Keep to save to your album.`
+      );
+      try {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } catch {
+        /* */
+      }
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Network error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveOne(index: number) {
+    const item = previews[index];
+    if (!item || item.saved) return;
+    if (!item.url) {
+      alert("No image URL to keep");
+      return;
+    }
+    setBusy(true);
+    setNote("Keeping in your album…");
+    try {
+      const res = await fetch("/api/library", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: item.url,
+          path: item.path,
+          kind: item.kind || "image",
+          prompt: item.prompt || "",
+          id: item.id || undefined,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = data.error || data.message || `Keep failed (${res.status})`;
+        setNote(msg);
+        alert(msg);
+        return;
+      }
+      setPreviews((prev) =>
+        prev.map((p, i) =>
+          i === index
+            ? {
+                ...p,
+                saved: true,
+                id: data.id || p.id || null,
+                path: data.path || p.path,
+                url: data.url || p.url,
+              }
+            : p
+        )
+      );
+      setNote("Kept — open Library to see it.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Save failed";
+      setNote(msg);
+      alert(msg);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveAll() {
+    const pending = previews
+      .map((p, i) => ({ p, i }))
+      .filter(({ p }) => !p.saved && p.url);
+    if (!pending.length) {
+      setNote("Nothing left to keep");
+      return;
+    }
+    setBusy(true);
+    let ok = 0;
+    let lastErr = "";
+    for (const { i } of pending) {
+      const item = previews[i];
+      if (!item?.url) continue;
+      try {
+        const res = await fetch("/api/library", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url: item.url,
+            path: item.path,
+            kind: item.kind || "image",
+            prompt: item.prompt || "",
+            id: item.id || undefined,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          lastErr = data.error || `Keep failed (${res.status})`;
+          continue;
+        }
+        ok += 1;
+        setPreviews((prev) =>
+          prev.map((p, j) =>
+            j === i
+              ? {
+                  ...p,
+                  saved: true,
+                  id: data.id || p.id || null,
+                  path: data.path || p.path,
+                  url: data.url || p.url,
+                }
+              : p
+          )
+        );
+      } catch (e: any) {
+        lastErr = e?.message || "Keep failed";
+      }
+    }
+    setBusy(false);
+    if (ok) {
+      setNote(
+        ok === pending.length
+          ? `Kept all ${ok} in your album.`
+          : `Kept ${ok} of ${pending.length}. ${lastErr}`
+      );
+    } else {
+      setNote(lastErr || "Keep failed");
+      alert(lastErr || "Keep failed");
+    }
+  }
+
+  async function deleteOne(index: number) {
+    const item = previews[index];
+    if (!item) return;
+    setBusy(true);
+    setNote("Deleting…");
+    try {
+      await fetch("/api/library", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: item.path, id: item.id }),
+      });
+      setPreviews((prev) => prev.filter((_, i) => i !== index));
+      setNote("Deleted.");
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Delete failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** Download for Photos/Files — works on Mac; on iPhone opens share/save flow */
+  async function downloadOne(index: number) {
+    const item = previews[index];
+    if (!item?.url) return;
+    try {
+      const res = await fetch(item.url);
+      const blob = await res.blob();
+      const href = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = href;
+      a.download = `the-other-room-${Date.now()}-v${index + 1}.jpg`;
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(href);
+    } catch {
+      window.open(item.url, "_blank");
+    }
+  }
+
+  const shown = allFaces.filter((f) => selected.includes(f.role));
 
   return (
-    <div style={{ minHeight: "100vh", background: "#faf8f6", color: "#1c1917" }}>
-      <header
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          padding: "12px 16px",
-          borderBottom: "1px solid #e7e5e4",
-          background: "#fff",
-        }}
-      >
-        <div
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 12,
-            background: "#6b3a42",
-            color: "#fff",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 18,
-          }}
-        >
-          ☰
-        </div>
+    <div>
+      <div className="studio-hero">
         <h1
           style={{
-            flex: 1,
-            textAlign: "center",
-            fontFamily: "Georgia, serif",
-            fontSize: 18,
-            fontWeight: 400,
-            margin: 0,
+            fontFamily: "var(--font-cormorant), Georgia, serif",
+            color: "var(--tor-text, #1a1614)",
+            fontSize: "1.65rem",
+            fontWeight: 500,
+            margin: "0 0 0.35rem",
           }}
         >
-          The Other Room
+          {sceneName}
         </h1>
-        <div style={{ width: 40 }} />
-      </header>
-
-      <main style={{ padding: 24, maxWidth: 480, margin: "0 auto" }}>
-        <p style={{ textAlign: "center", fontSize: 14, color: "#78716c", marginBottom: 20 }}>
-          Your faces — both of you. Soft by default.
+        <p className="text-sm text-[var(--muted)]">Choose who is in this scene, then generate.</p>
+        <p style={{ fontSize: 12, color: "#8a7350", marginTop: 10, letterSpacing: "0.04em" }}>
+          Face · Scene · Keep
         </p>
+      </div>
 
-        {/* You + Partner */}
-        <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
-          <div style={card}>
+      {/* Results first after generate — save controls at top of this block */}
+      <div ref={previewRef}>
+        {previews.length > 0 && (
+          <div className="card" style={{ maxWidth: "36rem", borderColor: "var(--tor-accent)", borderWidth: 2 }}>
+            <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+              <p className="text-sm font-semibold text-[var(--text)]">
+                {previews.length > 1 ? `${previews.length} versions — Keep the ones you want` : "Your image — Keep or discard"}
+              </p>
+              <div className="flex gap-3 text-sm items-center flex-wrap">
+                {previews.length > 1 && previews.some((p) => !p.saved) && (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void saveAll()}
+                    style={{
+                      minHeight: 40,
+                      padding: "0 16px",
+                      borderRadius: 999,
+                      border: "none",
+                      background: "linear-gradient(135deg, #8B4A54, #7A3E48)",
+                      color: "#fff",
+                      fontWeight: 600,
+                      fontSize: 13,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Keep all
+                  </button>
+                )}
+                {previews.some((p) => p.saved) && (
+                  <Link href="/library" className="underline text-[var(--text)]">
+                    Open library
+                  </Link>
+                )}
+              </div>
+            </div>
+            <p className="text-xs text-[var(--muted)] mb-3">
+              Preview only — not in your album until you Keep. Discard removes it. Download is optional.
+            </p>
             <div
-              style={{
-                width: 88,
-                height: 88,
-                borderRadius: "50%",
-                margin: "0 auto 12px",
-                background: youPreview
-                  ? `center / cover no-repeat url(${youPreview})`
-                  : "#fce7f3",
-                border: "2px solid #fda4af",
-              }}
-            />
-            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4, color: "#881337" }}>
-              You
-            </div>
-            <div style={{ fontSize: 11, color: "#a8a29e", marginBottom: 10 }}>
-              {youFile ? youFile.name : "Face photo"}
-            </div>
-            <label style={{ cursor: "pointer", position: "relative" }}>
-              <span style={pill}>{youFile ? "Change photo" : "Add face"}</span>
-              <input type="file" accept="image/*" style={hideFile} onChange={(e) => onFile(e, "you")} />
-            </label>
-          </div>
-
-          <div style={card}>
-            <div
-              style={{
-                width: 88,
-                height: 88,
-                borderRadius: "50%",
-                margin: "0 auto 12px",
-                background: partnerPreview
-                  ? `center / cover no-repeat url(${partnerPreview})`
-                  : "#fce7f3",
-                border: "2px solid #fda4af",
-              }}
-            />
-            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4, color: "#881337" }}>
-              Partner
-            </div>
-            <div style={{ fontSize: 11, color: "#a8a29e", marginBottom: 10 }}>
-              {partnerFile ? partnerFile.name : "Face photo"}
-            </div>
-            <label style={{ cursor: "pointer", position: "relative" }}>
-              <span style={pill}>{partnerFile ? "Change photo" : "Add face"}</span>
-              <input
-                type="file"
-                accept="image/*"
-                style={hideFile}
-                onChange={(e) => onFile(e, "partner")}
-              />
-            </label>
-          </div>
-        </div>
-
-        {/* Outfit */}
-        <div style={{ marginBottom: 16, textAlign: "center" }}>
-          <label style={{ cursor: "pointer", position: "relative" }}>
-            <span style={pill}>
-              {outfitFile ? `Outfit: ${outfitFile.name}` : "Upload outfit photo"}
-            </span>
-            <input
-              type="file"
-              accept="image/*"
-              style={hideFile}
-              onChange={(e) => onFile(e, "outfit")}
-            />
-          </label>
-        </div>
-
-        {/* Role — lovers */}
-        <label style={{ display: "block", fontSize: 12, color: "#78716c", marginBottom: 6 }}>
-          Role
-        </label>
-        <select
-          style={selectStyle}
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
-        >
-          <option value="female-lover">Female lover</option>
-          <option value="male-lover">Male lover</option>
-          <option value="both">Both</option>
-        </select>
-
-        {/* Intensity */}
-        <label style={{ display: "block", fontSize: 12, color: "#78716c", marginBottom: 6 }}>
-          Intensity
-        </label>
-        <select
-          style={selectStyle}
-          value={intensity}
-          onChange={(e) => {
-            const v = e.target.value as "soft" | "after-dark";
-            setIntensity(v);
-            setSceneId(v === "soft" ? "soft-embrace" : "in-bed");
-          }}
-        >
-          <option value="soft">Soft / Playful</option>
-          <option value="after-dark">After dark</option>
-        </select>
-
-        {/* Scene */}
-        <label style={{ display: "block", fontSize: 12, color: "#78716c", marginBottom: 6 }}>
-          Scene
-        </label>
-        <select
-          style={selectStyle}
-          value={sceneId}
-          onChange={(e) => setSceneId(e.target.value)}
-        >
-          {scenes.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.label}
-            </option>
-          ))}
-        </select>
-
-        <button
-          type="button"
-          onClick={handleGenerate}
-          disabled={isGenerating}
-          style={{
-            width: "100%",
-            borderRadius: 9999,
-            border: "none",
-            padding: "14px 16px",
-            background: isGenerating ? "#fb7185" : "#f43f5e",
-            color: "#fff",
-            fontSize: 15,
-            fontWeight: 600,
-            opacity: isGenerating ? 0.75 : 1,
-            marginTop: 8,
-          }}
-        >
-          {isGenerating ? "Making…" : "Make"}
-        </button>
-
-        {isGenerating && (
-          <div style={{ marginTop: 16 }}>
-            <div style={{ fontSize: 14, color: "#be123c", marginBottom: 6 }}>
-              Making… {progress}%
-            </div>
-            <div
-              style={{
-                height: 8,
-                borderRadius: 9999,
-                background: "#ffe4e6",
-                overflow: "hidden",
-              }}
+              className={`tor-preview-grid ${
+                previews.length === 1 ? "tor-preview-grid--single" : "tor-preview-grid--multi"
+              }`}
             >
-              <div
-                style={{
-                  height: "100%",
-                  width: `${progress}%`,
-                  background: "#f43f5e",
-                  borderRadius: 9999,
-                  transition: "width 0.3s ease",
-                }}
-              />
+              {previews.map((item, index) => (
+                <div key={`${item.url}-${index}`} className="rounded-xl border border-[var(--line)] p-2 sm:p-3 bg-white min-w-0">
+                  <div className="tor-preview-frame ring-1 ring-black/10">
+                    <img
+                      src={item.url}
+                      alt={`Version ${index + 1}`}
+                      className="tor-img"
+                      loading="lazy"
+                    />
+                  </div>
+                  <p className="text-xs text-[var(--muted)] mt-2">Version {index + 1}</p>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    <button
+                      type="button"
+                      className="btn btn-studio-primary text-xs px-3 py-1.5"
+                      onClick={() => saveOne(index)}
+                      disabled={busy || item.saved}
+                    >
+                      {item.saved ? "Kept" : "Keep"}
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-full px-3 py-1.5 text-xs font-bold bg-white border border-[var(--line)] text-[var(--text)]"
+                      onClick={() => downloadOne(index)}
+                      disabled={busy}
+                    >
+                      Download
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-full px-3 py-1.5 text-xs font-bold bg-white border border-[var(--line)] text-[var(--text)]"
+                      onClick={() => deleteOne(index)}
+                      disabled={busy}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
-      </main>
+      </div>
+
+      {/* Create controls ABOVE the 12 presets */}
+      <div className="card tor-stack" style={{ maxWidth: "36rem" }}>
+        <p className="text-sm font-semibold text-[var(--text)]">Create</p>
+
+        <div className="tor-face-row">
+          {shown.length === 0 && (
+            <p className="tor-help">Select cast below, or upload a photo.</p>
+          )}
+          {shown.map((f) => (
+            <div key={f.role} className="tor-face-chip">
+              <div className="frame">
+                {f.url && (
+                  <img src={f.url} alt={f.role} className="tor-img" />
+                )}
+              </div>
+              <div className="cap">
+                {ALL_ROLES.find((r) => r.key === f.role)?.label || f.role}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div>
+          <div className="tor-select-wrap">
+            <span className="tor-select-label">Media</span>
+            <select
+              className="tor-select"
+              value={kind}
+              onChange={(e) => setKind(e.target.value)}
+            >
+              <option value="image">Image</option>
+              <option value="video">Video</option>
+            </select>
+          </div>
+        </div>
+
+        
+        <div className="border-t border-[var(--line)] pt-4">
+          <p className="text-sm font-semibold mb-1.5 text-[var(--text)]">Add me in this outfit</p>
+          <p className="text-xs text-[var(--muted)] mb-2">
+            Upload a dress, suit, lingerie, or any outfit photo. We put the chosen person into that exact look.
+          </p>
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <button
+              type="button"
+              className="rounded-full px-4 py-2 text-sm font-bold bg-white border border-[var(--line)] text-[var(--text)]"
+              onClick={() => outfitFileRef.current?.click()}
+              disabled={busy}
+            >
+              Upload outfit photo
+            </button>
+            <input
+              ref={outfitFileRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/heic,.jpg,.jpeg,.png,.webp"
+              style={{ display: "none" }}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void uploadOutfit(file);
+                e.target.value = "";
+              }}
+            />
+            {outfitPath && (
+              <button
+                type="button"
+                className="text-xs underline text-[var(--muted)]"
+                onClick={() => {
+                  setOutfitPath(null);
+                  setOutfitPreview(null);
+                }}
+              >
+                Clear outfit
+              </button>
+            )}
+          </div>
+          {outfitPreview && (
+            <div className="flex gap-3 items-start mb-2">
+              <div style={{ width: 56, height: 74, borderRadius: 12, overflow: "hidden", background: "#3A1F24", flexShrink: 0 }}>
+                <img src={outfitPreview} alt="Outfit" className="w-full h-full object-cover" />
+              </div>
+              <div className="flex-1">
+                <label className="block text-xs font-semibold mb-1 text-[var(--text)]">Who wears it</label>
+                <select
+                  className="tor-select"
+                  value={outfitWearer}
+                  onChange={(e) => setOutfitWearer(e.target.value)}
+                >
+                  {ALL_ROLES.map((r) => (
+                    <option key={r.key} value={r.key}>
+                      {r.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-[var(--muted)] mt-1">
+                  Face photo required for that person (People or cast).
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {kind === "image" && (
+          <div>
+            <label className="block text-sm font-semibold mb-1.5 text-[var(--text)]">Versions</label>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              {[
+                { n: 1, label: "One" },
+                { n: 2, label: "Two" },
+                { n: 3, label: "Three" },
+                { n: 4, label: "Four" },
+              ].map(({ n, label }) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setVersions(n)}
+                  className={versions === n ? "tor-chip tor-chip-on" : "tor-chip"}
+                  style={{ minHeight: 44, padding: "10px 18px", fontSize: 14 }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <p className="tor-help" style={{ marginTop: 8 }}>
+              Each version is a separate image. You Keep only the ones you want.
+            </p>
+          </div>
+        )}
+
+        <button
+          className="btn btn-studio-primary w-full"
+          onClick={generate}
+          disabled={busy}
+          style={{
+            position: "sticky",
+            bottom: 12,
+            zIndex: 20,
+            boxShadow: "0 8px 24px rgba(139,74,84,0.35)",
+          }}
+        >
+          {busy
+            ? "Making…"
+            : kind === "image" && versions > 1
+              ? `Make ${versions} versions`
+              : "Use this scene"}
+        </button>
+        {note && <p className="text-sm text-[var(--muted)]">{note}</p>}
+      </div>
+
+      {/* Cast */}
+      <div className="card" style={{ maxWidth: "36rem" }}>
+        <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 10, color: "#1a1614" }}>Cast</p>
+        <div className="tor-chip-grid tor-chip-grid-4">
+          {ALL_ROLES.map((r) => {
+            const on = selected.includes(r.key);
+            const hasFace = allFaces.some((f) => f.role === r.key && f.url);
+            return (
+              <button
+                key={r.key}
+                type="button"
+                onClick={() => toggleRole(r.key)}
+                className={`tor-chip${on ? " tor-chip-on" : ""}${!hasFace && on ? " tor-chip-warn" : ""}`}
+                style={{ width: "100%" }}
+              >
+                {r.label}
+                {on && !hasFace ? " · photo" : ""}
+              </button>
+            );
+          })}
+        </div>
+        <p className="tor-help" style={{ marginTop: 10 }}>
+          Tap to add or remove. Each selected role needs a photo.
+        </p>
+
+        <p style={{ fontSize: 14, fontWeight: 600, margin: "20px 0 10px", color: "#1a1614" }}>
+          Suggested partners
+        </p>
+        <div className="tor-chip-grid">
+          {SUGGESTED.map((s) => {
+            const on =
+              selected.length === s.roles.length && s.roles.every((r) => selected.includes(r));
+            const missing = s.roles.filter(
+              (r) => !allFaces.some((f) => f.role === r && f.url)
+            );
+            return (
+              <button
+                key={s.label}
+                type="button"
+                onClick={() => setSelected(s.roles)}
+                className={`tor-chip${on ? " tor-chip-on" : ""}`}
+                style={{ width: "100%" }}
+              >
+                {s.label}
+                {missing.length ? " · photo" : ""}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Upload from phone / Mac */}
+        <p className="text-sm font-semibold mt-5 mb-2 text-[var(--text)]">Upload a face</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            className="tor-select"
+            style={{ flex: 1, minWidth: 140 }}
+            value={uploadRole}
+            onChange={(e) => setUploadRole(e.target.value)}
+          >
+            {ALL_ROLES.map((r) => (
+              <option key={r.key} value={r.key}>
+                {r.label}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="rounded-full px-4 py-2 text-sm font-bold bg-white border border-[var(--line)] text-[var(--text)]"
+            onClick={() => fileRef.current?.click()}
+            disabled={busy}
+          >
+            Choose face photo
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/heic,.jpg,.jpeg,.png,.webp"
+                        style={{ display: "none" }}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void uploadCastPhoto(file, uploadRole);
+              e.target.value = "";
+            }}
+          />
+        </div>
+        <p className="text-xs text-[var(--muted)] mt-1.5">
+          From your phone camera roll or Mac. Becomes that role’s face lock.
+        </p>
+
+        <p className="text-sm font-semibold mt-5 mb-2 text-[var(--text)]">6 women</p>
+        <div className="tor-preset-grid">
+          {WOMAN_PRESETS.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => applyPreset(p)}
+              disabled={busy}
+              className="tor-preset-cell"
+              style={
+                picked === p.id
+                  ? { boxShadow: "0 0 0 2px var(--tor-accent, #8b4a54)" }
+                  : undefined
+              }
+            >
+              <div className="frame" style={{ background: "linear-gradient(to bottom right, #3A1F24, #8B4A55)" }}>
+                <img
+                  src={`/presets/${p.id}.jpg`}
+                  alt={p.name}
+                  className="tor-img"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = "none";
+                  }}
+                />
+              </div>
+              <div className="meta">
+                <strong>{p.name}</strong>
+                <span>{p.age} · {p.body_shape}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        <p className="text-sm font-semibold mt-5 mb-2 text-[var(--text)]">6 men</p>
+        <div className="tor-preset-grid">
+          {MAN_PRESETS.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => applyPreset(p)}
+              disabled={busy}
+              className="tor-preset-cell"
+              style={
+                picked === p.id
+                  ? { boxShadow: "0 0 0 2px var(--tor-accent, #8b4a54)" }
+                  : undefined
+              }
+            >
+              <div className="frame" style={{ background: "linear-gradient(to bottom right, #1C1917, #4A3B32)" }}>
+                <img
+                  src={`/presets/${p.id}.jpg`}
+                  alt={p.name}
+                  className="tor-img"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = "none";
+                  }}
+                />
+              </div>
+              <div className="meta">
+                <strong>{p.name}</strong>
+                <span>{p.age} · {p.body_shape}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <p className="text-sm max-w-2xl">
+        <Link href="/people" className="underline text-[var(--text)]">
+          Manage faces on People
+        </Link>
+      </p>
     </div>
+  );
+}
+
+export default function CreatePage() {
+  return (
+    <Suspense fallback={<p className="text-[var(--text)]">Loading…</p>}>
+      <CreateInner />
+    </Suspense>
   );
 }
