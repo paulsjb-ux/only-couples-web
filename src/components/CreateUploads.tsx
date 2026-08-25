@@ -1,24 +1,17 @@
 "use client";
 
 /**
- * DROP-IN COMPONENT
- * -----------------
- * 1. Copy this file to src/components/CreateUploads.tsx
- * 2. In your create/page.tsx:
+ * DROP-IN — rose upload pills + progress timing
+ * ---------------------------------------------
+ * Copy to: src/components/CreateUploads.tsx
  *
- *    import CreateUploads from "@/components/CreateUploads";
+ * Progress timing:
+ *   start  → 8%
+ *   while loading → climbs to 92%
+ *   on success → 100%
+ *   label: "Making… N%"
  *
- *    // then replace the entire broken upload + role + Make section with:
- *    <CreateUploads
- *      onFaceSelect={(file) => { /* your setFaceFile(file) */ }}
- *      onOutfitSelect={(file) => { /* your setOutfitFile(file) */ }}
- *      onGenerate={async (role) => {
- *        // your existing generate logic here
- *        // e.g. await fetch("/api/generate", { body: JSON.stringify({ role, ... }) })
- *      }}
- *    />
- *
- * That is all. The rose pills + progress bar are fully contained.
+ * Native file inputs are hidden (sr-only). Only the rose pills show.
  */
 
 import { useState, useRef, ChangeEvent } from "react";
@@ -51,6 +44,7 @@ export default function CreateUploads({
     if (file && onOutfitSelect) onOutfitSelect(file);
   };
 
+  /** Progress timing: 8% → ~92% while work runs, then 100% */
   const startProgress = () => {
     setProgress(8);
     progressIntervalRef.current = setInterval(() => {
@@ -85,7 +79,7 @@ export default function CreateUploads({
 
   return (
     <div className="flex flex-col gap-5 w-full max-w-md">
-      {/* Rose pill uploads — native inputs are hidden */}
+      {/* Rose pills — native inputs hidden */}
       <div className="flex flex-wrap gap-3">
         <label className="inline-flex items-center cursor-pointer">
           <span className="px-4 py-2.5 rounded-full border border-rose-300 bg-rose-50 text-rose-700 text-sm font-medium hover:bg-rose-100 active:bg-rose-200 transition select-none">
@@ -112,7 +106,7 @@ export default function CreateUploads({
         </label>
       </div>
 
-      {/* Role select */}
+      {/* Role */}
       <select
         value={role}
         onChange={(e) => setRole(e.target.value)}
@@ -123,7 +117,7 @@ export default function CreateUploads({
         <option value="both">Both</option>
       </select>
 
-      {/* Make button */}
+      {/* Make */}
       <button
         type="button"
         onClick={handleGenerate}
@@ -133,7 +127,7 @@ export default function CreateUploads({
         {isGenerating ? "Making…" : "Make"}
       </button>
 
-      {/* Progress bar — only visible while generating */}
+      {/* Progress bar — timing 8% → 92% → 100% */}
       {isGenerating && (
         <div className="w-full">
           <div className="flex justify-between text-sm text-rose-700 mb-1.5">
