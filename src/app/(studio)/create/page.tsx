@@ -2,6 +2,29 @@
 
 import { useState, useRef, ChangeEvent } from "react";
 
+const hideFileInput: React.CSSProperties = {
+  position: "absolute",
+  width: 1,
+  height: 1,
+  padding: 0,
+  margin: -1,
+  overflow: "hidden",
+  clip: "rect(0, 0, 0, 0)",
+  whiteSpace: "nowrap",
+  border: 0,
+};
+
+const pillStyle: React.CSSProperties = {
+  display: "inline-block",
+  padding: "10px 16px",
+  borderRadius: 9999,
+  border: "1px solid #fda4af",
+  background: "#fff1f2",
+  color: "#be123c",
+  fontSize: 14,
+  fontWeight: 500,
+};
+
 export default function CreatePage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -10,12 +33,12 @@ export default function CreatePage() {
 
   const handleFaceUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) console.log("Face photo selected:", file.name);
+    if (file) console.log("Face:", file.name);
   };
 
   const handleOutfitUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) console.log("Outfit photo selected:", file.name);
+    if (file) console.log("Outfit:", file.name);
   };
 
   const startProgress = () => {
@@ -49,26 +72,30 @@ export default function CreatePage() {
   };
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-lg mx-auto min-h-screen bg-[#faf8f6]">
-      <div className="flex flex-wrap gap-3">
-        <label className="inline-flex items-center gap-2 cursor-pointer">
-          <span className="px-4 py-2 rounded-full border border-rose-300 bg-rose-50 text-rose-700 text-sm font-medium">
-            Choose face photo
-          </span>
-          <input type="file" accept="image/*" className="sr-only" onChange={handleFaceUpload} />
+    <div style={{ minHeight: "100vh", background: "#faf8f6", padding: 24, maxWidth: 480, margin: "0 auto" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
+        <label style={{ cursor: "pointer", position: "relative" }}>
+          <span style={pillStyle}>Choose face photo</span>
+          <input type="file" accept="image/*" style={hideFileInput} onChange={handleFaceUpload} />
         </label>
-        <label className="inline-flex items-center gap-2 cursor-pointer">
-          <span className="px-4 py-2 rounded-full border border-rose-300 bg-rose-50 text-rose-700 text-sm font-medium">
-            Upload outfit photo
-          </span>
-          <input type="file" accept="image/*" className="sr-only" onChange={handleOutfitUpload} />
+        <label style={{ cursor: "pointer", position: "relative" }}>
+          <span style={pillStyle}>Upload outfit photo</span>
+          <input type="file" accept="image/*" style={hideFileInput} onChange={handleOutfitUpload} />
         </label>
       </div>
 
       <select
-        className="rounded-full border border-rose-200 bg-white px-4 py-2 text-sm"
         value={role}
         onChange={(e) => setRole(e.target.value)}
+        style={{
+          width: "100%",
+          borderRadius: 9999,
+          border: "1px solid #fecdd3",
+          padding: "10px 16px",
+          fontSize: 14,
+          marginBottom: 16,
+          background: "#fff",
+        }}
       >
         <option value="female-lover">Female lover</option>
         <option value="male-lover">Male lover</option>
@@ -79,18 +106,35 @@ export default function CreatePage() {
         type="button"
         onClick={handleGenerate}
         disabled={isGenerating}
-        className="px-6 py-2.5 rounded-full bg-rose-500 text-white text-sm font-medium disabled:opacity-60"
+        style={{
+          width: "100%",
+          borderRadius: 9999,
+          border: "none",
+          padding: "12px 16px",
+          background: isGenerating ? "#fb7185" : "#f43f5e",
+          color: "#fff",
+          fontSize: 14,
+          fontWeight: 600,
+          opacity: isGenerating ? 0.7 : 1,
+        }}
       >
         {isGenerating ? "Making…" : "Make"}
       </button>
 
       {isGenerating && (
-        <div className="w-full">
-          <div className="text-sm text-rose-700 mb-1">Making… {progress}%</div>
-          <div className="h-2 w-full rounded-full bg-rose-100 overflow-hidden">
+        <div style={{ marginTop: 16 }}>
+          <div style={{ fontSize: 14, color: "#be123c", marginBottom: 6 }}>
+            Making… {progress}%
+          </div>
+          <div style={{ height: 8, borderRadius: 9999, background: "#ffe4e6", overflow: "hidden" }}>
             <div
-              className="h-full bg-rose-500 transition-all duration-300 rounded-full"
-              style={{ width: `${progress}%` }}
+              style={{
+                height: "100%",
+                width: `${progress}%`,
+                background: "#f43f5e",
+                borderRadius: 9999,
+                transition: "width 0.3s ease",
+              }}
             />
           </div>
         </div>
