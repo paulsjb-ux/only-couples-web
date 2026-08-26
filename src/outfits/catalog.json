@@ -36,21 +36,21 @@
     "imageUrl": "/outfits/playful/sheer-blouse.jpg"
   },
   {
-    "id": "afterdark-harness",
+    "id": "afterdark-7381",
     "tab": "afterdark",
-    "label": "Strappy harness",
-    "imageUrl": "/outfits/afterdark/harness.jpg"
+    "label": "After dark 1",
+    "imageUrl": "/outfits/afterdark/IMG_7381.JPG"
   },
   {
-    "id": "afterdark-leather-teddy",
+    "id": "afterdark-7472",
     "tab": "afterdark",
-    "label": "Leather teddy",
-    "imageUrl": "/outfits/afterdark/leather-teddy.jpg"
+    "label": "After dark 2",
+    "imageUrl": "/outfits/afterdark/IMG_7472.jpg"
   },
   {
-    "id": "afterdark-bodystocking",
+    "id": "afterdark-7473",
     "tab": "afterdark",
-    "label": "Bodystocking",
-    "imageUrl": "/outfits/afterdark/bodystocking.jpg"
+    "label": "After dark 3",
+    "imageUrl": "/outfits/afterdark/IMG_7473.jpg"
   }
 ]
