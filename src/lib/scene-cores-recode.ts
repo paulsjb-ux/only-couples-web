@@ -117,8 +117,7 @@ export function getSceneCore(id: string): string {
   const core = SCENE_CORES[id];
   if (!core) return "";
 
-  // Allow bathroom / shower settings only for these explicit scene IDs.
-  // All other scenes receive a strong anti-bathroom lock to prevent model drift.
+  // Only these titles are allowed to be set in a bathroom/shower.
   const bathroomOrShowerIds = new Set([
     "romance-shower",
     "zen-shower-pose",
@@ -127,12 +126,21 @@ export function getSceneCore(id: string): string {
     "zen-carpet-kneel",
   ]);
 
-  const locationLock = bathroomOrShowerIds.has(id)
-    ? " LOCATION: bathroom/shower/restroom is required for this title."
-    : " LOCATION LOCK: NOT a shower, NOT a bathroom, NOT wet tile, NOT a steam mirror selfie. Prefer bedroom, hotel room, living room, or the setting named in the scene text. Never replace the named act with a standing shower couple.";
+  const isBathroom = bathroomOrShowerIds.has(id);
+
+  // Put the strongest constraint FIRST so the model sees it before the scene.
+  const locationLock = isBathroom
+    ? "SCENE LOCATION: bathroom / shower only. Wet tile, steam, glass shower, running water. "
+    : "CRITICAL LOCATION LOCK — THIS IS NOT A SHOWER SCENE. " +
+      "NO shower. NO bathroom. NO wet tile. NO steam. NO glass shower door. NO mirror selfie in a bathroom. " +
+      "NO running water. NO soap. NO towels on a bathroom rack. " +
+      "Setting must be a bedroom, hotel room, living room, sofa, floor, outdoor, or the location named in the scene. " +
+      "If the model tries to put the people in a shower, ignore that and keep the named location. ";
 
   const actLock =
-    " ACT LOCK: do not swap the named act for a different one. Follow the scene description literally (pose, who is where, what is happening).";
+    "ACT LOCK: do not change the named act, pose, or number of people. Follow the scene description exactly. ";
 
-  return `${core}${locationLock}${actLock}`;
+  // Location lock goes at the front so it is not buried.
+  return `${locationLock}${core} ${actLock}`;
 }
+
