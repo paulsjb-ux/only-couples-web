@@ -1,35 +1,56 @@
+"use client";
+
 import { useState } from "react";
-import { OUTFIT_TABS, presetsForTab, type OutfitPreset, type OutfitTab } from "./presets";
+import {
+  OUTFIT_TABS,
+  presetsForTab,
+  type OutfitPreset,
+  type OutfitTab,
+} from "./presets";
 
 type Props = {
-  selectedId?: string | null;
-  onSelect: (preset: OutfitPreset) => void;
-  primary?: string;
+  value?: string | null;
+  onChange: (preset: OutfitPreset | null) => void;
 };
 
-export function OutfitPicker({ selectedId, onSelect, primary = "#6B2D3C" }: Props) {
+/**
+ * Drop this on the Create card under MEDIA.
+ * Shows Soft / Playful / After dark thumbnails from OUTFIT_PRESETS.
+ */
+export function OutfitPicker({ value, onChange }: Props) {
   const [tab, setTab] = useState<OutfitTab>("soft");
   const items = presetsForTab(tab);
 
   return (
-    <div style={{ display: "grid", gap: 12 }}>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+    <div style={{ marginTop: 16 }}>
+      <p
+        style={{
+          fontSize: 12,
+          letterSpacing: "0.12em",
+          color: "#8A7A6A",
+          fontWeight: 600,
+          marginBottom: 10,
+        }}
+      >
+        OUTFIT CATALOG
+      </p>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
         {OUTFIT_TABS.map((t) => {
-          const active = t.id === tab;
+          const on = t.id === tab;
           return (
             <button
               key={t.id}
               type="button"
               onClick={() => setTab(t.id)}
               style={{
-                borderRadius: 999,
-                border: `1px solid ${primary}`,
-                background: active ? primary : "white",
-                color: active ? "white" : primary,
-                padding: "8px 14px",
+                flex: 1,
+                padding: "10px 8px",
+                borderRadius: 22,
+                border: on ? "none" : "1px solid #E4D8CC",
+                background: on ? "#7A3B3F" : "white",
+                color: on ? "white" : "#333",
                 fontSize: 14,
-                fontWeight: 600,
-                cursor: "pointer",
               }}
             >
               {t.label}
@@ -38,62 +59,59 @@ export function OutfitPicker({ selectedId, onSelect, primary = "#6B2D3C" }: Prop
         })}
       </div>
 
-      {items.length === 0 ? (
-        <p style={{ margin: 0, fontSize: 14, opacity: 0.7 }}>
-          No looks in this tab yet. Add images to public/outfits/{tab} and run npm run scan-outfits.
-        </p>
-      ) : (
-        <div
-          style={{
-            display: "flex",
-            gap: 10,
-            overflowX: "auto",
-            paddingBottom: 4,
-          }}
-        >
-          {items.map((item) => {
-            const selected = item.id === selectedId;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => onSelect(item)}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, 1fr)",
+          gap: 10,
+        }}
+      >
+        {items.map((p) => {
+          const on = p.id === value;
+          return (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => onChange(on ? null : p)}
+              style={{
+                padding: 0,
+                border: on ? "3px solid #7A3B3F" : "3px solid transparent",
+                borderRadius: 16,
+                background: "none",
+                textAlign: "center",
+              }}
+            >
+              <img
+                src={p.imageUrl}
+                alt={p.label}
                 style={{
-                  flex: "0 0 auto",
-                  width: 96,
-                  padding: 0,
-                  border: selected ? `2px solid ${primary}` : "2px solid transparent",
+                  width: "100%",
+                  aspectRatio: "1",
+                  objectFit: "cover",
                   borderRadius: 12,
-                  background: "transparent",
-                  cursor: "pointer",
-                  textAlign: "left",
+                  display: "block",
+                  background: "#eee",
+                }}
+              />
+              <span
+                style={{
+                  display: "block",
+                  fontSize: 12,
+                  color: on ? "#7A3B3F" : "#444",
+                  padding: "6px 4px 4px",
                 }}
               >
-                <img
-                  src={item.imageUrl}
-                  alt={item.label}
-                  style={{
-                    width: 92,
-                    height: 116,
-                    objectFit: "cover",
-                    borderRadius: 10,
-                    display: "block",
-                  }}
-                />
-                <span
-                  style={{
-                    display: "block",
-                    fontSize: 12,
-                    marginTop: 4,
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {item.label}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+                {p.label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {items.length === 0 && (
+        <p style={{ fontSize: 13, color: "#9A8B7B" }}>
+          No outfits in this tab. Check public/outfits/{tab}/ and presets.generated.ts
+        </p>
       )}
     </div>
   );
