@@ -1,0 +1,56 @@
+[
+  {
+    "id": "soft-silk-slip",
+    "tab": "soft",
+    "label": "Silk slip",
+    "imageUrl": "/outfits/soft/silk-slip.jpg"
+  },
+  {
+    "id": "soft-white-robe",
+    "tab": "soft",
+    "label": "White robe",
+    "imageUrl": "/outfits/soft/white-robe.jpg"
+  },
+  {
+    "id": "soft-lace-set",
+    "tab": "soft",
+    "label": "Soft lace",
+    "imageUrl": "/outfits/soft/soft-lace.jpg"
+  },
+  {
+    "id": "playful-lace-body",
+    "tab": "playful",
+    "label": "Lace body",
+    "imageUrl": "/outfits/playful/lace-body.jpg"
+  },
+  {
+    "id": "playful-satin-cami",
+    "tab": "playful",
+    "label": "Satin cami",
+    "imageUrl": "/outfits/playful/satin-cami.jpg"
+  },
+  {
+    "id": "playful-sheer-blouse",
+    "tab": "playful",
+    "label": "Sheer blouse",
+    "imageUrl": "/outfits/playful/sheer-blouse.jpg"
+  },
+  {
+    "id": "afterdark-harness",
+    "tab": "afterdark",
+    "label": "Strappy harness",
+    "imageUrl": "/outfits/afterdark/harness.jpg"
+  },
+  {
+    "id": "afterdark-leather-teddy",
+    "tab": "afterdark",
+    "label": "Leather teddy",
+    "imageUrl": "/outfits/afterdark/leather-teddy.jpg"
+  },
+  {
+    "id": "afterdark-bodystocking",
+    "tab": "afterdark",
+    "label": "Bodystocking",
+    "imageUrl": "/outfits/afterdark/bodystocking.jpg"
+  }
+]
