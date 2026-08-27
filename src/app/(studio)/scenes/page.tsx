@@ -315,40 +315,58 @@ export default function ScenesPage() {
       const sid = memberships?.[0]?.studio_id as string | undefined;
       if (!sid) return;
 
-      // Supabase template catalogue. The database is authoritative for any matching slug;
-      // local templates remain as a fallback so older scenes do not disappear.
-      const { data: templateRows, error: templateError } = await supabase
-        .from("templates")
-        .select("slug,name,scene_prompt,setting_prompt,camera_prompt,notes,template_categories(slug,name)")
-        .order("created_at", { ascending: true });
+      // Supabase scenes catalogue (50 rows). Database scenes are authoritative.
+      // The bundled catalogue is retained only as metadata/fallback (cast, emoji, description).
+      const { data: sceneRows, error: sceneError } = await supabase
+        .from("scenes")
+        .select("id,tab,title,prompt")
+        .order("tab", { ascending: true })
+        .order("id", { ascending: true });
 
-      if (!templateError && templateRows) {
-        const mappedTemplates: SceneTemplate[] = templateRows.map((row: any) => {
-          const category = Array.isArray(row.template_categories)
-            ? row.template_categories[0]
-            : row.template_categories;
-          const categorySlug = String(category?.slug || "lifestyle");
-          const mood: Mood = categorySlug === "explicit"
-            ? "intense"
-            : categorySlug === "intimate" || categorySlug === "solo"
-              ? "playful"
-              : "soft";
-          const prefer = categorySlug === "intimate" || categorySlug === "explicit"
-            ? ["wife", "husband"]
-            : ["wife"];
-          const desc = String(row.notes || row.setting_prompt || row.scene_prompt || "");
+      if (!sceneError && sceneRows) {
+        const loverIds = new Set(["erotic-one-night", "spicy-bbc", "spicy-creampie"]);
+        const threePersonIds = new Set([
+          "spicy-cuckold", "spicy-dp", "spicy-mmf", "spicy-spitroast",
+          "zen-carpet-kneel", "zen-cocks-around", "zen-collar-three",
+        ]);
+
+        const inferPrefer = (row: any): string[] => {
+          const id = String(row.id || "");
+          const prompt = String(row.prompt || "").toLowerCase();
+          if (id === "spicy-ffm" || prompt.includes("man {p1}, woman {p2}, woman {p3}")) {
+            return ["husband", "wife", "female_lover"];
+          }
+          if (id === "spicy-cuckold") return ["wife", "male_lover", "husband"];
+          if (threePersonIds.has(id) || prompt.includes("exactly three adults")) {
+            return ["wife", "husband", "male_lover"];
+          }
+          if (prompt.includes("only one adult woman") || !prompt.includes("{p2}")) {
+            return ["wife"];
+          }
+          if (loverIds.has(id)) return ["wife", "male_lover"];
+          return ["wife", "husband"];
+        };
+
+        const mappedTemplates: SceneTemplate[] = sceneRows.map((row: any) => {
+          const id = String(row.id);
+          const local = TEMPLATES.find((t) => t.id === id);
+          const tab = String(row.tab || "soft").toLowerCase();
+          const mood: Mood = tab === "afterdark" ? "intense" : tab === "playful" ? "playful" : "soft";
+          const prefer = local?.prefer?.length ? local.prefer : inferPrefer(row);
           return {
-            id: String(row.slug),
-            name: String(row.name),
-            group: prefer.length > 1 ? "couple" : "solo",
+            id,
+            name: String(row.title || local?.name || id.replace(/-/g, " ")),
+            group: local?.group || (prefer.length >= 3 ? "three" : prefer.length === 2 ? "couple" : "solo"),
             mood,
             prefer,
-            emoji: categorySlug === "explicit" ? "🌙" : categorySlug === "intimate" ? "🤍" : categorySlug === "outdoor" ? "🌿" : "✨",
-            desc,
+            emoji: local?.emoji || (mood === "intense" ? "🌙" : mood === "playful" ? "✨" : "🤍"),
+            desc: local?.desc || "Supabase scene",
             source: "supabase",
           };
         });
         setDbTemplates(mappedTemplates);
+      } else if (sceneError) {
+        console.error("Could not load Supabase scenes", sceneError);
       }
 
       // People faces — parallel sign
@@ -457,7 +475,7 @@ export default function ScenesPage() {
   const mergedTemplates: SceneTemplate[] = (() => {
     const byId = new Map<string, SceneTemplate>();
     for (const t of TEMPLATES) byId.set(t.id, { ...t, source: "local" });
-    // Database wins when a Supabase template has the same slug as a local scene.
+    // Database wins when a Supabase scene has the same id as a local scene.
     for (const t of dbTemplates) byId.set(t.id, t);
     return [...dbTemplates, ...Array.from(byId.values()).filter((t) => !dbTemplates.some((d) => d.id === t.id))];
   })();
@@ -475,13 +493,9 @@ export default function ScenesPage() {
     return LAUNCH_IDS.has(t.id) || t.mood === "soft" || t.mood === "playful";
   });
 
-  // Soft shelf: max ~8 soft when soft selected
-  const shown =
-    mood === "soft" && !showIntense
-      ? templates.filter((t) => t.mood === "soft").slice(0, 8)
-      : mood === "playful" && !showIntense
-        ? templates.filter((t) => t.mood === "playful").slice(0, 8)
-        : templates;
+  // Show the full Supabase catalogue for the selected room.
+  // Current database counts: Soft 12, Playful 15, After dark 23.
+  const shown = templates;
 
   const section = SECTIONS[mood === "intense" || showIntense ? "intense" : mood];
 
