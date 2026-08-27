@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSceneCore } from "@/lib/scene-cores";
 
 export const runtime = "nodejs";
-export const maxDuration = 300; // multiple requested versions may need a long poll window
+export const maxDuration = 300;
 
 const ZEN_BASE = "https://api.zencreator.pro/api/public/v1";
 
@@ -36,10 +36,6 @@ function extractUrls(payload: any): string[] {
   return out;
 }
 
-function extractUrl(payload: any): string | null {
-  return extractUrls(payload)[0] || null;
-}
-
 async function zenUpload(key: string, bytes: ArrayBuffer, name: string) {
   const form = new FormData();
   form.append("file", new Blob([bytes], { type: "image/jpeg" }), name);
@@ -70,9 +66,7 @@ function bodyLine(p: any) {
           `${shape} body, thicker midsection, softer chest, not athletic, not slim, not a gym body`
         );
       } else if (female) {
-        bits.push(
-          `${shape} feminine body, soft curves, not skinny, not athletic model`
-        );
+        bits.push(`${shape} feminine body, soft curves, not skinny, not athletic model`);
       } else {
         bits.push(`${shape} body`);
       }
@@ -81,8 +75,7 @@ function bodyLine(p: any) {
     }
   }
   if (p.breasts) {
-    const b = String(p.breasts);
-    bits.push(`${b} natural breasts, in proportion to her body`);
+    bits.push(`${String(p.breasts)} natural breasts, in proportion to her body`);
   }
   if (p.penis && male) {
     const size = String(p.penis);
@@ -108,8 +101,8 @@ function anatomyLock(cast: { role?: string }[]) {
     men === 0
       ? "no penis anywhere in the image"
       : men === 1
-      ? "exactly one penis, attached only to the man at his hips/groin, never attached to a woman, never growing from a chest or breasts, never floating, never between a woman's breasts as if it belongs to her"
-      : `exactly ${men} penises, one attached to each man at his hips/groin, none attached to a woman, no extra or anonymous shafts, no floating genitals`;
+        ? "exactly one penis, attached only to the man at his hips/groin, never attached to a woman, never growing from a chest or breasts, never floating, never between a woman's breasts as if it belongs to her"
+        : `exactly ${men} penises, one attached to each man at his hips/groin, none attached to a woman, no extra or anonymous shafts, no floating genitals`;
 
   return [
     "ANATOMY LOCK:",
@@ -121,16 +114,24 @@ function anatomyLock(cast: { role?: string }[]) {
   ].join(" ");
 }
 
-
 const GLOBAL_NEGATIVES =
-  "wrong room, shower stall when not requested, bathroom tiles when not requested, steam mirror selfie when not requested, standing wet couple when not requested, different sex act than described, swapped positions, wrong number of people, extra limbs, fused bodies, deformed genitals, watermark, text overlay";
+  "wrong room, shower stall when not requested, bathroom tiles when not requested, steam mirror selfie when not requested, standing wet couple when not requested, different sex act than described, swapped positions, wrong number of people, extra person, extra limbs, fused bodies, deformed genitals, beauty-filter face, different hair than reference, watermark, text overlay, logo, identical twin faces";
 
 const VERSION_VARIANTS = [
-  "", // v1 — base scene exactly as described
+  "",
   "CAMERA ONLY: slightly wider full-body framing; same people, same act, same room type as the scene description.",
   "CAMERA ONLY: tighter crop on faces and torsos; same people, same act, same room type as the scene description.",
   "LIGHT ONLY: warmer side light, softer shadows; same people, same act, same room type as the scene description.",
 ];
+
+const SHOWER_SCENES = new Set([
+  "romance-shower",
+  "soft-shower-laugh",
+  "zen-shower-pose",
+  "zen-foam-shower",
+  "zen-carpet-kneel",
+  "zen-low-angle",
+]);
 
 export async function POST(req: NextRequest) {
   const key = process.env.ZENCREATOR_API_KEY;
@@ -168,30 +169,22 @@ export async function POST(req: NextRequest) {
   const wanted = who.includes(",")
     ? who.split(",").map((s: string) => s.trim()).filter(Boolean)
     : who === "couple"
-    ? ["wife", "husband"]
-    : [who].filter(Boolean);
+      ? ["wife", "husband"]
+      : [who].filter(Boolean);
 
   const castPeople = (people || []).filter((p: any) => wanted.includes(p.role));
   castPeople.sort((a: any, b: any) => wanted.indexOf(a.role) - wanted.indexOf(b.role));
   const refs = castPeople.filter((p: any) => p.photo_path);
 
-  // Reference strategy (Zen image_editor accepts up to 3 image assets):
-  // 1) Never sacrifice a selected person's face for body/angle/outfit guidance.
-  // 2) Give every selected person one face slot first.
-  // 3) Use any spare slots for the most useful body/angle references.
-  // 4) If a 3-person scene also has an outfit, apply the outfit in a second pass
-  //    to the generated scene so no person's identity reference gets dropped.
   type PathItem = { role: string; kind: "face" | "body" | "angle"; path: string };
   const chosen: PathItem[] = [];
 
-  // Every selected person's face gets priority.
   for (const person of refs) {
     if (person.photo_path && chosen.length < 3) {
       chosen.push({ role: person.role, kind: "face", path: person.photo_path });
     }
   }
 
-  // Only use body/angle references if all selected faces already fit and slots remain.
   if (chosen.length < 3) {
     for (const person of refs) {
       if (chosen.length >= 3) break;
@@ -221,8 +214,6 @@ export async function POST(req: NextRequest) {
   let outfitLock = "";
   const wearer = (outfitWearer || wanted[0] || "wife").replace(/_/g, " ");
 
-  // Outfit images now live in the dedicated public-read Supabase `outfits` bucket.
-  // Keep backward compatibility with old studio/library paths while they exist.
   if (outfitPath) {
     try {
       let file: Blob | null = null;
@@ -249,15 +240,12 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // First-pass assets. With 1–2 people, the outfit can use a spare slot.
-  // With 3 people, reserve all 3 first-pass slots for identity and apply outfit later.
   const applyOutfitSecondPass = Boolean(outfitAssetId && personAssetIds.length >= 3);
   const assetIds = [...personAssetIds];
   if (outfitAssetId && !applyOutfitSecondPass && assetIds.length < 3) {
     assetIds.push(outfitAssetId);
   }
-  // 1) Scene core. The 50-row Supabase `scenes` table is authoritative.
-  // Fall back to the bundled catalogue only if a scene is missing from Supabase.
+
   let core = "";
   if (sceneId) {
     const { data: dbScene, error: dbSceneError } = await supabase
@@ -279,6 +267,10 @@ export async function POST(req: NextRequest) {
       sceneName || (outfitPath ? "Outfit try-on" : "erotic couple scene")
     );
   }
+
+  // Scene table used to repeat LOOK; the wrapper owns look now.
+  core = core.replace(/\s*LOOK:\s*.+$/i, "").trim();
+
   const labels = (castPeople.length ? castPeople : refs).map((p: any) =>
     p.role.replace(/_/g, " ")
   );
@@ -287,7 +279,6 @@ export async function POST(req: NextRequest) {
     .replace(/\{p2\}/g, labels[1] || "the man")
     .replace(/\{p3\}/g, labels[2] || "the third person");
 
-  // 2) Who — map reference slots to people
   const refParts = chosen.map(
     (c, i) => `reference ${i + 1} is the ${c.role.replace(/_/g, " ")} ${c.kind} photo`
   );
@@ -298,36 +289,34 @@ export async function POST(req: NextRequest) {
   const whoLine =
     refs.length <= 1
       ? `WHO: exactly one adult — ${labels[0] || "the subject"}. ${refGuide}. Do not add anyone else.`
-      : `WHO: exactly ${refs.length} adults — ${labels.join(" and ")}. ${refGuide}. Do not add extra people or extra genitals.`;
+      : `WHO: exactly ${refs.length} adults — ${labels.join(" and ")}. ${refGuide}. Do not add extra people or extra genitals. Do not change anyone's race, skin tone, age, or hair to match a stereotype in the scene text. The uploaded faces win.`;
 
-  // 3) Face lock
   const faceLock =
-    "FACE LOCK: use the face photos as identity. Same bone structure, eyes, nose, mouth, hair colour and style as the face references. Body photos are only for body shape and posture — do not change the face from the face references. Do not invent a different person.";
+    "FACE LOCK: use the face photos as identity. Same bone structure, eyes, nose, mouth, skin tone, hair colour and style as the face references. Body photos are only for body shape and posture — do not change the face from the face references. Do not invent a different person. Do not beautify into a model.";
 
-  // 4) Body lock from People dropdowns
-  const bodyNotes = (people || [])
-    .filter((p: any) => wanted.includes(p.role))
-    .map(bodyLine)
-    .join(". ");
-  const bodyLock = bodyNotes
-    ? `BODY LOCK: ${bodyNotes}. These body settings OVERRIDE the body in the reference photos. Keep the faces. Change the body to match the settings.`
-    : "";
+  const selectedPeople = (people || []).filter((p: any) => wanted.includes(p.role));
+  const hasBodyHints = selectedPeople.some(
+    (p: any) => p.age || p.body_shape || p.breasts || p.penis || p.look
+  );
+  const bodyNotes = selectedPeople.map(bodyLine).join(". ");
+  const bodyLock =
+    hasBodyHints && bodyNotes
+      ? `BODY NOTE: ${bodyNotes}. Treat these as shape hints the couple chose. Keep the faces from the face references. Do not replace the person. Do not ignore a face photo in favour of a generic body.`
+      : "";
 
-  // 5) Anatomy lock
   const anatomy = anatomyLock(castPeople.length ? castPeople : refs);
 
-  // 6) Look
   const look =
-    "LOOK: vertical 3:4 frame, ultra high-resolution luxury photoshoot, 85mm f/1.4, soft cinematic light, glossy hydrated skin, tack-sharp faces, magazine grade, 8k, no watermark, no text.";
+    "LOOK: vertical 3:4 photoreal photograph, natural skin texture, real fabric, sharp readable faces, no watermark, no text. Obey the camera, lens, lighting and room written in SCENE. Do not switch the lens to 85mm unless the scene says 85mm.";
 
-  const locationGuard =
-    sceneId === "romance-shower" ||
-    sceneId === "soft-shower-laugh" ||
-    sceneId === "zen-shower-pose" ||
-    sceneId === "zen-foam-shower"
-      ? "Setting: bathroom shower as described."
-      : "Setting: match the scene description room. Not a shower unless the scene is a shower scene.";
-  const promptBase = [whoLine, faceLock, bodyLock, anatomy, outfitLock, core, locationGuard, look]
+  const locationGuard = SHOWER_SCENES.has(sceneId)
+    ? "Setting: bathroom shower as described."
+    : "Setting: match the SCENE room. Not a shower unless the scene is a shower scene.";
+
+  const avoidLine = `AVOID: ${GLOBAL_NEGATIVES}`;
+
+  // Scene act comes before look so the shot list wins.
+  const promptBase = [whoLine, faceLock, anatomy, outfitLock, `SCENE: ${core}`, bodyLock, locationGuard, look, avoidLine]
     .filter(Boolean)
     .join(" ");
 
@@ -339,6 +328,7 @@ export async function POST(req: NextRequest) {
       ? {
           image_assets: assetIds.slice(0, 3),
           prompt,
+          negative_prompt: GLOBAL_NEGATIVES,
           ratio: "3:4",
           number_of_images: 1,
           model: "SEEDREAM_5_PRO",
@@ -418,6 +408,7 @@ export async function POST(req: NextRequest) {
         input: {
           image_assets: [sourceAsset, outfitAssetId],
           prompt,
+          negative_prompt: GLOBAL_NEGATIVES,
           ratio: "3:4",
           number_of_images: 1,
           model: "SEEDREAM_5_PRO",
@@ -458,7 +449,6 @@ export async function POST(req: NextRequest) {
     return urls[0] || sourceUrl;
   }
 
-  // Sequential versions — parallel 4x often hits platform timeout before URLs return
   let urls: string[] = [];
   const errors: string[] = [];
   for (let i = 0; i < versions; i++) {
@@ -481,12 +471,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: msg, details: errors }, { status: 504 });
   }
 
-  // No automatic anatomy re-generation here.
-  // Anatomy constraints are already included in the primary prompt. This avoids
-  // creating an extra ZenCreator generation for the same requested output.
-
-  // Private album spec: outputs are PREVIEW only until explicit Keep.
-  // Do not insert into generations here — that happens on POST /api/library (Keep).
   const prompt = `${sceneId} | ${sceneName} (${who})`;
   const items: { url: string; path: string | null; id: string | null }[] = [];
 
@@ -496,7 +480,6 @@ export async function POST(req: NextRequest) {
     try {
       const img = await fetch(itemUrl);
       const bytes = await img.arrayBuffer();
-      // preview prefix — not listed in album until Keep
       path = `${studioId}/preview/${Date.now()}-${i}-${Math.random().toString(36).slice(2, 7)}.jpg`;
       await supabase.storage.from("library").upload(path, bytes, {
         contentType: "image/jpeg",
@@ -504,7 +487,7 @@ export async function POST(req: NextRequest) {
       });
       const { data: signed } = await supabase.storage
         .from("library")
-        .createSignedUrl(path, 60 * 60 * 24); // 24h preview TTL intent
+        .createSignedUrl(path, 60 * 60 * 24);
       if (signed?.signedUrl) itemUrl = signed.signedUrl;
     } catch {
       // keep Zen URL
@@ -517,8 +500,6 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // Persist preview rows so Scenes can resolve result thumbs after Keep
-  // (Keep will insert/update with status kept; previews help path recovery)
   const itemsOut: { url: string; path: string | null; id: string | null }[] = [];
   for (const it of items) {
     let id: string | null = null;
