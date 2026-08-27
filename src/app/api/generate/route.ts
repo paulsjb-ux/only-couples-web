@@ -324,11 +324,12 @@ export async function POST(req: NextRequest) {
     const variant = VERSION_VARIANTS[versionIndex] || "";
     const prompt = variant ? `${promptBase} ${variant}` : promptBase;
     const tool = assetIds.length ? "image_editor" : "by_prompt";
+    // image_editor rejects unknown fields (e.g. negative_prompt).
+    // AVOID: stays in the prompt text; only by_prompt gets negative_prompt.
     const input = assetIds.length
       ? {
           image_assets: assetIds.slice(0, 3),
           prompt,
-          negative_prompt: GLOBAL_NEGATIVES,
           ratio: "3:4",
           number_of_images: 1,
           model: "SEEDREAM_5_PRO",
@@ -408,7 +409,6 @@ export async function POST(req: NextRequest) {
         input: {
           image_assets: [sourceAsset, outfitAssetId],
           prompt,
-          negative_prompt: GLOBAL_NEGATIVES,
           ratio: "3:4",
           number_of_images: 1,
           model: "SEEDREAM_5_PRO",
