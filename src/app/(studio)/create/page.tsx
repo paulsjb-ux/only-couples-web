@@ -102,6 +102,7 @@ function CreateInner() {
   const [pickedOutfitPreset, setPickedOutfitPreset] = useState<string | null>(null);
   const outfitFileRef = useRef<HTMLInputElement | null>(null);
   const [busy, setBusy] = useState(false);
+  const generateInFlightRef = useRef(false);
   const [note, setNote] = useState("");
   const [studioId, setStudioId] = useState<string | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
@@ -394,8 +395,13 @@ function CreateInner() {
   }
 
   async function generate() {
+    // Synchronous guard: one user action can create only one /api/generate request.
+    // Do not rely on `busy` alone because React state updates on the next render.
+    if (generateInFlightRef.current) return;
+    generateInFlightRef.current = true;
     if (selected.length === 0) {
       alert("Choose at least one person");
+      generateInFlightRef.current = false;
       return;
     }
     const missing = selected.filter((r) => !allFaces.some((f) => f.role === r && f.url));
@@ -405,6 +411,7 @@ function CreateInner() {
           .map((r) => ALL_ROLES.find((x) => x.key === r)?.label || r)
           .join(", ")}`
       );
+      generateInFlightRef.current = false;
       return;
     }
     // Outfit scenes need an uploaded garment
@@ -415,6 +422,7 @@ function CreateInner() {
       (sceneName || "").toLowerCase().includes("who wore");
     if (needsOutfit && !outfitPath) {
       alert("Upload an outfit photo first — dress, suit, lingerie, or any look.");
+      generateInFlightRef.current = false;
       return;
     }
     if (outfitPath && outfitWearer && !selected.includes(outfitWearer)) {
@@ -511,6 +519,7 @@ function CreateInner() {
           : "Network error — try One or Two versions (Four can time out on mobile)."
       );
     } finally {
+      generateInFlightRef.current = false;
       setBusy(false);
     }
   }
