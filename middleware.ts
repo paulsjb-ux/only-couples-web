@@ -42,8 +42,7 @@ export async function middleware(request: NextRequest) {
     path.startsWith("/how-it-works") ||
     path.startsWith("/pricing") ||
     path.startsWith("/privacy") ||
-    path.startsWith("/contact") ||
-    path.startsWith("/admin/outfits");
+    path.startsWith("/contact");
 
   if (!user && !isPublic) {
     return NextResponse.redirect(new URL("/login", request.url));
