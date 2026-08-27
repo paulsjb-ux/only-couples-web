@@ -59,6 +59,16 @@ type OutfitPreset = {
   name: string;
   category: "soft" | "playful" | "after-dark";
   src: string;
+  storagePath: string;
+};
+
+type SupabaseOutfitRow = {
+  id: string;
+  slug: string;
+  name: string;
+  category: "soft" | "playful" | "afterdark";
+  storage_path: string;
+  sort_order: number;
 };
 
 const OUTFIT_CATEGORY_LABELS: Record<OutfitPreset["category"], string> = {
@@ -113,12 +123,62 @@ function CreateInner() {
 
   async function loadOutfitPresets() {
     try {
-      const res = await fetch("/outfits/manifest.json", { cache: "no-store" });
-      if (!res.ok) return;
-      const data = await res.json();
-      if (Array.isArray(data)) setOutfitPresets(data as OutfitPreset[]);
+      const supabase = createClient();
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return;
+
+      const { data, error } = await supabase
+        .from("outfits")
+        .select("id,slug,name,category,storage_path,sort_order")
+        .eq("active", true)
+        .order("category")
+        .order("sort_order");
+      if (error) throw error;
+
+      const rows = (data || []) as SupabaseOutfitRow[];
+
+      // One-time migration: copy bundled seed images into Supabase Storage.
+      // Safe to run repeatedly; existing objects are skipped.
+      const byCategory = new Map<string, Set<string>>();
+      for (const category of ["soft", "playful", "afterdark"] as const) {
+        const { data: objects } = await supabase.storage.from("outfits").list(category, { limit: 100 });
+        byCategory.set(category, new Set((objects || []).map((o) => o.name)));
+      }
+
+      for (const row of rows) {
+        const filename = row.storage_path.split("/").pop() || `${row.slug}.jpg`;
+        const existing = byCategory.get(row.category);
+        if (existing?.has(filename)) continue;
+        const seedSrc = `/outfits/${row.category}/${row.slug}.jpg`;
+        try {
+          const seed = await fetch(seedSrc, { cache: "no-store" });
+          if (!seed.ok) continue;
+          const blob = await seed.blob();
+          const { error: uploadError } = await supabase.storage
+            .from("outfits")
+            .upload(row.storage_path, blob, {
+              contentType: blob.type || "image/jpeg",
+              upsert: false,
+            });
+          if (!uploadError) existing?.add(filename);
+        } catch {
+          // If a bundled seed is unavailable, keep loading any already-migrated outfits.
+        }
+      }
+
+      const presets: OutfitPreset[] = rows.map((row) => {
+        const { data: publicUrl } = supabase.storage.from("outfits").getPublicUrl(row.storage_path);
+        return {
+          id: row.slug,
+          name: row.name,
+          category: row.category === "afterdark" ? "after-dark" : row.category,
+          src: publicUrl.publicUrl,
+          storagePath: row.storage_path,
+        };
+      });
+      setOutfitPresets(presets);
     } catch {
-      // Outfit presets are optional; manual upload still works if the manifest is unavailable.
+      // Manual upload remains available if Supabase outfit loading is unavailable.
     }
   }
 
