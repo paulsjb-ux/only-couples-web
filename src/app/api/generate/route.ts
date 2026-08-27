@@ -230,11 +230,35 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 1) Scene core from catalog
-  let core = getSceneCore(
-    sceneId || (outfitPath ? "outfit-try-on" : ""),
-    sceneName || (outfitPath ? "Outfit try-on" : "erotic couple scene")
-  );
+  // 1) Scene core. Supabase is authoritative for database-backed templates;
+  // fall back to the bundled catalogue for legacy/local scenes.
+  let core = "";
+  if (sceneId) {
+    const { data: dbTemplate } = await supabase
+      .from("templates")
+      .select("name,scene_prompt,setting_prompt,camera_prompt,notes")
+      .eq("slug", sceneId)
+      .maybeSingle();
+
+    if (dbTemplate) {
+      core = [
+        `SCENE: ${dbTemplate.name}.`,
+        dbTemplate.scene_prompt ? `ACTION / POSE: ${dbTemplate.scene_prompt}` : "",
+        dbTemplate.setting_prompt ? `SETTING: ${dbTemplate.setting_prompt}` : "",
+        dbTemplate.camera_prompt ? `CAMERA: ${dbTemplate.camera_prompt}` : "",
+        dbTemplate.notes ? `TEMPLATE NOTES: ${dbTemplate.notes}` : "",
+      ]
+        .filter(Boolean)
+        .join(" ");
+    }
+  }
+
+  if (!core) {
+    core = getSceneCore(
+      sceneId || (outfitPath ? "outfit-try-on" : ""),
+      sceneName || (outfitPath ? "Outfit try-on" : "erotic couple scene")
+    );
+  }
   const labels = (castPeople.length ? castPeople : refs).map((p: any) =>
     p.role.replace(/_/g, " ")
   );
