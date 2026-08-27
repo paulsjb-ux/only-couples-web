@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { APP_RELEASE } from "@/lib/version";
 
 export default function AccountPage() {
   const [studioId, setStudioId] = useState<string | null>(null);
@@ -114,6 +115,14 @@ export default function AccountPage() {
           <button type="button" className="btn btn-studio-secondary">
             Buy more credits
           </button>
+        </div>
+
+        {/* App version */}
+        <div className="card">
+          <div className="section-kicker">App version</div>
+          <p className="text-sm" style={{ color: "var(--muted)" }}>
+            The Other Room <strong style={{ color: "var(--text)" }}>{APP_RELEASE}</strong>
+          </p>
         </div>
 
         {/* Privacy reminder */}
