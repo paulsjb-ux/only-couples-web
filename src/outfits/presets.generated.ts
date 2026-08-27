@@ -1,70 +1,18 @@
 import type { OutfitPreset } from "./presets";
 
-/**
- * THIS is the list the app actually renders.
- * imageUrl must match a real file under /public
- *
- * After dark files currently in the repo:
- *   public/outfits/afterdark/IMG_7381.JPG
- *   public/outfits/afterdark/IMG_7472.jpg
- *   public/outfits/afterdark/IMG_7473.jpg
- *
- * Soft / playful still use the intended names.
- * If those JPGs are missing, add them or change imageUrl to the real filename.
- */
+/** Outfit catalogue rendered by the Create screen. */
 export const OUTFIT_PRESETS: OutfitPreset[] = [
-  {
-    id: "soft-silk-slip",
-    tab: "soft",
-    label: "Silk slip",
-    imageUrl: "/outfits/soft/silk-slip.jpg",
-  },
-  {
-    id: "soft-white-robe",
-    tab: "soft",
-    label: "White robe",
-    imageUrl: "/outfits/soft/white-robe.jpg",
-  },
-  {
-    id: "soft-lace-set",
-    tab: "soft",
-    label: "Soft lace",
-    imageUrl: "/outfits/soft/soft-lace.jpg",
-  },
-  {
-    id: "playful-lace-body",
-    tab: "playful",
-    label: "Lace body",
-    imageUrl: "/outfits/playful/lace-body.jpg",
-  },
-  {
-    id: "playful-satin-cami",
-    tab: "playful",
-    label: "Satin cami",
-    imageUrl: "/outfits/playful/satin-cami.jpg",
-  },
-  {
-    id: "playful-sheer-blouse",
-    tab: "playful",
-    label: "Sheer blouse",
-    imageUrl: "/outfits/playful/sheer-blouse.jpg",
-  },
-  {
-    id: "afterdark-7381",
-    tab: "afterdark",
-    label: "After dark 1",
-    imageUrl: "/outfits/afterdark/IMG_7381.JPG",
-  },
-  {
-    id: "afterdark-7472",
-    tab: "afterdark",
-    label: "After dark 2",
-    imageUrl: "/outfits/afterdark/IMG_7472.jpg",
-  },
-  {
-    id: "afterdark-7473",
-    tab: "afterdark",
-    label: "After dark 3",
-    imageUrl: "/outfits/afterdark/IMG_7473.jpg",
-  },
+  { id: "soft-navy-lace-robe", tab: "soft", label: "Navy lace robe", imageUrl: "/outfits/soft/navy-lace-robe.jpg" },
+  { id: "soft-black-lace-slip-dress", tab: "soft", label: "Black lace slip dress", imageUrl: "/outfits/soft/black-lace-slip-dress.jpg" },
+
+  { id: "playful-floral-lace-teddy", tab: "playful", label: "Floral lace teddy", imageUrl: "/outfits/playful/floral-lace-teddy.jpg" },
+  { id: "playful-lace-corset-garter-set", tab: "playful", label: "Lace corset & garter set", imageUrl: "/outfits/playful/lace-corset-garter-set.jpg" },
+  { id: "playful-high-neck-lace-garter-set", tab: "playful", label: "High-neck lace garter set", imageUrl: "/outfits/playful/high-neck-lace-garter-set.jpg" },
+  { id: "playful-plunge-lace-bodysuit", tab: "playful", label: "Plunge lace bodysuit", imageUrl: "/outfits/playful/plunge-lace-bodysuit.jpg" },
+  { id: "playful-strappy-lace-bodysuit", tab: "playful", label: "Strappy lace bodysuit", imageUrl: "/outfits/playful/strappy-lace-bodysuit.jpg" },
+
+  { id: "afterdark-sheer-lace-cutout-bodysuit", tab: "afterdark", label: "Sheer lace cutout bodysuit", imageUrl: "/outfits/afterdark/sheer-lace-cutout-bodysuit.jpg" },
+  { id: "afterdark-strappy-floral-lace-bodysuit", tab: "afterdark", label: "Strappy floral lace bodysuit", imageUrl: "/outfits/afterdark/strappy-floral-lace-bodysuit.jpg" },
+  { id: "afterdark-corset-garter-stockings-set", tab: "afterdark", label: "Corset, garter & stockings set", imageUrl: "/outfits/afterdark/corset-garter-stockings-set.jpg" },
+  { id: "afterdark-plunge-butterfly-lace-teddy", tab: "afterdark", label: "Plunge butterfly lace teddy", imageUrl: "/outfits/afterdark/plunge-butterfly-lace-teddy.jpg" },
 ];
