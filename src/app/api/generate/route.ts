@@ -185,51 +185,87 @@ export async function POST(req: NextRequest) {
   castPeople.sort((a: any, b: any) => wanted.indexOf(a.role) - wanted.indexOf(b.role));
   const refs = castPeople.filter((p: any) => p.photo_path);
 
-  // Build up to 3 Zen assets: every face first, then body, then angle
-  type PathItem = { role: string; kind: string; path: string };
-  const candidates: PathItem[] = [];
-  for (const person of refs) {
-    if (person.photo_path) candidates.push({ role: person.role, kind: "face", path: person.photo_path });
-  }
-  for (const person of refs) {
-    if (person.photo_body) candidates.push({ role: person.role, kind: "body", path: person.photo_body });
-  }
-  for (const person of refs) {
-    if (person.photo_angle) candidates.push({ role: person.role, kind: "angle", path: person.photo_angle });
-  }
-  const chosen = candidates.slice(0, 3);
+  // Reference strategy (Zen image_editor accepts up to 3 image assets):
+  // 1) Never sacrifice a selected person's face for body/angle/outfit guidance.
+  // 2) Give every selected person one face slot first.
+  // 3) Use any spare slots for the most useful body/angle references.
+  // 4) If a 3-person scene also has an outfit, apply the outfit in a second pass
+  //    to the generated scene so no person's identity reference gets dropped.
+  type PathItem = { role: string; kind: "face" | "body" | "angle"; path: string };
+  const chosen: PathItem[] = [];
 
-  const assetIds: string[] = [];
+  // Every selected person's face gets priority.
+  for (const person of refs) {
+    if (person.photo_path && chosen.length < 3) {
+      chosen.push({ role: person.role, kind: "face", path: person.photo_path });
+    }
+  }
+
+  // Only use body/angle references if all selected faces already fit and slots remain.
+  if (chosen.length < 3) {
+    for (const person of refs) {
+      if (chosen.length >= 3) break;
+      if (person.photo_body) {
+        chosen.push({ role: person.role, kind: "body", path: person.photo_body });
+      }
+    }
+  }
+  if (chosen.length < 3) {
+    for (const person of refs) {
+      if (chosen.length >= 3) break;
+      if (person.photo_angle) {
+        chosen.push({ role: person.role, kind: "angle", path: person.photo_angle });
+      }
+    }
+  }
+
+  const personAssetIds: string[] = [];
   for (const item of chosen) {
     const { data: file, error } = await supabase.storage.from("people").download(item.path);
     if (error || !file) continue;
     const bytes = await file.arrayBuffer();
-    assetIds.push(await zenUpload(key, bytes, `${item.role}-${item.kind}.jpg`));
+    personAssetIds.push(await zenUpload(key, bytes, `${item.role}-${item.kind}.jpg`));
   }
 
-  // Outfit reference (try-on / who wore it best) — first asset when present
+  let outfitAssetId: string | null = null;
   let outfitLock = "";
-  if (outfitPath && outfitPath.startsWith(`${studioId}/`)) {
+  const wearer = (outfitWearer || wanted[0] || "wife").replace(/_/g, " ");
+
+  // Outfit images now live in the dedicated public-read Supabase `outfits` bucket.
+  // Keep backward compatibility with old studio/library paths while they exist.
+  if (outfitPath) {
     try {
-      const { data: file, error } = await supabase.storage.from("library").download(outfitPath);
+      let file: Blob | null = null;
+      let error: any = null;
+
+      if (outfitPath.startsWith(`${studioId}/`)) {
+        const result = await supabase.storage.from("library").download(outfitPath);
+        file = result.data;
+        error = result.error;
+      } else {
+        const result = await supabase.storage.from("outfits").download(outfitPath);
+        file = result.data;
+        error = result.error;
+      }
+
       if (!error && file) {
         const bytes = await file.arrayBuffer();
-        const outfitAsset = await zenUpload(key, bytes, "outfit-ref.jpg");
-        assetIds.unshift(outfitAsset);
-        // Keep at most 3 assets total (Zen limit we use)
-        while (assetIds.length > 3) assetIds.pop();
-        const wearer = (outfitWearer || wanted[0] || "wife").replace(/_/g, " ");
+        outfitAssetId = await zenUpload(key, bytes, "outfit-ref.jpg");
         outfitLock =
-          `OUTFIT LOCK: Reference image 1 is the OUTFIT only (clothing on a hanger, mannequin, or another body). Put the ${wearer} into that exact outfit — same garment, colour, fabric, cut, and details. The ${wearer} face and identity come from their face reference, never from whoever appears in the outfit photo. Do not invent different clothes.`;
-        if (!sceneId || sceneId === "free-play") {
-          // force try-on core if free play with outfit
-        }
+          `OUTFIT LOCK: use the outfit reference only for clothing. Put the ${wearer} into that exact outfit — same garment, colour, fabric, cut, and details. The ${wearer}'s face and identity must come from their own face reference, never from any person shown in the outfit image. Do not invent different clothes.`;
       }
     } catch {
       // continue without outfit
     }
   }
 
+  // First-pass assets. With 1–2 people, the outfit can use a spare slot.
+  // With 3 people, reserve all 3 first-pass slots for identity and apply outfit later.
+  const applyOutfitSecondPass = Boolean(outfitAssetId && personAssetIds.length >= 3);
+  const assetIds = [...personAssetIds];
+  if (outfitAssetId && !applyOutfitSecondPass && assetIds.length < 3) {
+    assetIds.push(outfitAssetId);
+  }
   // 1) Scene core. The 50-row Supabase `scenes` table is authoritative.
   // Fall back to the bundled catalogue only if a scene is missing from Supabase.
   let core = "";
@@ -262,9 +298,13 @@ export async function POST(req: NextRequest) {
     .replace(/\{p3\}/g, labels[2] || "the third person");
 
   // 2) Who — map reference slots to people
-  const refGuide = chosen
-    .map((c, i) => `reference ${i + 1} is the ${c.role.replace(/_/g, " ")} ${c.kind} photo`)
-    .join("; ");
+  const refParts = chosen.map(
+    (c, i) => `reference ${i + 1} is the ${c.role.replace(/_/g, " ")} ${c.kind} photo`
+  );
+  if (outfitAssetId && !applyOutfitSecondPass && assetIds.length > personAssetIds.length) {
+    refParts.push(`reference ${assetIds.length} is the outfit reference for the ${wearer}`);
+  }
+  const refGuide = refParts.join("; ");
   const whoLine =
     refs.length <= 1
       ? `WHO: exactly one adult — ${labels[0] || "the subject"}. ${refGuide}. Do not add anyone else.`
@@ -365,14 +405,82 @@ export async function POST(req: NextRequest) {
     return urls[0] || null;
   }
 
+  async function applyOutfitToGeneratedImage(sourceUrl: string): Promise<string | null> {
+    if (!applyOutfitSecondPass || !outfitAssetId) return sourceUrl;
+
+    const sourceBytes = await (await fetch(sourceUrl)).arrayBuffer();
+    const sourceAsset = await zenUpload(key, sourceBytes, "identity-locked-scene.jpg");
+    const prompt = [
+      `EDIT ONLY THE CLOTHING ON THE ${wearer.toUpperCase()}.`,
+      `Reference 1 is the already-generated scene. Preserve every person's face, identity, body, pose, position, expression, anatomy, lighting, framing and background exactly.`,
+      `Reference 2 is the outfit reference. Dress only the ${wearer} in that exact garment — same colour, fabric, cut and visible details.`,
+      `Do not replace, redraw, beautify or change any face. Do not add or remove people. Do not change any other person's clothing.`,
+    ].join(" ");
+
+    const submit = await fetch(`${ZEN_BASE}/generations`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        tool: "image_editor",
+        input: {
+          image_assets: [sourceAsset, outfitAssetId],
+          prompt,
+          ratio: "3:4",
+          number_of_images: 1,
+          model: "SEEDREAM_5_PRO",
+        },
+      }),
+    });
+
+    const submitted = await submit.json().catch(() => ({}));
+    if (!submit.ok) {
+      throw new Error(submitted.error?.message || submitted.message || `Outfit edit failed ${submit.status}`);
+    }
+
+    let urls = extractUrls(submitted);
+    const genId = submitted.id || submitted.generation_id || submitted.data?.id;
+    if (!urls.length && genId) {
+      for (let i = 0; i < 32; i++) {
+        await new Promise((r) => setTimeout(r, 2500));
+        const poll = await fetch(`${ZEN_BASE}/generations/${genId}`, {
+          headers: { Authorization: `Bearer ${key}` },
+        });
+        const polled = await poll.json().catch(() => ({}));
+        urls = extractUrls(polled);
+        if (!urls.length) {
+          try {
+            const resultRes = await fetch(`${ZEN_BASE}/generations/${genId}/result`, {
+              headers: { Authorization: `Bearer ${key}` },
+            });
+            urls = extractUrls(await resultRes.json().catch(() => ({})));
+          } catch {
+            // ignore
+          }
+        }
+        if (urls.length) break;
+        const status = String(polled.status || polled.state || "").toLowerCase();
+        if (["failed", "error", "cancelled"].includes(status)) break;
+      }
+    }
+    return urls[0] || sourceUrl;
+  }
+
   // Sequential versions — parallel 4x often hits platform timeout before URLs return
   let urls: string[] = [];
   const errors: string[] = [];
   for (let i = 0; i < versions; i++) {
     try {
-      const u = await runOne(i);
-      if (u) urls.push(u);
-      else errors.push(`v${i + 1}: no url`);
+      const firstPass = await runOne(i);
+      if (firstPass) {
+        const finalUrl = applyOutfitSecondPass ? await applyOutfitToGeneratedImage(firstPass) : firstPass;
+        if (finalUrl) urls.push(finalUrl);
+        else errors.push(`v${i + 1}: outfit pass returned no url`);
+      } else {
+        errors.push(`v${i + 1}: no url`);
+      }
     } catch (e: any) {
       errors.push(`v${i + 1}: ${e?.message || e}`);
     }
