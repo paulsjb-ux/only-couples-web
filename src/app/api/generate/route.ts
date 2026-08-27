@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSceneCore } from "@/lib/scene-cores";
 
 export const runtime = "nodejs";
-export const maxDuration = 300; // 4 versions need long poll window
+export const maxDuration = 300; // multiple requested versions may need a long poll window
 
 const ZEN_BASE = "https://api.zencreator.pro/api/public/v1";
 
@@ -119,16 +119,6 @@ function anatomyLock(cast: { role?: string }[]) {
     "women have only female genitals (vulva), men have only male genitals (penis).",
     "no extra limbs, no extra hands, no fused bodies, no body parts on the wrong person.",
   ].join(" ");
-}
-
-function refineAnatomyPrompt(men: number) {
-  if (men <= 0) {
-    return "Keep the same people, faces, pose and lighting. Fix anatomy only: remove any penis. Women must have only female anatomy. No extra limbs.";
-  }
-  if (men === 1) {
-    return "Keep the same people, faces, pose and lighting. Fix anatomy only: there must be exactly one penis and it must be attached only to the man at his hips. Remove any penis growing from a woman, from a chest, or floating. Women have only vulvas. No extra limbs or fused bodies.";
-  }
-  return `Keep the same people, faces, pose and lighting. Fix anatomy only: exactly ${men} penises, each attached only to a man at his hips. Remove any extra, anonymous, or floating penises. Women have only vulvas. No extra limbs or fused bodies.`;
 }
 
 
@@ -491,65 +481,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: msg, details: errors }, { status: 504 });
   }
 
-  // Optional anatomy refine only for single 3-person result
-  const menCount = (castPeople.length ? castPeople : refs).filter((p: any) => {
-    const r = String(p.role || "");
-    return r.includes("husband") || r.includes("male");
-  }).length;
-  if (versions === 1 && (castPeople.length || refs.length) >= 3) {
-    try {
-      let url = urls[0];
-      const firstBytes = await (await fetch(url)).arrayBuffer();
-      const fixAsset = await zenUpload(key, firstBytes, "anatomy-fix.jpg");
-      const fixPrompt = refineAnatomyPrompt(menCount);
-      const fixSubmit = await fetch(`${ZEN_BASE}/generations`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${key}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          tool: "image_editor",
-          input: {
-            image_assets: [fixAsset],
-            prompt: fixPrompt,
-            ratio: "3:4",
-            number_of_images: 1,
-            model: "SEEDREAM_5_PRO",
-          },
-        }),
-      });
-      const fixBody = await fixSubmit.json().catch(() => ({}));
-      let fixedUrl = extractUrl(fixBody);
-      const fixId = fixBody.id || fixBody.generation_id || fixBody.data?.id;
-      if (!fixedUrl && fixId) {
-        for (let i = 0; i < 40; i++) {
-          await new Promise((r) => setTimeout(r, 3000));
-          const poll = await fetch(`${ZEN_BASE}/generations/${fixId}`, {
-            headers: { Authorization: `Bearer ${key}` },
-          });
-          const polled = await poll.json().catch(() => ({}));
-          fixedUrl = extractUrl(polled);
-          if (!fixedUrl) {
-            try {
-              const resultRes = await fetch(`${ZEN_BASE}/generations/${fixId}/result`, {
-                headers: { Authorization: `Bearer ${key}` },
-              });
-              fixedUrl = extractUrl(await resultRes.json().catch(() => ({})));
-            } catch {
-              // ignore
-            }
-          }
-          if (fixedUrl) break;
-          const status = String(polled.status || polled.state || "").toLowerCase();
-          if (["failed", "error", "cancelled"].includes(status)) break;
-        }
-      }
-      if (fixedUrl) urls = [fixedUrl];
-    } catch {
-      // keep first-pass URL if refine fails
-    }
-  }
+  // No automatic anatomy re-generation here.
+  // Anatomy constraints are already included in the primary prompt. This avoids
+  // creating an extra ZenCreator generation for the same requested output.
 
   // Private album spec: outputs are PREVIEW only until explicit Keep.
   // Do not insert into generations here — that happens on POST /api/library (Keep).
