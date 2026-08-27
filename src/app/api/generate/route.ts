@@ -230,26 +230,20 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 1) Scene core. Supabase is authoritative for database-backed templates;
-  // fall back to the bundled catalogue for legacy/local scenes.
+  // 1) Scene core. The 50-row Supabase `scenes` table is authoritative.
+  // Fall back to the bundled catalogue only if a scene is missing from Supabase.
   let core = "";
   if (sceneId) {
-    const { data: dbTemplate } = await supabase
-      .from("templates")
-      .select("name,scene_prompt,setting_prompt,camera_prompt,notes")
-      .eq("slug", sceneId)
+    const { data: dbScene, error: dbSceneError } = await supabase
+      .from("scenes")
+      .select("id,tab,title,prompt")
+      .eq("id", sceneId)
       .maybeSingle();
 
-    if (dbTemplate) {
-      core = [
-        `SCENE: ${dbTemplate.name}.`,
-        dbTemplate.scene_prompt ? `ACTION / POSE: ${dbTemplate.scene_prompt}` : "",
-        dbTemplate.setting_prompt ? `SETTING: ${dbTemplate.setting_prompt}` : "",
-        dbTemplate.camera_prompt ? `CAMERA: ${dbTemplate.camera_prompt}` : "",
-        dbTemplate.notes ? `TEMPLATE NOTES: ${dbTemplate.notes}` : "",
-      ]
-        .filter(Boolean)
-        .join(" ");
+    if (!dbSceneError && dbScene?.prompt) {
+      core = String(dbScene.prompt);
+    } else if (dbSceneError) {
+      console.error("Supabase scene lookup failed", dbSceneError);
     }
   }
 
