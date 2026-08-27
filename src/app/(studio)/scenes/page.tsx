@@ -7,6 +7,17 @@ import { createClient } from "@/lib/supabase/client";
 
 type Mood = "soft" | "playful" | "intense";
 
+type SceneTemplate = {
+  id: string;
+  name: string;
+  group: string;
+  mood: Mood;
+  prefer: string[];
+  emoji: string;
+  desc: string;
+  source?: "local" | "supabase";
+};
+
 const SECTIONS = {
   soft: {
     label: "Soft",
@@ -225,6 +236,7 @@ export default function ScenesPage() {
   const [inputs, setInputs] = useState<{ role: string; url: string }[]>([]);
   const [results, setResults] = useState<{ prompt: string; url: string; path?: string | null }[]>([]);
   const [note, setNote] = useState("");
+  const [dbTemplates, setDbTemplates] = useState<SceneTemplate[]>([]);
 
   useEffect(() => {
     void load();
@@ -302,6 +314,42 @@ export default function ScenesPage() {
         .limit(1);
       const sid = memberships?.[0]?.studio_id as string | undefined;
       if (!sid) return;
+
+      // Supabase template catalogue. The database is authoritative for any matching slug;
+      // local templates remain as a fallback so older scenes do not disappear.
+      const { data: templateRows, error: templateError } = await supabase
+        .from("templates")
+        .select("slug,name,scene_prompt,setting_prompt,camera_prompt,notes,template_categories(slug,name)")
+        .order("created_at", { ascending: true });
+
+      if (!templateError && templateRows) {
+        const mappedTemplates: SceneTemplate[] = templateRows.map((row: any) => {
+          const category = Array.isArray(row.template_categories)
+            ? row.template_categories[0]
+            : row.template_categories;
+          const categorySlug = String(category?.slug || "lifestyle");
+          const mood: Mood = categorySlug === "explicit"
+            ? "intense"
+            : categorySlug === "intimate" || categorySlug === "solo"
+              ? "playful"
+              : "soft";
+          const prefer = categorySlug === "intimate" || categorySlug === "explicit"
+            ? ["wife", "husband"]
+            : ["wife"];
+          const desc = String(row.notes || row.setting_prompt || row.scene_prompt || "");
+          return {
+            id: String(row.slug),
+            name: String(row.name),
+            group: prefer.length > 1 ? "couple" : "solo",
+            mood,
+            prefer,
+            emoji: categorySlug === "explicit" ? "🌙" : categorySlug === "intimate" ? "🤍" : categorySlug === "outdoor" ? "🌿" : "✨",
+            desc,
+            source: "supabase",
+          };
+        });
+        setDbTemplates(mappedTemplates);
+      }
 
       // People faces — parallel sign
       const { data: people } = await supabase.from("people").select("*").eq("studio_id", sid);
@@ -406,7 +454,15 @@ export default function ScenesPage() {
     return hit?.url || null;
   }
 
-  const templates = TEMPLATES.filter((t) => {
+  const mergedTemplates: SceneTemplate[] = (() => {
+    const byId = new Map<string, SceneTemplate>();
+    for (const t of TEMPLATES) byId.set(t.id, { ...t, source: "local" });
+    // Database wins when a Supabase template has the same slug as a local scene.
+    for (const t of dbTemplates) byId.set(t.id, t);
+    return [...dbTemplates, ...Array.from(byId.values()).filter((t) => !dbTemplates.some((d) => d.id === t.id))];
+  })();
+
+  const templates = mergedTemplates.filter((t) => {
     if (!showIntense && t.mood === "intense") return false;
     if (mood === "soft") return t.mood === "soft";
     if (mood === "playful") return t.mood === "playful";
