@@ -99,6 +99,20 @@ const OUTFIT_CATEGORY_ORDER: OutfitPreset["category"][] = [
   "after-dark",
 ];
 
+const BUNDLED_OUTFIT_PRESETS: OutfitPreset[] = [
+  { id: "black-lace-slip-dress", name: "Black lace slip dress", category: "soft", src: "/outfits/soft/black-lace-slip-dress.jpg", storagePath: "soft/black-lace-slip-dress.jpg" },
+  { id: "navy-lace-robe", name: "Navy lace robe", category: "soft", src: "/outfits/soft/navy-lace-robe.jpg", storagePath: "soft/navy-lace-robe.jpg" },
+  { id: "floral-lace-teddy", name: "Floral lace teddy", category: "playful", src: "/outfits/playful/floral-lace-teddy.jpg", storagePath: "playful/floral-lace-teddy.jpg" },
+  { id: "high-neck-lace-garter-set", name: "High-neck lace garter set", category: "playful", src: "/outfits/playful/high-neck-lace-garter-set.jpg", storagePath: "playful/high-neck-lace-garter-set.jpg" },
+  { id: "lace-corset-garter-set", name: "Lace corset garter set", category: "playful", src: "/outfits/playful/lace-corset-garter-set.jpg", storagePath: "playful/lace-corset-garter-set.jpg" },
+  { id: "plunge-lace-bodysuit", name: "Plunge lace bodysuit", category: "playful", src: "/outfits/playful/plunge-lace-bodysuit.jpg", storagePath: "playful/plunge-lace-bodysuit.jpg" },
+  { id: "strappy-lace-bodysuit", name: "Strappy lace bodysuit", category: "playful", src: "/outfits/playful/strappy-lace-bodysuit.jpg", storagePath: "playful/strappy-lace-bodysuit.jpg" },
+  { id: "corset-garter-stockings-set", name: "Corset, garter and stockings set", category: "after-dark", src: "/outfits/afterdark/corset-garter-stockings-set.jpg", storagePath: "afterdark/corset-garter-stockings-set.jpg" },
+  { id: "plunge-butterfly-lace-teddy", name: "Plunge butterfly lace teddy", category: "after-dark", src: "/outfits/afterdark/plunge-butterfly-lace-teddy.jpg", storagePath: "afterdark/plunge-butterfly-lace-teddy.jpg" },
+  { id: "sheer-lace-cutout-bodysuit", name: "Sheer lace cutout bodysuit", category: "after-dark", src: "/outfits/afterdark/sheer-lace-cutout-bodysuit.jpg", storagePath: "afterdark/sheer-lace-cutout-bodysuit.jpg" },
+  { id: "strappy-floral-lace-bodysuit", name: "Strappy floral lace bodysuit", category: "after-dark", src: "/outfits/afterdark/strappy-floral-lace-bodysuit.jpg", storagePath: "afterdark/strappy-floral-lace-bodysuit.jpg" },
+];
+
 function CreateInner() {
   const params = useSearchParams();
   const sceneId = params.get("scene");
@@ -114,10 +128,14 @@ function CreateInner() {
   const [outfitPath, setOutfitPath] = useState<string | null>(null);
   const [outfitPreview, setOutfitPreview] = useState<string | null>(null);
   const [outfitWearer, setOutfitWearer] = useState("wife");
-    const [outfitPresets, setOutfitPresets] = useState<OutfitPreset[]>((["soft:black-lace-slip-dress","soft:navy-lace-robe","playful:floral-lace-teddy","playful:high-neck-lace-garter-set","playful:lace-corset-garter-set","playful:plunge-lace-bodysuit","playful:strappy-lace-bodysuit","after-dark:corset-garter-stockings-set","after-dark:plunge-butterfly-lace-teddy","after-dark:sheer-lace-cutout-bodysuit","after-dark:strappy-floral-lace-bodysuit"] as const).map((entry) => { const [category, id] = entry.split(":") as [OutfitPreset["category"], string]; const folder = category === "after-dark" ? "afterdark" : category; return { id, name: id.replace(/-/g, " "), category, src: "/outfits/" + folder + "/" + id + ".jpg", storagePath: folder + "/" + id + ".jpg" }; }));
+  const [outfitPresets, setOutfitPresets] = useState<OutfitPreset[]>(BUNDLED_OUTFIT_PRESETS);
+  const [outfitCategory, setOutfitCategory] = useState<OutfitPreset["category"]>("soft");
   const [pickedOutfitPreset, setPickedOutfitPreset] = useState<string | null>(null);
+  const [presetGroup, setPresetGroup] = useState<"women" | "men">("women");
   const outfitFileRef = useRef<HTMLInputElement | null>(null);
   const [busy, setBusy] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [progress, setProgress] = useState(0);
   const generateInFlightRef = useRef(false);
   const [note, setNote] = useState("");
   const [studioId, setStudioId] = useState<string | null>(null);
@@ -137,6 +155,15 @@ function CreateInner() {
       previewRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, [previews]);
+
+  useEffect(() => {
+    if (!generating) return;
+    setProgress(8);
+    const timer = window.setInterval(() => {
+      setProgress((current) => Math.min(92, current + (current < 55 ? 7 : current < 80 ? 3 : 1)));
+    }, 1800);
+    return () => window.clearInterval(timer);
+  }, [generating]);
 
   async function loadOutfitPresets() {
     try {
@@ -193,7 +220,7 @@ function CreateInner() {
           storagePath: row.storage_path,
         };
       });
-            if (presets.length > 0) setOutfitPresets(presets);
+      if (presets.length > 0) setOutfitPresets(presets);
     } catch {
       // Manual upload remains available if Supabase outfit loading is unavailable.
     }
@@ -211,6 +238,12 @@ function CreateInner() {
     const sid = memberships?.[0]?.studio_id as string | undefined;
     if (!sid) return;
     setStudioId(sid);
+    const pendingStartedAt = window.localStorage.getItem("tor:generation-started-at");
+    if (pendingStartedAt) {
+      void recoverLatestPreview(pendingStartedAt, sid).then((found) => {
+        if (found) window.localStorage.removeItem("tor:generation-started-at");
+      });
+    }
     const { data: people } = await supabase.from("people").select("*").eq("studio_id", sid);
     const next: FaceRow[] = [];
     for (const person of people || []) {
@@ -407,8 +440,9 @@ function CreateInner() {
     });
   }
 
-  async function recoverLatestPreview(startedAt: string): Promise<boolean> {
-    if (!studioId) return false;
+  async function recoverLatestPreview(startedAt: string, studioOverride?: string): Promise<boolean> {
+    const recoveryStudioId = studioOverride || studioId;
+    if (!recoveryStudioId) return false;
     setNote("Image completed — recovering it safely…");
     const supabase = createClient();
 
@@ -416,7 +450,7 @@ function CreateInner() {
       const { data: rows } = await supabase
         .from("generations")
         .select("id,result_url,storage_path,kind,prompt,status,created_at")
-        .eq("studio_id", studioId)
+        .eq("studio_id", recoveryStudioId)
         .eq("status", "preview")
         .gte("created_at", startedAt)
         .order("created_at", { ascending: false })
@@ -445,6 +479,8 @@ function CreateInner() {
         }
         if (recovered.length) {
           setPreviews(recovered.reverse());
+          setProgress(100);
+          window.localStorage.removeItem("tor:generation-started-at");
           setNote(
             recovered.length === 1
               ? "1 ready — recovered safely. Tap Keep to save it."
@@ -494,6 +530,7 @@ function CreateInner() {
       setSelected((prev) => [...prev, outfitWearer]);
     }
     setBusy(true);
+    setGenerating(true);
     setPreviews([]);
     const n = kind === "image" ? versions : 1;
     setNote(
@@ -503,6 +540,7 @@ function CreateInner() {
     );
     const who = selected.join(",");
     const generationStartedAt = new Date(Date.now() - 5000).toISOString();
+    window.localStorage.setItem("tor:generation-started-at", generationStartedAt);
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
@@ -522,6 +560,7 @@ function CreateInner() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         const msg = data.error || data.message || `Generation failed (${res.status})`;
+        window.localStorage.removeItem("tor:generation-started-at");
         setNote(msg);
         return;
       }
@@ -565,6 +604,8 @@ function CreateInner() {
         return;
       }
       setPreviews(built);
+      setProgress(100);
+      window.localStorage.removeItem("tor:generation-started-at");
       const partial =
         typeof data.requested === "number" && built.length < data.requested;
       setNote(
@@ -588,6 +629,7 @@ function CreateInner() {
       }
     } finally {
       generateInFlightRef.current = false;
+      setGenerating(false);
       setBusy(false);
     }
   }
@@ -768,7 +810,7 @@ function CreateInner() {
                   <div className="flex flex-wrap gap-2 mt-2">
                     <button
                       type="button"
-                                            className="btn btn-studio-primary"
+                      className="btn btn-studio-primary"
                       onClick={() => saveOne(index)}
                       disabled={busy || item.saved}
                     >
@@ -776,7 +818,7 @@ function CreateInner() {
                     </button>
                     <button
                       type="button"
-                                            className="btn btn-studio-secondary"
+                      className="btn btn-studio-secondary"
                       onClick={() => downloadOne(index)}
                       disabled={busy}
                     >
@@ -784,7 +826,7 @@ function CreateInner() {
                     </button>
                     <button
                       type="button"
-                                            className="btn btn-danger"
+                      className="btn btn-danger"
                       onClick={() => deleteOne(index)}
                       disabled={busy}
                     >
@@ -843,7 +885,20 @@ function CreateInner() {
 
           {outfitPresets.length > 0 && (
             <div className="mb-4">
-              {OUTFIT_CATEGORY_ORDER.map((category) => {
+              <label className="block text-sm font-semibold mb-2 text-[var(--text)]" htmlFor="outfit-category">
+                Outfit style
+              </label>
+              <select
+                id="outfit-category"
+                className="tor-select mb-3"
+                value={outfitCategory}
+                onChange={(event) => setOutfitCategory(event.target.value as OutfitPreset["category"])}
+              >
+                {OUTFIT_CATEGORY_ORDER.map((category) => (
+                  <option key={category} value={category}>{OUTFIT_CATEGORY_LABELS[category]}</option>
+                ))}
+              </select>
+              {[outfitCategory].map((category) => {
                 const items = outfitPresets.filter((item) => item.category === category);
                 if (!items.length) return null;
                 return (
@@ -996,6 +1051,21 @@ function CreateInner() {
               ? `Make ${versions} versions`
               : "Make this scene"}
         </button>
+        {generating && (
+          <div role="progressbar" aria-label="Image generation progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}>
+            <div className="flex items-center justify-between text-sm font-semibold text-[var(--text)] mb-1.5">
+              <span>Generating image</span>
+              <span>{progress}%</span>
+            </div>
+            <div className="h-2.5 rounded-full bg-black/10 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-[var(--tor-accent,#8b4a54)] transition-[width] duration-500"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <p className="tor-help mt-2">You can leave this page. Return to Create and the finished preview will be recovered automatically.</p>
+          </div>
+        )}
         {note && (
           <p
             className="text-sm text-[var(--muted)]"
@@ -1097,8 +1167,20 @@ function CreateInner() {
           From your phone camera roll or Mac. Becomes that role’s face lock.
         </p>
 
-        <p className="text-sm font-semibold mt-5 mb-2 text-[var(--text)]">6 women</p>
-        <div className="tor-preset-grid">
+        <label className="block text-sm font-semibold mt-5 mb-2 text-[var(--text)]" htmlFor="preset-group">
+          Preset people
+        </label>
+        <select
+          id="preset-group"
+          className="tor-select mb-3"
+          value={presetGroup}
+          onChange={(event) => setPresetGroup(event.target.value as "women" | "men")}
+        >
+          <option value="women">6 women</option>
+          <option value="men">6 men</option>
+        </select>
+
+        {presetGroup === "women" && <div className="tor-preset-grid">
           {WOMAN_PRESETS.map((p) => (
             <button
               key={p.id}
@@ -1128,10 +1210,9 @@ function CreateInner() {
               </div>
             </button>
           ))}
-        </div>
+        </div>}
 
-        <p className="text-sm font-semibold mt-5 mb-2 text-[var(--text)]">6 men</p>
-        <div className="tor-preset-grid">
+        {presetGroup === "men" && <div className="tor-preset-grid">
           {MAN_PRESETS.map((p) => (
             <button
               key={p.id}
@@ -1161,7 +1242,7 @@ function CreateInner() {
               </div>
             </button>
           ))}
-        </div>
+        </div>}
       </div>
 
       <p className="text-sm max-w-2xl">
