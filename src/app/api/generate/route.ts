@@ -286,10 +286,10 @@ export async function POST(req: NextRequest) {
   }
 
   if (!core) {
-    core = getSceneCore(
-      sceneId || (outfitPath ? "outfit-try-on" : ""),
-      sceneName || (outfitPath ? "Outfit try-on" : "erotic couple scene")
-    );
+    core =
+      getSceneCore(sceneId || (outfitPath ? "outfit-try-on" : "")) ||
+      sceneName ||
+      (outfitPath ? "Outfit try-on" : "erotic couple scene");
   }
 
   // Scene table used to repeat LOOK; the wrapper owns look now.
