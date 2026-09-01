@@ -735,9 +735,14 @@ function CreateInner() {
               </p>
               <div className="flex gap-3 text-sm">
                 {previews.some((p) => p.saved) && (
-                  <Link href="/library" className="underline text-[var(--text)]">
-                    Open library
-                  </Link>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span role="status" aria-live="polite" className="font-semibold text-[var(--text)]">
+                      ✓ Kept in Library
+                    </span>
+                    <Link href="/library" className="underline text-[var(--text)]">
+                      Open library
+                    </Link>
+                  </div>
                 )}
               </div>
             </div>
