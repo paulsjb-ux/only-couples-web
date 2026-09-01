@@ -1240,3 +1240,14 @@ button,
     min-width: 0;
   }
 }
+
+
+/* Authoritative button system */
+:root { --tor-control-height: 48px; --tor-choice-height: 44px; --tor-control-radius: 999px; }
+.btn, .btn-primary, .btn-secondary, .btn-studio-primary, .btn-studio-secondary, .btn-danger { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-height: var(--tor-control-height); padding: .75rem 1.125rem; border-radius: var(--tor-control-radius); border: 1px solid transparent; font: inherit; font-size: .875rem; font-weight: 700; line-height: 1.2; text-align: center; text-decoration: none; white-space: normal; box-sizing: border-box; cursor: pointer; transition: transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease, opacity .15s ease; }
+.btn-primary, .btn-studio-primary { color: #fff; background: linear-gradient(135deg, var(--tor-accent, #8b4a54), var(--tor-accent-2, #6f3540)); box-shadow: 0 8px 24px rgba(139,74,84,.24); }
+.btn-secondary, .btn-studio-secondary { color: var(--tor-text, #1a1614); background: #fff; border-color: var(--tor-line, rgba(26,22,20,.14)); box-shadow: 0 2px 8px rgba(26,22,20,.06); }
+.btn-danger { color: #8f2834; background: #fff7f7; border-color: rgba(143,40,52,.28); }
+.tor-chip { display: inline-flex; align-items: center; justify-content: center; min-height: var(--tor-choice-height); padding: .625rem .875rem; border-radius: var(--tor-control-radius); border: 1px solid var(--tor-line, rgba(26,22,20,.14)); background: #fff; color: var(--tor-text, #1a1614); font-size: .875rem; font-weight: 600; line-height: 1.2; text-align: center; white-space: normal; box-sizing: border-box; }
+.tor-chip-on { color: #fff; background: linear-gradient(135deg, var(--tor-accent, #8b4a54), var(--tor-accent-2, #6f3540)); border-color: transparent; box-shadow: 0 4px 12px rgba(139,74,84,.22); }
+.btn:disabled, .btn-primary:disabled, .btn-secondary:disabled, .btn-studio-primary:disabled, .btn-studio-secondary:disabled, .btn-danger:disabled, .tor-chip:disabled { opacity: .52; cursor: not-allowed; box-shadow: none; transform: none; }
