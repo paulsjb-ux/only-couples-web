@@ -495,7 +495,7 @@ export async function POST(req: NextRequest) {
       identityAsset
         ? "Reference 1 is the scene to correct. Reference 2 is the only person's identity. Preserve that face exactly."
         : "Reference 1 is the scene to correct. Preserve the remaining subject's face and identity exactly.",
-      "Reconstruct the bedroom background naturally where anyone is removed. Preserve the selected subject's pose, clothing, anatomy, lighting, framing and photographic realism.",
+      "Reconstruct the original SCENE background naturally where anyone is removed. Preserve the original location, time of day, weather, lighting and framing exactly; never change a street, bathroom or other instructed setting into a bedroom. Preserve the selected subject's pose, clothing, anatomy and photographic realism.",
       "Do not add a partner, lover, duplicate or implied second person. No one may touch, hold or appear beside the subject.",
     ].join(" ");
 
