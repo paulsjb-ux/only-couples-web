@@ -7,6 +7,13 @@ import { createClient } from "@/lib/supabase/client";
 
 type Mood = "soft" | "playful" | "intense";
 
+type SceneRow = {
+  id?: string | null;
+  tab?: string | null;
+  title?: string | null;
+  prompt?: string | null;
+};
+
 type SceneTemplate = {
   id: string;
   name: string;
@@ -281,7 +288,7 @@ export default function ScenesPage() {
       try {
         const { data, error } = await supabase.storage
           .from("library")
-          .createSignedUrl(c, 60 * 60 * 6, transform as any);
+          .createSignedUrl(c, 60 * 60 * 6, transform);
         if (!error && data?.signedUrl) return { url: data.signedUrl, path: c };
         // Fallback without transform if project has transforms disabled
         if (transform) {
@@ -330,7 +337,7 @@ export default function ScenesPage() {
           "zen-carpet-kneel", "zen-cocks-around", "zen-collar-three",
         ]);
 
-        const inferPrefer = (row: any): string[] => {
+        const inferPrefer = (row: SceneRow): string[] => {
           const id = String(row.id || "");
           const prompt = String(row.prompt || "").toLowerCase();
           if (id === "spicy-ffm" || prompt.includes("man {p1}, woman {p2}, woman {p3}")) {
@@ -347,7 +354,7 @@ export default function ScenesPage() {
           return ["wife", "husband"];
         };
 
-        const mappedTemplates: SceneTemplate[] = sceneRows.map((row: any) => {
+        const mappedTemplates: SceneTemplate[] = (sceneRows as SceneRow[]).map((row) => {
           const id = String(row.id);
           const local = TEMPLATES.find((t) => t.id === id);
           const tab = String(row.tab || "soft").toLowerCase();
@@ -378,7 +385,7 @@ export default function ScenesPage() {
             .from("people")
             .createSignedUrl(person.photo_path, 60 * 60, {
               transform: { width: 200, height: 260, resize: "cover" },
-            } as any);
+            });
           // fallback no transform
           let url = signed?.signedUrl;
           if (!url) {
