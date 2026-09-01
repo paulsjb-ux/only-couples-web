@@ -193,7 +193,7 @@ function CreateInner() {
           storagePath: row.storage_path,
         };
       });
-      setOutfitPresets(presets);
+            if (presets.length > 0) setOutfitPresets(presets);
     } catch {
       // Manual upload remains available if Supabase outfit loading is unavailable.
     }
