@@ -129,9 +129,9 @@ function CreateInner() {
   const [outfitPreview, setOutfitPreview] = useState<string | null>(null);
   const [outfitWearer, setOutfitWearer] = useState("wife");
   const [outfitPresets, setOutfitPresets] = useState<OutfitPreset[]>(BUNDLED_OUTFIT_PRESETS);
-  const [outfitCategory, setOutfitCategory] = useState<OutfitPreset["category"]>("soft");
+  const [outfitCategory, setOutfitCategory] = useState<OutfitPreset["category"] | "">("");
   const [pickedOutfitPreset, setPickedOutfitPreset] = useState<string | null>(null);
-  const [presetGroup, setPresetGroup] = useState<"women" | "men">("women");
+  const [presetGroup, setPresetGroup] = useState<"women" | "men" | "">("");
   const outfitFileRef = useRef<HTMLInputElement | null>(null);
   const [busy, setBusy] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -892,13 +892,14 @@ function CreateInner() {
                 id="outfit-category"
                 className="tor-select mb-3"
                 value={outfitCategory}
-                onChange={(event) => setOutfitCategory(event.target.value as OutfitPreset["category"])}
+                onChange={(event) => setOutfitCategory(event.target.value as OutfitPreset["category"] | "")}
               >
+                <option value="">Choose an outfit style</option>
                 {OUTFIT_CATEGORY_ORDER.map((category) => (
                   <option key={category} value={category}>{OUTFIT_CATEGORY_LABELS[category]}</option>
                 ))}
               </select>
-              {[outfitCategory].map((category) => {
+              {outfitCategory && [outfitCategory].map((category) => {
                 const items = outfitPresets.filter((item) => item.category === category);
                 if (!items.length) return null;
                 return (
@@ -1174,8 +1175,9 @@ function CreateInner() {
           id="preset-group"
           className="tor-select mb-3"
           value={presetGroup}
-          onChange={(event) => setPresetGroup(event.target.value as "women" | "men")}
+          onChange={(event) => setPresetGroup(event.target.value as "women" | "men" | "")}
         >
+          <option value="">Choose preset people</option>
           <option value="women">6 women</option>
           <option value="men">6 men</option>
         </select>
