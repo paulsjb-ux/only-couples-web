@@ -972,3 +972,271 @@ body.tor-lightbox-open { overflow: hidden; }
 /* Zen club */
 .studio-hero h1 { letter-spacing: -0.01em; }
 
+/* UI fit + readability patch — 2026-09-01
+   Keeps the existing dark, warm identity while making every surface responsive. */
+
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+body {
+  min-height: 100dvh;
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+}
+
+main,
+section,
+article,
+.card,
+.studio-hero,
+.tor-stack {
+  min-width: 0;
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+a,
+button,
+label,
+span {
+  overflow-wrap: anywhere;
+}
+
+.text-xs,
+.tor-help,
+.meta {
+  font-size: max(0.8125rem, 13px);
+  line-height: 1.45;
+}
+
+.text-\[10px\] {
+  font-size: max(0.75rem, 12px);
+  line-height: 1.45;
+}
+
+.text-\[var\(--muted\)\],
+.tor-help,
+.meta {
+  color: color-mix(in srgb, var(--muted, #c9bdb0) 88%, white);
+}
+
+/* Consistent controls and accessible iPhone touch targets */
+button,
+.btn,
+[role="button"],
+input,
+select,
+textarea,
+.tor-chip,
+.tor-select {
+  max-width: 100%;
+}
+
+button,
+.btn,
+[role="button"],
+.tor-chip {
+  min-height: 44px;
+}
+
+.btn,
+.tor-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.25;
+}
+
+.btn-studio-primary {
+  box-shadow: 0 8px 24px rgba(139, 74, 84, 0.22);
+}
+
+/* Neat, responsive scene/outfit/preset cards */
+.tor-preset-grid,
+.tor-face-row,
+.tor-chip-grid,
+.scene-grid,
+.outfit-grid,
+.preset-grid {
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: repeat(auto-fit, minmax(min(9rem, 100%), 1fr));
+}
+
+.tor-preset-cell,
+.tor-face-chip,
+.scene-card,
+.outfit-card,
+.preset-card {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.tor-preset-cell .frame,
+.tor-face-chip .frame,
+.scene-card .frame,
+.outfit-card .frame,
+.preset-card .frame,
+[data-thumbnail] {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+}
+
+.tor-preset-cell .frame img,
+.tor-face-chip .frame img,
+.scene-card .frame img,
+.outfit-card .frame img,
+.preset-card .frame img,
+[data-thumbnail] img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+/* Generated images are never cropped */
+.tor-preview-grid {
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 1fr));
+}
+
+.tor-preview-frame {
+  width: 100%;
+  min-width: 0;
+  height: auto;
+  min-height: 12rem;
+  max-height: min(72dvh, 56rem);
+  aspect-ratio: auto;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0c0b0a;
+}
+
+.tor-preview-frame img,
+.tor-preview-frame .tor-img,
+.generated-image,
+[data-generated-preview] img,
+[data-full-image] img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: min(72dvh, 56rem);
+  object-fit: contain;
+  object-position: center;
+}
+
+/* Viewers and modals stay inside the real mobile viewport */
+[role="dialog"],
+.modal,
+.image-viewer,
+.lightbox {
+  width: min(100% - 1rem, 72rem);
+  max-width: calc(100vw - 1rem);
+  max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 1rem);
+  margin: max(0.5rem, env(safe-area-inset-top)) auto max(0.5rem, env(safe-area-inset-bottom));
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+[role="dialog"] img,
+.modal img,
+.image-viewer img,
+.lightbox img {
+  width: 100%;
+  height: auto;
+  max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 7rem);
+  object-fit: contain;
+}
+
+[role="dialog"] button,
+.modal button,
+.image-viewer button,
+.lightbox button {
+  position: relative;
+  z-index: 2;
+}
+
+/* Mobile-first spacing and overflow protection */
+@media (max-width: 640px) {
+  :root {
+    --safe: max(1rem, env(safe-area-inset-left), env(safe-area-inset-right));
+  }
+
+  body {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .nav {
+    padding-top: max(0.875rem, env(safe-area-inset-top));
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+
+  main,
+  .studio-shell,
+  .studio-main {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .card,
+  .studio-hero {
+    width: 100%;
+    max-width: 100% !important;
+    padding-left: clamp(0.875rem, 4vw, 1.25rem);
+    padding-right: clamp(0.875rem, 4vw, 1.25rem);
+  }
+
+  .tor-select-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tor-chip-grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tor-preset-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tor-preview-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tor-preview-frame,
+  .tor-preview-frame img,
+  .tor-preview-frame .tor-img {
+    max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 9rem);
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  .flex {
+    min-width: 0;
+  }
+}
