@@ -62,8 +62,11 @@ export function CreateScreen() {
       const result = await generateImages(state);
       Alert.alert("Started", "Generation submitted.");
       return result;
-    } catch (e: any) {
-      Alert.alert("Error", e?.message ?? "Generate failed");
+    } catch (error: unknown) {
+      Alert.alert(
+        "Error",
+        error instanceof Error ? error.message : "Generate failed"
+      );
     } finally {
       setBusy(false);
     }
