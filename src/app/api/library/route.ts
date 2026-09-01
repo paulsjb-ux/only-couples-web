@@ -124,7 +124,7 @@ export async function GET() {
 
 /**
  * POST — Keep: always store a durable file under {studio}/kept/
- * Body: { url, path?, kind?, prompt? }
+ * Body: { id?, url, path?, kind?, prompt? }
  */
 export async function POST(req: NextRequest) {
   const ctx = await studioOf();
@@ -133,6 +133,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => ({}));
   const url = body.url ? String(body.url) : "";
+  const sourceId = body.id ? String(body.id) : null;
   let path = body.path ? String(body.path) : null;
   const kind = String(body.kind || "image");
   const prompt = String(body.prompt || "");
@@ -206,20 +207,37 @@ export async function POST(req: NextRequest) {
   };
   if (storagePath) row.storage_path = storagePath;
 
-  const { data, error } = await supabase.from("generations").insert(row).select("id").single();
+  const mutation = sourceId
+    ? supabase
+        .from("generations")
+        .update(row)
+        .eq("id", sourceId)
+        .eq("studio_id", studioId)
+        .select("id")
+        .single()
+    : supabase.from("generations").insert(row).select("id").single();
+
+  const { data, error } = await mutation;
 
   if (error) {
     // Retry without optional columns
-    const { data: data2, error: err2 } = await supabase
-      .from("generations")
-      .insert({
-        studio_id: studioId,
-        kind,
-        prompt,
-        result_url: finalUrl,
-      })
-      .select("id")
-      .single();
+    const fallbackRow = {
+      studio_id: studioId,
+      kind,
+      prompt,
+      result_url: finalUrl,
+      status: "kept",
+    };
+    const fallbackMutation = sourceId
+      ? supabase
+          .from("generations")
+          .update(fallbackRow)
+          .eq("id", sourceId)
+          .eq("studio_id", studioId)
+          .select("id")
+          .single()
+      : supabase.from("generations").insert(fallbackRow).select("id").single();
+    const { data: data2, error: err2 } = await fallbackMutation;
     if (err2) return NextResponse.json({ error: err2.message }, { status: 500 });
     return NextResponse.json({
       ok: true,
