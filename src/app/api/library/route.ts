@@ -68,6 +68,7 @@ export async function GET() {
     .from("generations")
     .select("id, result_url, storage_path, prompt, kind, created_at, status")
     .eq("studio_id", studioId)
+    .eq("status", "kept")
     .order("created_at", { ascending: false })
     .limit(80);
 
