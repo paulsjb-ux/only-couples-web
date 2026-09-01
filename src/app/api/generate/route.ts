@@ -481,13 +481,83 @@ export async function POST(req: NextRequest) {
     return urls[0] || sourceUrl;
   }
 
+  async function enforceSoloGeneratedImage(sourceUrl: string): Promise<string | null> {
+    if (!isSolo) return sourceUrl;
+
+    const sourceBytes = await (await fetch(sourceUrl)).arrayBuffer();
+    const sourceAsset = await zenUpload(zenKey, sourceBytes, "solo-scene-with-extra-person.jpg");
+    const identityAsset = personAssetIds[0];
+    const imageAssets = identityAsset ? [sourceAsset, identityAsset] : [sourceAsset];
+    const subject = labels[0] || "the selected subject";
+    const prompt = [
+      "SOLO ENFORCEMENT EDIT: the finished image must contain exactly one adult person in total.",
+      `Keep only the ${subject}. Remove every other person completely, including partial bodies, faces, hands, limbs, reflections, shadows and background figures.`,
+      identityAsset
+        ? "Reference 1 is the scene to correct. Reference 2 is the only person's identity. Preserve that face exactly."
+        : "Reference 1 is the scene to correct. Preserve the remaining subject's face and identity exactly.",
+      "Reconstruct the bedroom background naturally where anyone is removed. Preserve the selected subject's pose, clothing, anatomy, lighting, framing and photographic realism.",
+      "Do not add a partner, lover, duplicate or implied second person. No one may touch, hold or appear beside the subject.",
+    ].join(" ");
+
+    const submit = await fetch(`${ZEN_BASE}/generations`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${zenKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        tool: "image_editor",
+        input: {
+          image_assets: imageAssets,
+          prompt,
+          ratio: "3:4",
+          number_of_images: 1,
+          model: "SEEDREAM_5_PRO",
+        },
+      }),
+    });
+
+    const submitted = await submit.json().catch(() => ({}));
+    if (!submit.ok) {
+      throw new Error(submitted.error?.message || submitted.message || `Solo cleanup failed ${submit.status}`);
+    }
+
+    let urls = extractUrls(submitted);
+    const genId = submitted.id || submitted.generation_id || submitted.data?.id;
+    if (!urls.length && genId) {
+      for (let i = 0; i < 32; i++) {
+        await new Promise((r) => setTimeout(r, 2500));
+        const poll = await fetch(`${ZEN_BASE}/generations/${genId}`, {
+          headers: { Authorization: `Bearer ${zenKey}` },
+        });
+        const polled = await poll.json().catch(() => ({}));
+        urls = extractUrls(polled);
+        if (!urls.length) {
+          try {
+            const resultRes = await fetch(`${ZEN_BASE}/generations/${genId}/result`, {
+              headers: { Authorization: `Bearer ${zenKey}` },
+            });
+            urls = extractUrls(await resultRes.json().catch(() => ({})));
+          } catch {
+            // ignore
+          }
+        }
+        if (urls.length) break;
+        const status = String(polled.status || polled.state || "").toLowerCase();
+        if (["failed", "error", "cancelled"].includes(status)) break;
+      }
+    }
+    return urls[0] || sourceUrl;
+  }
+
   const urls: string[] = [];
   const errors: string[] = [];
   for (let i = 0; i < versions; i++) {
     try {
       const firstPass = await runOne(i);
       if (firstPass) {
-        const finalUrl = applyOutfitSecondPass ? await applyOutfitToGeneratedImage(firstPass) : firstPass;
+        const outfitUrl = applyOutfitSecondPass ? await applyOutfitToGeneratedImage(firstPass) : firstPass;
+        const finalUrl = outfitUrl && isSolo ? await enforceSoloGeneratedImage(outfitUrl) : outfitUrl;
         if (finalUrl) urls.push(finalUrl);
         else errors.push(`v${i + 1}: outfit pass returned no url`);
       } else {
