@@ -76,7 +76,7 @@ export default function LibraryPage() {
       try {
         const { data, error } = await supabase.storage
           .from("library")
-          .createSignedUrl(p, 60 * 60 * 6, transform as any);
+          .createSignedUrl(p, 60 * 60 * 6, transform);
         if (!error && data?.signedUrl) return { url: data.signedUrl, path: p };
         if (transform) {
           const plain = await supabase.storage
