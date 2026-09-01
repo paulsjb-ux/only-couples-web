@@ -196,6 +196,9 @@ export async function POST(req: NextRequest) {
       ? ["wife", "husband"]
       : [who].filter(Boolean);
 
+  const isSolo = wanted.length === 1;
+  const maxPersonReferences = isSolo ? 1 : 3;
+
   const peopleRows = (people || []) as PersonRecord[];
   const castPeople = peopleRows.filter((p) => wanted.includes(p.role || ""));
   castPeople.sort((a, b) => wanted.indexOf(a.role || "") - wanted.indexOf(b.role || ""));
@@ -205,22 +208,22 @@ export async function POST(req: NextRequest) {
   const chosen: PathItem[] = [];
 
   for (const person of refs) {
-    if (person.photo_path && chosen.length < 3) {
+    if (person.photo_path && chosen.length < maxPersonReferences) {
       chosen.push({ role: person.role, kind: "face", path: person.photo_path });
     }
   }
 
-  if (chosen.length < 3) {
+  if (chosen.length < maxPersonReferences) {
     for (const person of refs) {
-      if (chosen.length >= 3) break;
+      if (chosen.length >= maxPersonReferences) break;
       if (person.photo_body) {
         chosen.push({ role: person.role, kind: "body", path: person.photo_body });
       }
     }
   }
-  if (chosen.length < 3) {
+  if (chosen.length < maxPersonReferences) {
     for (const person of refs) {
-      if (chosen.length >= 3) break;
+      if (chosen.length >= maxPersonReferences) break;
       if (person.photo_angle) {
         chosen.push({ role: person.role, kind: "angle", path: person.photo_angle });
       }
@@ -301,8 +304,8 @@ export async function POST(req: NextRequest) {
   );
   core = core
     .replace(/\{p1\}/g, labels[0] || "the woman")
-        .replace(/\{p2\}/g, labels[1] || labels[0] || "the subject")
-        .replace(/\{p3\}/g, labels[2] || labels[0] || "the subject");
+    .replace(/\{p2\}/g, labels[1] || "the man")
+    .replace(/\{p3\}/g, labels[2] || "the third person");
 
   const refParts = chosen.map(
     (c, i) => `reference ${i + 1} is the ${c.role.replace(/_/g, " ")} ${c.kind} photo`
@@ -312,9 +315,13 @@ export async function POST(req: NextRequest) {
   }
   const refGuide = refParts.join("; ");
   const whoLine =
-      wanted.length === 1
-          ? `WHO: SOLO CAST LOCK — exactly one adult in the entire image: ${labels[0] || "the subject"}. ${refGuide}. No partner, companion, background person, reflection, partial second body, extra hands or extra limbs. Ignore any conflicting scene wording that implies another person.`
+    isSolo
+      ? `WHO: exactly one adult — ${labels[0] || "the subject"}. ${refGuide}. Do not add anyone else.`
       : `WHO: exactly ${refs.length} adults — ${labels.join(" and ")}. ${refGuide}. Do not add extra people or extra genitals. Do not change anyone's race, skin tone, age, or hair to match a stereotype in the scene text. The uploaded faces win.`;
+
+  const soloGuard = isSolo
+    ? "SOLO OVERRIDE: exactly one adult in the entire image. Do not add a partner, lover, second person, duplicate, reflection, background figure, extra face, hand, limb, shadow or partial body. Ignore any scene wording that implies another person; show the selected subject alone."
+    : "";
 
   const faceLock =
     "FACE LOCK: use the face photos as identity. Same bone structure, eyes, nose, mouth, skin tone, hair colour and style as the face references. Body photos are only for body shape and posture — do not change the face from the face references. Do not invent a different person. Do not beautify into a model.";
@@ -336,12 +343,12 @@ export async function POST(req: NextRequest) {
 
   const locationGuard = SHOWER_SCENES.has(sceneId)
     ? "Setting: bathroom shower as described."
-        : "SETTING LOCK: bedroom only unless SCENE explicitly names a different non-bathroom location. If no location is named, use a bedroom with a bed and bedding. Never use a shower, bathroom, wet tiles, steam or running water.";
+    : "Setting: match the SCENE room. Not a shower unless the scene is a shower scene.";
 
   const avoidLine = `AVOID: ${GLOBAL_NEGATIVES}`;
 
   // Scene act comes before look so the shot list wins.
-  const promptBase = [whoLine, faceLock, anatomy, outfitLock, `SCENE: ${core}`, bodyLock, locationGuard, look, avoidLine]
+  const promptBase = [whoLine, faceLock, anatomy, outfitLock, `SCENE: ${core}`, soloGuard, bodyLock, locationGuard, look, avoidLine]
     .filter(Boolean)
     .join(" ");
 
