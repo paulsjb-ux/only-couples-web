@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const url = body.url ? String(body.url) : "";
   const sourceId = body.id ? String(body.id) : null;
-  let path = body.path ? String(body.path) : null;
+  const path = body.path ? String(body.path) : null;
   const kind = String(body.kind || "image");
   const prompt = String(body.prompt || "");
 
