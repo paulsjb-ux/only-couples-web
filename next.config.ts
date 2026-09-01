@@ -72,12 +72,7 @@ function buildOutfitManifest() {
 buildOutfitManifest();
 
 const nextConfig: NextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
+  // Keep production deploys honest: type and lint failures must fail the build.
 };
 
 export default nextConfig;
