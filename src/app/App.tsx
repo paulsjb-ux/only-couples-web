@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { SceneCard } from "../scene-card/SceneCard";
-import { LibraryCard } from "../library/LibraryCard";
-import { SoftPage } from "../soft/SoftPage";
+import { SceneCard } from "../SceneCard";
+import { LibraryCard } from "../LibraryCard";
+import { SoftPage } from "../SoftPage";
 
 // Placeholder images – replace with your real cast / result URLs
 const PLACEHOLDER_WOMAN =
