@@ -99,6 +99,12 @@ export default function PeoplePage() {
       }
     }
 
+    if (!sid) {
+      setMessage("Studio not ready. Please try again.");
+      setLoading(false);
+      return;
+    }
+
     setStudioId(sid);
     await loadPeople(sid);
     setMessage("A clear face photo is essential. Body and angle help the likeness hold.");
