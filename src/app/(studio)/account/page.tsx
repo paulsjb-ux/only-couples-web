@@ -100,23 +100,6 @@ export default function AccountPage() {
           )}
         </div>
 
-        {/* Credits */}
-        <div className="card">
-          <div className="section-kicker">Credits</div>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 12 }}>
-            <span style={{ fontSize: "1.75rem", fontWeight: 700, letterSpacing: "-0.02em" }}>20</span>
-            <span style={{ fontSize: "0.875rem", color: "var(--tor-muted, #5c534c)" }}>
-              remaining
-            </span>
-          </div>
-          <p className="text-xs mb-4" style={{ color: "var(--muted)" }}>
-            Images cost 1 credit · Videos cost 2 credits
-          </p>
-          <button type="button" className="btn btn-studio-secondary">
-            Buy more credits
-          </button>
-        </div>
-
         {/* App version */}
         <div className="card">
           <div className="section-kicker">App version</div>
