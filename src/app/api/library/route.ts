@@ -239,6 +239,21 @@ export async function POST(req: NextRequest) {
           .single()
       : supabase.from("generations").insert(fallbackRow).select("id").single();
     const { data: data2, error: err2 } = await fallbackMutation;
+    if (err2 && sourceId) {
+      // The preview may have completed after the browser navigated away, leaving
+      // an ID the current session cannot update. Insert the durable kept row
+      // instead of reporting failure after the storage copy already succeeded.
+      const { data: inserted, error: insertError } = await supabase
+        .from("generations")
+        .insert(fallbackRow)
+        .select("id")
+        .single();
+      if (insertError) {
+        console.error("keep row update and insert failed", { update: err2, insert: insertError });
+        return NextResponse.json({ error: insertError.message }, { status: 500 });
+      }
+      return NextResponse.json({ ok: true, id: inserted?.id, path: storagePath, url: finalUrl });
+    }
     if (err2) return NextResponse.json({ error: err2.message }, { status: 500 });
     return NextResponse.json({
       ok: true,
