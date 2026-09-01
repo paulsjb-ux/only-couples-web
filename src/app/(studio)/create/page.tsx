@@ -768,7 +768,7 @@ function CreateInner() {
                   <div className="flex flex-wrap gap-2 mt-2">
                     <button
                       type="button"
-                      className="btn btn-studio-primary text-xs px-3 py-1.5"
+                                            className="btn btn-studio-primary"
                       onClick={() => saveOne(index)}
                       disabled={busy || item.saved}
                     >
@@ -776,7 +776,7 @@ function CreateInner() {
                     </button>
                     <button
                       type="button"
-                      className="rounded-full px-3 py-1.5 text-xs font-bold bg-white border border-[var(--line)] text-[var(--text)]"
+                                            className="btn btn-studio-secondary"
                       onClick={() => downloadOne(index)}
                       disabled={busy}
                     >
@@ -784,7 +784,7 @@ function CreateInner() {
                     </button>
                     <button
                       type="button"
-                      className="rounded-full px-3 py-1.5 text-xs font-bold bg-white border border-[var(--line)] text-[var(--text)]"
+                                            className="btn btn-danger"
                       onClick={() => deleteOne(index)}
                       disabled={busy}
                     >
