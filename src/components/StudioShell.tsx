@@ -409,7 +409,6 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
             position: "relative",
             zIndex: 1,
             pointerEvents: "auto",
-            maxWidth: "100%",
             overflowX: "hidden",
           }}
         >
