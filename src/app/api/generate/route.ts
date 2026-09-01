@@ -190,13 +190,35 @@ export async function POST(req: NextRequest) {
 
   const { data: people } = await supabase.from("people").select("*").eq("studio_id", studioId);
 
-  const wanted = who.includes(",")
+  let sceneMeta: {
+    id: string;
+    tab: string;
+    title: string | null;
+    prompt: string;
+    cast_count: number | null;
+    location: string | null;
+    is_solo: boolean;
+  } | null = null;
+  if (sceneId) {
+    const { data, error } = await supabase
+      .from("scenes")
+      .select("id,tab,title,prompt,cast_count,location,is_solo")
+      .eq("id", sceneId)
+      .maybeSingle();
+    if (error) console.error("Supabase scene metadata lookup failed", error);
+    else sceneMeta = data;
+  }
+
+  const requestedPeople = who.includes(",")
     ? who.split(",").map((s: string) => s.trim()).filter(Boolean)
     : who === "couple"
       ? ["wife", "husband"]
       : [who].filter(Boolean);
 
-  const isSolo = wanted.length === 1;
+  const isSolo = Boolean(sceneMeta?.is_solo || sceneMeta?.cast_count === 1 || requestedPeople.length === 1);
+  const wanted = isSolo ? requestedPeople.slice(0, 1) : requestedPeople;
+  const isAfterDark = String(sceneMeta?.tab || "").toLowerCase().replace(/[ -]/g, "") === "afterdark";
+  const generationModel = isAfterDark ? "FLUX_KLEIN_SPICY" : "SEEDREAM_5_PRO";
   const maxPersonReferences = isSolo ? 1 : 3;
 
   const peopleRows = (people || []) as PersonRecord[];
@@ -274,20 +296,7 @@ export async function POST(req: NextRequest) {
     assetIds.push(outfitAssetId);
   }
 
-  let core = "";
-  if (sceneId) {
-    const { data: dbScene, error: dbSceneError } = await supabase
-      .from("scenes")
-      .select("id,tab,title,prompt")
-      .eq("id", sceneId)
-      .maybeSingle();
-
-    if (!dbSceneError && dbScene?.prompt) {
-      core = String(dbScene.prompt);
-    } else if (dbSceneError) {
-      console.error("Supabase scene lookup failed", dbSceneError);
-    }
-  }
+  let core = sceneMeta?.prompt ? String(sceneMeta.prompt) : "";
 
   if (!core) {
     core =
@@ -364,17 +373,17 @@ export async function POST(req: NextRequest) {
           prompt,
           ratio: "3:4",
           number_of_images: 1,
-          model: "SEEDREAM_5_PRO",
+          model: generationModel,
         }
       : {
           positive_prompt: prompt,
           negative_prompt: GLOBAL_NEGATIVES,
           ratio: "3:4",
           batch_size: 1,
-          model: "SEEDREAM_5_PRO",
+          model: generationModel,
         };
 
-    const submit = await fetch(`${ZEN_BASE}/generations`, {
+    let submit = await fetch(`${ZEN_BASE}/generations`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${zenKey}`,
@@ -382,7 +391,18 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({ tool, input }),
     });
-    const submitted = await submit.json().catch(() => ({}));
+    let submitted = await submit.json().catch(() => ({}));
+    if (!submit.ok && isAfterDark && [400, 404, 422].includes(submit.status)) {
+      submit = await fetch(`${ZEN_BASE}/generations`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${zenKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ tool, input: { ...input, model: "SEEDREAM_5_PRO" } }),
+      });
+      submitted = await submit.json().catch(() => ({}));
+    }
     if (!submit.ok) {
       throw new Error(submitted.error?.message || submitted.message || `Zen error ${submit.status}`);
     }
