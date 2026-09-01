@@ -301,8 +301,8 @@ export async function POST(req: NextRequest) {
   );
   core = core
     .replace(/\{p1\}/g, labels[0] || "the woman")
-    .replace(/\{p2\}/g, labels[1] || "the man")
-    .replace(/\{p3\}/g, labels[2] || "the third person");
+        .replace(/\{p2\}/g, labels[1] || labels[0] || "the subject")
+        .replace(/\{p3\}/g, labels[2] || labels[0] || "the subject");
 
   const refParts = chosen.map(
     (c, i) => `reference ${i + 1} is the ${c.role.replace(/_/g, " ")} ${c.kind} photo`
@@ -312,8 +312,8 @@ export async function POST(req: NextRequest) {
   }
   const refGuide = refParts.join("; ");
   const whoLine =
-    refs.length <= 1
-      ? `WHO: exactly one adult — ${labels[0] || "the subject"}. ${refGuide}. Do not add anyone else.`
+      wanted.length === 1
+          ? `WHO: SOLO CAST LOCK — exactly one adult in the entire image: ${labels[0] || "the subject"}. ${refGuide}. No partner, companion, background person, reflection, partial second body, extra hands or extra limbs. Ignore any conflicting scene wording that implies another person.`
       : `WHO: exactly ${refs.length} adults — ${labels.join(" and ")}. ${refGuide}. Do not add extra people or extra genitals. Do not change anyone's race, skin tone, age, or hair to match a stereotype in the scene text. The uploaded faces win.`;
 
   const faceLock =
@@ -336,7 +336,7 @@ export async function POST(req: NextRequest) {
 
   const locationGuard = SHOWER_SCENES.has(sceneId)
     ? "Setting: bathroom shower as described."
-    : "Setting: match the SCENE room. Not a shower unless the scene is a shower scene.";
+        : "SETTING LOCK: bedroom only unless SCENE explicitly names a different non-bathroom location. If no location is named, use a bedroom with a bed and bedding. Never use a shower, bathroom, wet tiles, steam or running water.";
 
   const avoidLine = `AVOID: ${GLOBAL_NEGATIVES}`;
 
