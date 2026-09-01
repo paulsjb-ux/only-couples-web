@@ -239,7 +239,7 @@ function CreateInner() {
   /** Apply preset: save body/look AND upload the preset JPG so generate gets a face ref */
   async function applyPreset(preset: LoverPreset) {
     if (!studioId) {
-      alert("Studio not ready");
+      setNote("Studio not ready");
       return;
     }
     const role = preset.sex === "f" ? "female_lover" : "male_lover";
@@ -276,8 +276,7 @@ function CreateInner() {
       setNote(`Using ${preset.name} as ${role === "female_lover" ? "female lover" : "male lover"}`);
       await load();
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Could not apply preset");
-      setNote("");
+      setNote(err instanceof Error ? err.message : "Could not apply preset");
     } finally {
       setBusy(false);
     }
@@ -286,7 +285,7 @@ function CreateInner() {
   /** Upload a photo from phone/Mac into a cast role */
   async function uploadCastPhoto(file: File, role: string) {
     if (!studioId) {
-      alert("Studio not ready");
+      setNote("Studio not ready");
       return;
     }
     setBusy(true);
@@ -310,8 +309,7 @@ function CreateInner() {
       setNote(`Photo set for ${ALL_ROLES.find((r) => r.key === role)?.label || role}`);
       await load();
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Upload failed");
-      setNote("");
+      setNote(err instanceof Error ? err.message : "Upload failed");
     } finally {
       setBusy(false);
     }
@@ -320,7 +318,7 @@ function CreateInner() {
 
   async function applyOutfitPreset(preset: OutfitPreset) {
     if (!studioId) {
-      alert("Studio not ready");
+      setNote("Studio not ready");
       return;
     }
     setBusy(true);
@@ -348,8 +346,7 @@ function CreateInner() {
       setPickedOutfitPreset(preset.id);
       setNote(`${preset.name} ready — choose who wears it, then generate.`);
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Could not select outfit");
-      setNote("");
+      setNote(err instanceof Error ? err.message : "Could not select outfit");
     } finally {
       setBusy(false);
     }
@@ -357,7 +354,7 @@ function CreateInner() {
 
   async function uploadOutfit(file: File) {
     if (!studioId) {
-      alert("Studio not ready");
+      setNote("Studio not ready");
       return;
     }
     setBusy(true);
@@ -377,8 +374,7 @@ function CreateInner() {
       setPickedOutfitPreset(null);
       setNote("Outfit ready — choose who wears it, then generate.");
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Outfit upload failed");
-      setNote("");
+      setNote(err instanceof Error ? err.message : "Outfit upload failed");
     } finally {
       setBusy(false);
     }
@@ -452,13 +448,13 @@ function CreateInner() {
     if (generateInFlightRef.current) return;
     generateInFlightRef.current = true;
     if (selected.length === 0) {
-      alert("Choose at least one person");
+      setNote("Choose at least one person");
       generateInFlightRef.current = false;
       return;
     }
     const missing = selected.filter((r) => !allFaces.some((f) => f.role === r && f.url));
     if (missing.length) {
-      alert(
+      setNote(
         `Add a photo for: ${missing
           .map((r) => ALL_ROLES.find((x) => x.key === r)?.label || r)
           .join(", ")}`
@@ -473,7 +469,7 @@ function CreateInner() {
       (sceneName || "").toLowerCase().includes("outfit") ||
       (sceneName || "").toLowerCase().includes("who wore");
     if (needsOutfit && !outfitPath) {
-      alert("Upload an outfit photo first — dress, suit, lingerie, or any look.");
+      setNote("Upload an outfit photo first — dress, suit, lingerie, or any look.");
       generateInFlightRef.current = false;
       return;
     }
@@ -510,7 +506,6 @@ function CreateInner() {
       if (!res.ok) {
         const msg = data.error || data.message || `Generation failed (${res.status})`;
         setNote(msg);
-        alert(msg);
         return;
       }
       const rawItems: { url?: string; path?: string | null; id?: string | null }[] =
@@ -551,7 +546,6 @@ function CreateInner() {
         const recovered = await recoverLatestPreview(generationStartedAt);
         if (recovered) return;
         setNote("No image URL returned from generate");
-        alert("No image URL returned from generate");
         return;
       }
       setPreviews(built);
@@ -570,7 +564,7 @@ function CreateInner() {
     } catch (err: unknown) {
       const recovered = await recoverLatestPreview(generationStartedAt);
       if (!recovered) {
-        alert(
+        setNote(
           err instanceof Error
             ? err.message
             : "The connection ended before the image could be recovered. Please try again."
@@ -586,7 +580,7 @@ function CreateInner() {
     const item = previews[index];
     if (!item || item.saved) return;
     if (!item.url) {
-      alert("No image URL to keep");
+      setNote("No image URL to keep");
       return;
     }
     setBusy(true);
@@ -615,7 +609,6 @@ function CreateInner() {
           data.message ||
           `Keep failed (${res.status}). Check library bucket + generations table.`;
         setNote(msg);
-        alert(msg);
         return;
       }
       setPreviews((prev) =>
@@ -635,7 +628,6 @@ function CreateInner() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Save failed";
       setNote(msg);
-      alert(msg);
     } finally {
       setBusy(false);
     }
@@ -655,7 +647,7 @@ function CreateInner() {
       setPreviews((prev) => prev.filter((_, i) => i !== index));
       setNote("Deleted.");
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Delete failed");
+      setNote(err instanceof Error ? err.message : "Delete failed");
     } finally {
       setBusy(false);
     }
@@ -983,7 +975,15 @@ function CreateInner() {
               ? `Make ${versions} versions`
               : "Make this scene"}
         </button>
-        {note && <p className="text-sm text-[var(--muted)]">{note}</p>}
+        {note && (
+          <p
+            className="text-sm text-[var(--muted)]"
+            role="status"
+            aria-live="polite"
+          >
+            {note}
+          </p>
+        )}
       </div>
 
       {/* Cast */}
