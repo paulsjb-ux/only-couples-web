@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { SceneCard } from "../scene-card/SceneCard";
+import { SceneCard } from "./SceneCard";
 
 // Placeholder images
 const PLACEHOLDER_WOMAN =
