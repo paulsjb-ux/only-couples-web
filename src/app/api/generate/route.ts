@@ -7,6 +7,26 @@ export const maxDuration = 300;
 
 const ZEN_BASE = "https://api.zencreator.pro/api/public/v1";
 
+type PersonRecord = {
+  role?: string;
+  photo_path?: string;
+  photo_body?: string;
+  photo_angle?: string;
+  age?: unknown;
+  body_shape?: unknown;
+  breasts?: unknown;
+  penis?: unknown;
+  look?: unknown;
+};
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : null;
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 function pushUrl(out: string[], v: unknown) {
   if (typeof v === "string" && v.startsWith("http") && !out.includes(v)) out.push(v);
   else if (v && typeof v === "object") {
@@ -17,17 +37,20 @@ function pushUrl(out: string[], v: unknown) {
   }
 }
 
-function extractUrls(payload: any): string[] {
+function extractUrls(payload: unknown): string[] {
   const out: string[] = [];
-  if (!payload || typeof payload !== "object") return out;
-  const bags = [payload, payload.data, payload.result, payload.data?.result, payload.output];
-  for (const bag of bags) {
-    if (!bag || typeof bag !== "object") continue;
+  const root = asRecord(payload);
+  if (!root) return out;
+  const data = asRecord(root.data);
+  const bags: unknown[] = [root, data, root.result, data?.result, root.output];
+  for (const value of bags) {
+    const bag = asRecord(value);
+    if (!bag) continue;
     pushUrl(out, bag.url);
     pushUrl(out, bag.download_url);
     pushUrl(out, bag.image_url);
     for (const key of ["outputs", "images", "results", "files"]) {
-      const arr = (bag as any)[key];
+      const arr = bag[key];
       if (Array.isArray(arr)) {
         for (const item of arr) pushUrl(out, item);
       }
@@ -52,7 +75,7 @@ async function zenUpload(key: string, bytes: ArrayBuffer, name: string) {
   return String(id);
 }
 
-function bodyLine(p: any) {
+function bodyLine(p: PersonRecord) {
   const role = String(p.role || "").replace(/_/g, " ");
   const male = role.includes("husband") || role.includes("male");
   const female = role.includes("wife") || role.includes("female");
@@ -172,9 +195,10 @@ export async function POST(req: NextRequest) {
       ? ["wife", "husband"]
       : [who].filter(Boolean);
 
-  const castPeople = (people || []).filter((p: any) => wanted.includes(p.role));
-  castPeople.sort((a: any, b: any) => wanted.indexOf(a.role) - wanted.indexOf(b.role));
-  const refs = castPeople.filter((p: any) => p.photo_path);
+  const peopleRows = (people || []) as PersonRecord[];
+  const castPeople = peopleRows.filter((p) => wanted.includes(p.role || ""));
+  castPeople.sort((a, b) => wanted.indexOf(a.role || "") - wanted.indexOf(b.role || ""));
+  const refs = castPeople.filter((p) => p.photo_path);
 
   type PathItem = { role: string; kind: "face" | "body" | "angle"; path: string };
   const chosen: PathItem[] = [];
@@ -217,7 +241,7 @@ export async function POST(req: NextRequest) {
   if (outfitPath) {
     try {
       let file: Blob | null = null;
-      let error: any = null;
+      let error: { message?: string } | null = null;
 
       if (outfitPath.startsWith(`${studioId}/`)) {
         const result = await supabase.storage.from("library").download(outfitPath);
@@ -271,7 +295,7 @@ export async function POST(req: NextRequest) {
   // Scene table used to repeat LOOK; the wrapper owns look now.
   core = core.replace(/\s*LOOK:\s*.+$/i, "").trim();
 
-  const labels = (castPeople.length ? castPeople : refs).map((p: any) =>
+  const labels = (castPeople.length ? castPeople : refs).map((p) =>
     p.role.replace(/_/g, " ")
   );
   core = core
@@ -294,9 +318,9 @@ export async function POST(req: NextRequest) {
   const faceLock =
     "FACE LOCK: use the face photos as identity. Same bone structure, eyes, nose, mouth, skin tone, hair colour and style as the face references. Body photos are only for body shape and posture — do not change the face from the face references. Do not invent a different person. Do not beautify into a model.";
 
-  const selectedPeople = (people || []).filter((p: any) => wanted.includes(p.role));
+  const selectedPeople = peopleRows.filter((p) => wanted.includes(p.role || ""));
   const hasBodyHints = selectedPeople.some(
-    (p: any) => p.age || p.body_shape || p.breasts || p.penis || p.look
+    (p) => p.age || p.body_shape || p.breasts || p.penis || p.look
   );
   const bodyNotes = selectedPeople.map(bodyLine).join(". ");
   const bodyLock =
@@ -449,7 +473,7 @@ export async function POST(req: NextRequest) {
     return urls[0] || sourceUrl;
   }
 
-  let urls: string[] = [];
+  const urls: string[] = [];
   const errors: string[] = [];
   for (let i = 0; i < versions; i++) {
     try {
@@ -461,8 +485,8 @@ export async function POST(req: NextRequest) {
       } else {
         errors.push(`v${i + 1}: no url`);
       }
-    } catch (e: any) {
-      errors.push(`v${i + 1}: ${e?.message || e}`);
+    } catch (error: unknown) {
+      errors.push(`v${i + 1}: ${errorMessage(error)}`);
     }
   }
 
