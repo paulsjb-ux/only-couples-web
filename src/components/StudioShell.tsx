@@ -53,6 +53,22 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
     return () => mq.removeEventListener("change", apply);
   }, []);
 
+  useEffect(() => {
+    if (!mobileOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileOpen(false);
+    };
+
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [mobileOpen]);
+
   async function handleLogout() {
     const supabase = createClient();
     await supabase.auth.signOut();
@@ -290,6 +306,8 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
               type="button"
               onClick={() => setMobileOpen(true)}
               aria-label="Open menu"
+              aria-expanded={mobileOpen}
+              aria-controls="studio-mobile-navigation"
               style={{
                 ...TOR_MARK,
                 width: 40,
@@ -306,6 +324,10 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
               <Menu size={20} />
             </button>
             <div
+              id="studio-mobile-navigation"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Studio navigation"
               style={{
                 fontFamily: "var(--font-cormorant), Georgia, serif",
                 fontSize: 16,
