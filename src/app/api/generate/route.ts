@@ -8,7 +8,7 @@ export const maxDuration = 300;
 const ZEN_BASE = "https://api.zencreator.pro/api/public/v1";
 
 type PersonRecord = {
-  role?: string;
+  role: string;
   photo_path?: string;
   photo_body?: string;
   photo_angle?: string;
