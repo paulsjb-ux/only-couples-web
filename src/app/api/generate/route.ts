@@ -161,6 +161,7 @@ export async function POST(req: NextRequest) {
   if (!key) {
     return NextResponse.json({ error: "Missing ZENCREATOR_API_KEY in .env.local" }, { status: 500 });
   }
+  const zenKey: string = key;
 
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
@@ -231,7 +232,7 @@ export async function POST(req: NextRequest) {
     const { data: file, error } = await supabase.storage.from("people").download(item.path);
     if (error || !file) continue;
     const bytes = await file.arrayBuffer();
-    personAssetIds.push(await zenUpload(key, bytes, `${item.role}-${item.kind}.jpg`));
+    personAssetIds.push(await zenUpload(zenKey, bytes, `${item.role}-${item.kind}.jpg`));
   }
 
   let outfitAssetId: string | null = null;
@@ -255,7 +256,7 @@ export async function POST(req: NextRequest) {
 
       if (!error && file) {
         const bytes = await file.arrayBuffer();
-        outfitAssetId = await zenUpload(key, bytes, "outfit-ref.jpg");
+        outfitAssetId = await zenUpload(zenKey, bytes, "outfit-ref.jpg");
         outfitLock =
           `OUTFIT LOCK: use the outfit reference only for clothing. Put the ${wearer} into that exact outfit — same garment, colour, fabric, cut, and details. The ${wearer}'s face and identity must come from their own face reference, never from any person shown in the outfit image. Do not invent different clothes.`;
       }
@@ -369,7 +370,7 @@ export async function POST(req: NextRequest) {
     const submit = await fetch(`${ZEN_BASE}/generations`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${key}`,
+        Authorization: `Bearer ${zenKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ tool, input }),
@@ -386,7 +387,7 @@ export async function POST(req: NextRequest) {
       for (let i = 0; i < maxPolls; i++) {
         await new Promise((r) => setTimeout(r, 2500));
         const poll = await fetch(`${ZEN_BASE}/generations/${genId}`, {
-          headers: { Authorization: `Bearer ${key}` },
+          headers: { Authorization: `Bearer ${zenKey}` },
         });
         const polled = await poll.json().catch(() => ({}));
         const status = String(polled.status || polled.state || "").toLowerCase();
@@ -394,7 +395,7 @@ export async function POST(req: NextRequest) {
         if (!urls.length) {
           try {
             const resultRes = await fetch(`${ZEN_BASE}/generations/${genId}/result`, {
-              headers: { Authorization: `Bearer ${key}` },
+              headers: { Authorization: `Bearer ${zenKey}` },
             });
             urls = extractUrls(await resultRes.json().catch(() => ({})));
           } catch {
@@ -414,7 +415,7 @@ export async function POST(req: NextRequest) {
     if (!applyOutfitSecondPass || !outfitAssetId) return sourceUrl;
 
     const sourceBytes = await (await fetch(sourceUrl)).arrayBuffer();
-    const sourceAsset = await zenUpload(key, sourceBytes, "identity-locked-scene.jpg");
+    const sourceAsset = await zenUpload(zenKey, sourceBytes, "identity-locked-scene.jpg");
     const prompt = [
       `EDIT ONLY THE CLOTHING ON THE ${wearer.toUpperCase()}.`,
       `Reference 1 is the already-generated scene. Preserve every person's face, identity, body, pose, position, expression, anatomy, lighting, framing and background exactly.`,
@@ -425,7 +426,7 @@ export async function POST(req: NextRequest) {
     const submit = await fetch(`${ZEN_BASE}/generations`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${key}`,
+        Authorization: `Bearer ${zenKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -451,14 +452,14 @@ export async function POST(req: NextRequest) {
       for (let i = 0; i < 32; i++) {
         await new Promise((r) => setTimeout(r, 2500));
         const poll = await fetch(`${ZEN_BASE}/generations/${genId}`, {
-          headers: { Authorization: `Bearer ${key}` },
+          headers: { Authorization: `Bearer ${zenKey}` },
         });
         const polled = await poll.json().catch(() => ({}));
         urls = extractUrls(polled);
         if (!urls.length) {
           try {
             const resultRes = await fetch(`${ZEN_BASE}/generations/${genId}/result`, {
-              headers: { Authorization: `Bearer ${key}` },
+              headers: { Authorization: `Bearer ${zenKey}` },
             });
             urls = extractUrls(await resultRes.json().catch(() => ({})));
           } catch {
