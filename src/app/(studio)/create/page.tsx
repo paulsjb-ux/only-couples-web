@@ -114,7 +114,7 @@ function CreateInner() {
   const [outfitPath, setOutfitPath] = useState<string | null>(null);
   const [outfitPreview, setOutfitPreview] = useState<string | null>(null);
   const [outfitWearer, setOutfitWearer] = useState("wife");
-  const [outfitPresets, setOutfitPresets] = useState<OutfitPreset[]>([]);
+    const [outfitPresets, setOutfitPresets] = useState<OutfitPreset[]>((["soft:black-lace-slip-dress","soft:navy-lace-robe","playful:floral-lace-teddy","playful:high-neck-lace-garter-set","playful:lace-corset-garter-set","playful:plunge-lace-bodysuit","playful:strappy-lace-bodysuit","after-dark:corset-garter-stockings-set","after-dark:plunge-butterfly-lace-teddy","after-dark:sheer-lace-cutout-bodysuit","after-dark:strappy-floral-lace-bodysuit"] as const).map((entry) => { const [category, id] = entry.split(":") as [OutfitPreset["category"], string]; const folder = category === "after-dark" ? "afterdark" : category; return { id, name: id.replace(/-/g, " "), category, src: "/outfits/" + folder + "/" + id + ".jpg", storagePath: folder + "/" + id + ".jpg" }; }));
   const [pickedOutfitPreset, setPickedOutfitPreset] = useState<string | null>(null);
   const outfitFileRef = useRef<HTMLInputElement | null>(null);
   const [busy, setBusy] = useState(false);
