@@ -146,9 +146,12 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const sceneName = String(body.sceneName || "erotic couple scene");
   const who = String(body.who || "couple");
-  const kind = String(body.kind || "image");
   const sceneId = String(body.sceneId || "");
   const versions = Math.min(4, Math.max(1, Number(body.versions) || 1));
+  const requestedJobId = typeof body.jobId === "string" ? body.jobId : "";
+  const jobId = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestedJobId)
+    ? requestedJobId
+    : crypto.randomUUID();
   const outfitPath = body.outfitPath ? String(body.outfitPath) : null;
   const outfitWearer = body.outfitWearer ? String(body.outfitWearer) : null;
 
@@ -330,6 +333,24 @@ export async function POST(req: NextRequest) {
     .filter(Boolean)
     .join(" ");
 
+  const prompt = `${sceneId} | ${sceneName} (${who})`;
+  const { error: jobInsertError } = await supabase.from("generations").insert({
+    id: jobId,
+    job_id: jobId,
+    studio_id: studioId,
+    kind: "image",
+    prompt,
+    status: "processing",
+    requested_count: versions,
+    completed_count: 0,
+  });
+  if (jobInsertError) {
+    return NextResponse.json(
+      { error: "Could not create a durable generation job" },
+      { status: 500 }
+    );
+  }
+
   async function runLockedEditorPass(
     imageAssets: string[],
     passPrompt: string,
@@ -363,7 +384,7 @@ export async function POST(req: NextRequest) {
     let urls = extractUrls(submitted);
     const genId = submitted.id || submitted.generation_id || submitted.data?.id;
     if (!urls.length && genId) {
-      for (let i = 0; i < 40; i++) {
+      for (let i = 0; i < 24; i++) {
         await new Promise((r) => setTimeout(r, 2500));
         const poll = await fetch(`${ZEN_BASE}/generations/${genId}`, {
           headers: { Authorization: `Bearer ${zenKey}` },
@@ -523,7 +544,7 @@ export async function POST(req: NextRequest) {
     let urls = extractUrls(submitted);
     const genId = submitted.id || submitted.generation_id || submitted.data?.id;
     if (!urls.length && genId) {
-      const maxPolls = versions > 1 ? 24 : 40;
+      const maxPolls = 24;
       for (let i = 0; i < maxPolls; i++) {
         await new Promise((r) => setTimeout(r, 2500));
         const poll = await fetch(`${ZEN_BASE}/generations/${genId}`, {
@@ -586,7 +607,7 @@ export async function POST(req: NextRequest) {
     let urls = extractUrls(submitted);
     const genId = submitted.id || submitted.generation_id || submitted.data?.id;
     if (!urls.length && genId) {
-      for (let i = 0; i < 32; i++) {
+      for (let i = 0; i < 24; i++) {
         await new Promise((r) => setTimeout(r, 2500));
         const poll = await fetch(`${ZEN_BASE}/generations/${genId}`, {
           headers: { Authorization: `Bearer ${zenKey}` },
@@ -647,7 +668,7 @@ export async function POST(req: NextRequest) {
     let urls = extractUrls(submitted);
     const genId = submitted.id || submitted.generation_id || submitted.data?.id;
     if (!urls.length && genId) {
-      for (let i = 0; i < 32; i++) {
+      for (let i = 0; i < 24; i++) {
         await new Promise((r) => setTimeout(r, 2500));
         const poll = await fetch(`${ZEN_BASE}/generations/${genId}`, {
           headers: { Authorization: `Bearer ${zenKey}` },
@@ -672,31 +693,36 @@ export async function POST(req: NextRequest) {
     return urls[0] || sourceUrl;
   }
 
-  const urls: string[] = [];
-  const errors: string[] = [];
-  for (let i = 0; i < versions; i++) {
+  const results = await Promise.all(Array.from({ length: versions }, async (_, i) => {
     try {
       const firstPass = await runOne(i);
       if (firstPass) {
         const outfitUrl = applyOutfitSecondPass ? await applyOutfitToGeneratedImage(firstPass) : firstPass;
         const cleanedUrl = outfitUrl && isSolo ? await enforceSoloGeneratedImage(outfitUrl) : outfitUrl;
         const finalUrl = cleanedUrl ? await restoreAfterDarkContinuity(cleanedUrl) : cleanedUrl;
-        if (finalUrl) urls.push(finalUrl);
-        else errors.push(`v${i + 1}: outfit pass returned no url`);
-      } else {
-        errors.push(`v${i + 1}: no url`);
+        return finalUrl
+          ? { index: i, url: finalUrl, error: null }
+          : { index: i, url: null, error: `v${i + 1}: final pass returned no url` };
       }
+      return { index: i, url: null, error: `v${i + 1}: no url` };
     } catch (error: unknown) {
-      errors.push(`v${i + 1}: ${errorMessage(error)}`);
+      return { index: i, url: null, error: `v${i + 1}: ${errorMessage(error)}` };
     }
-  }
+  }));
+  results.sort((a, b) => a.index - b.index);
+  const urls = results.flatMap((result) => result.url ? [result.url] : []);
+  const errors = results.flatMap((result) => result.error ? [result.error] : []);
 
   if (!urls.length) {
     const msg = errors[0] || "Timed out waiting for the image";
+    await supabase
+      .from("generations")
+      .update({ status: "failed", completed_count: 0 })
+      .eq("id", jobId)
+      .eq("studio_id", studioId);
     return NextResponse.json({ error: msg, details: errors }, { status: 504 });
   }
 
-  const prompt = `${sceneId} | ${sceneName} (${who})`;
   const items: { url: string; path: string | null; id: string | null }[] = [];
 
   for (let i = 0; i < urls.length; i++) {
@@ -726,23 +752,26 @@ export async function POST(req: NextRequest) {
   }
 
   const itemsOut: { url: string; path: string | null; id: string | null }[] = [];
-  for (const it of items) {
+  for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
+    const it = items[itemIndex];
     let id: string | null = null;
     if (it.path || it.url) {
       try {
         const row: Record<string, unknown> = {
+          job_id: jobId,
           studio_id: studioId,
-          kind,
+          kind: "image",
           prompt,
           result_url: it.url,
           status: "preview",
+          requested_count: versions,
+          completed_count: items.length,
         };
         if (it.path) row.storage_path = it.path;
-        const { data: ins } = await supabase
-          .from("generations")
-          .insert(row)
-          .select("id")
-          .single();
+        const mutation = itemIndex === 0
+          ? supabase.from("generations").update(row).eq("id", jobId).eq("studio_id", studioId)
+          : supabase.from("generations").insert(row);
+        const { data: ins } = await mutation.select("id").single();
         id = ins?.id || null;
       } catch {
         /* optional */
@@ -757,7 +786,8 @@ export async function POST(req: NextRequest) {
     url: itemsOut[0]?.url || null,
     path: itemsOut[0]?.path || null,
     id: itemsOut[0]?.id || null,
-    kind,
+    kind: "image",
+    jobId,
     prompt,
     saved: false,
     status: "preview",
