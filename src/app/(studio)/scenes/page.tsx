@@ -14,6 +14,7 @@ type SceneRow = {
   prompt?: string | null;
   cast_count?: number | null;
   is_solo?: boolean | null;
+  cast_roles?: string[] | null;
 };
 
 type SceneTemplate = {
@@ -247,6 +248,7 @@ export default function ScenesPage() {
   const [note, setNote] = useState("");
   const [dbTemplates, setDbTemplates] = useState<SceneTemplate[]>([]);
   const [catalogueLoaded, setCatalogueLoaded] = useState(false);
+  const [catalogueError, setCatalogueError] = useState("");
 
   useEffect(() => {
     void load();
@@ -313,6 +315,7 @@ export default function ScenesPage() {
 
   async function load() {
     setNote("");
+    setCatalogueError("");
     try {
       const supabase = createClient();
       const { data: userData } = await supabase.auth.getUser();
@@ -328,63 +331,37 @@ export default function ScenesPage() {
       // Supabase is the authoritative live catalogue. The bundled catalogue is metadata and an emergency fallback only.
       const { data: sceneRows, error: sceneError } = await supabase
         .from("scenes")
-        .select("id,tab,title,prompt,cast_count,is_solo")
+        .select("id,tab,title,prompt,cast_count,is_solo,cast_roles")
         .order("tab", { ascending: true })
         .order("id", { ascending: true });
 
-      if (!sceneError && sceneRows) {
-        const loverIds = new Set(["erotic-one-night", "spicy-bbc", "spicy-creampie"]);
-        const threePersonIds = new Set([
-          "spicy-cuckold", "spicy-dp", "spicy-mmf", "spicy-spitroast",
-          "zen-carpet-kneel", "zen-cocks-around", "zen-collar-three",
-        ]);
-
-        const inferPrefer = (row: SceneRow): string[] => {
-          const id = String(row.id || "");
-          const prompt = String(row.prompt || "").toLowerCase();
-          if (id === "spicy-ffm" || prompt.includes("man {p1}, woman {p2}, woman {p3}")) {
-            return ["husband", "wife", "female_lover"];
-          }
-          if (id === "spicy-cuckold") return ["wife", "male_lover", "husband"];
-          if (threePersonIds.has(id) || prompt.includes("exactly three adults")) {
-            return ["wife", "husband", "male_lover"];
-          }
-          if (prompt.includes("only one adult woman") || !prompt.includes("{p2}")) {
-            return ["wife"];
-          }
-          if (loverIds.has(id)) return ["wife", "male_lover"];
-          return ["wife", "husband"];
-        };
-
+      if (!sceneError && sceneRows?.length) {
         const mappedTemplates: SceneTemplate[] = (sceneRows as SceneRow[]).map((row) => {
           const id = String(row.id);
           const local = TEMPLATES.find((t) => t.id === id);
           const tab = String(row.tab || "soft").toLowerCase();
           const mood: Mood = tab === "afterdark" ? "intense" : tab === "playful" ? "playful" : "soft";
-          const inferredPrefer = inferPrefer(row);
-          const databaseCount = row.is_solo ? 1 : Math.max(1, Math.min(3, Number(row.cast_count) || inferredPrefer.length));
-          const knownPrefer = local?.prefer?.length === databaseCount ? local.prefer : inferredPrefer;
-          const defaultPrefer = databaseCount === 1
-            ? ["wife"]
-            : databaseCount === 2
-              ? ["wife", "husband"]
-              : ["wife", "husband", "male_lover"];
-          const prefer = knownPrefer.length === databaseCount ? knownPrefer : defaultPrefer;
+          const databaseCount = Number(row.cast_count);
+          const prefer = Array.isArray(row.cast_roles) ? row.cast_roles : [];
+          if (prefer.length !== databaseCount) {
+            throw new Error(`Scene ${id} has invalid cast metadata`);
+          }
           return {
             id,
-            name: String(row.title || local?.name || id.replace(/-/g, " ")),
+            name: String(row.title || id.replace(/-/g, " ")),
             group: databaseCount >= 3 ? "three" : databaseCount === 2 ? "couple" : "solo",
             mood,
             prefer,
             emoji: local?.emoji || (mood === "intense" ? "🌙" : mood === "playful" ? "✨" : "🤍"),
-            desc: local?.desc || "Supabase scene",
+            desc: local?.desc || "Scene",
             source: "supabase",
           };
         });
         setDbTemplates(mappedTemplates);
         setCatalogueLoaded(true);
-      } else if (sceneError) {
+      } else {
         console.error("Could not load Supabase scenes", sceneError);
+        setCatalogueError("Scenes could not be loaded. Please refresh and try again.");
       }
 
       // People faces — parallel sign
@@ -463,6 +440,7 @@ export default function ScenesPage() {
       }
     } catch (e) {
       console.error(e);
+      setCatalogueError("Scenes could not be loaded. Please refresh and try again.");
       setNote("Could not load scene images");
     }
   }
@@ -490,9 +468,7 @@ export default function ScenesPage() {
     return hit?.url || null;
   }
 
-  const mergedTemplates: SceneTemplate[] = catalogueLoaded
-    ? dbTemplates
-    : TEMPLATES.map((template) => ({ ...template, source: "local" as const }));
+  const mergedTemplates: SceneTemplate[] = catalogueLoaded ? dbTemplates : [];
 
   const templates = mergedTemplates.filter((t) => {
     if (!showIntense && t.mood === "intense") return false;
@@ -779,10 +755,12 @@ export default function ScenesPage() {
         })}
       </div>
 
-      {!shown.length ? (
-        <p style={{ fontSize: 14, color: "#5c534c", marginTop: 16 }}>
-          No scenes in this room yet.
+      {!catalogueLoaded ? (
+        <p role="status" style={{ fontSize: 14, color: catalogueError ? "#8B2635" : "#5c534c", marginTop: 16 }}>
+          {catalogueError || "Loading scenes…"}
         </p>
+      ) : !shown.length ? (
+        <p style={{ fontSize: 14, color: "#5c534c", marginTop: 16 }}>No scenes in this room yet.</p>
       ) : null}
     </div>
   );
