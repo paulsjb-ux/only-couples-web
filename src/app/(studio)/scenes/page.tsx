@@ -12,6 +12,8 @@ type SceneRow = {
   tab?: string | null;
   title?: string | null;
   prompt?: string | null;
+  cast_count?: number | null;
+  is_solo?: boolean | null;
 };
 
 type SceneTemplate = {
@@ -244,6 +246,7 @@ export default function ScenesPage() {
   const [results, setResults] = useState<{ prompt: string; url: string; path?: string | null }[]>([]);
   const [note, setNote] = useState("");
   const [dbTemplates, setDbTemplates] = useState<SceneTemplate[]>([]);
+  const [catalogueLoaded, setCatalogueLoaded] = useState(false);
 
   useEffect(() => {
     void load();
@@ -322,11 +325,10 @@ export default function ScenesPage() {
       const sid = memberships?.[0]?.studio_id as string | undefined;
       if (!sid) return;
 
-      // Supabase scenes catalogue (50 rows). Database scenes are authoritative.
-      // The bundled catalogue is retained only as metadata/fallback (cast, emoji, description).
+      // Supabase is the authoritative live catalogue. The bundled catalogue is metadata and an emergency fallback only.
       const { data: sceneRows, error: sceneError } = await supabase
         .from("scenes")
-        .select("id,tab,title,prompt")
+        .select("id,tab,title,prompt,cast_count,is_solo")
         .order("tab", { ascending: true })
         .order("id", { ascending: true });
 
@@ -359,11 +361,19 @@ export default function ScenesPage() {
           const local = TEMPLATES.find((t) => t.id === id);
           const tab = String(row.tab || "soft").toLowerCase();
           const mood: Mood = tab === "afterdark" ? "intense" : tab === "playful" ? "playful" : "soft";
-          const prefer = local?.prefer?.length ? local.prefer : inferPrefer(row);
+          const inferredPrefer = inferPrefer(row);
+          const databaseCount = row.is_solo ? 1 : Math.max(1, Math.min(3, Number(row.cast_count) || inferredPrefer.length));
+          const knownPrefer = local?.prefer?.length === databaseCount ? local.prefer : inferredPrefer;
+          const defaultPrefer = databaseCount === 1
+            ? ["wife"]
+            : databaseCount === 2
+              ? ["wife", "husband"]
+              : ["wife", "husband", "male_lover"];
+          const prefer = knownPrefer.length === databaseCount ? knownPrefer : defaultPrefer;
           return {
             id,
             name: String(row.title || local?.name || id.replace(/-/g, " ")),
-            group: local?.group || (prefer.length >= 3 ? "three" : prefer.length === 2 ? "couple" : "solo"),
+            group: databaseCount >= 3 ? "three" : databaseCount === 2 ? "couple" : "solo",
             mood,
             prefer,
             emoji: local?.emoji || (mood === "intense" ? "🌙" : mood === "playful" ? "✨" : "🤍"),
@@ -372,6 +382,7 @@ export default function ScenesPage() {
           };
         });
         setDbTemplates(mappedTemplates);
+        setCatalogueLoaded(true);
       } else if (sceneError) {
         console.error("Could not load Supabase scenes", sceneError);
       }
@@ -479,13 +490,9 @@ export default function ScenesPage() {
     return hit?.url || null;
   }
 
-  const mergedTemplates: SceneTemplate[] = (() => {
-    const byId = new Map<string, SceneTemplate>();
-    for (const t of TEMPLATES) byId.set(t.id, { ...t, source: "local" });
-    // Database wins when a Supabase scene has the same id as a local scene.
-    for (const t of dbTemplates) byId.set(t.id, t);
-    return [...dbTemplates, ...Array.from(byId.values()).filter((t) => !dbTemplates.some((d) => d.id === t.id))];
-  })();
+  const mergedTemplates: SceneTemplate[] = catalogueLoaded
+    ? dbTemplates
+    : TEMPLATES.map((template) => ({ ...template, source: "local" as const }));
 
   const templates = mergedTemplates.filter((t) => {
     if (!showIntense && t.mood === "intense") return false;
@@ -500,8 +507,7 @@ export default function ScenesPage() {
     return LAUNCH_IDS.has(t.id) || t.mood === "soft" || t.mood === "playful";
   });
 
-  // Show the full Supabase catalogue for the selected room.
-  // Current database counts: Soft 12, Playful 15, After dark 23.
+  // Show the full authoritative Supabase catalogue for the selected room.
   const shown = templates;
 
   const section = SECTIONS[mood === "intense" || showIntense ? "intense" : mood];
