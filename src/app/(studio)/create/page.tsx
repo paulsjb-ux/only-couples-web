@@ -123,7 +123,7 @@ function CreateInner() {
 
   const [allFaces, setAllFaces] = useState<FaceRow[]>([]);
   const [selected, setSelected] = useState<string[]>(defaultCast);
-  const [kind, setKind] = useState("image");
+  const kind = "image";
   const [versions, setVersions] = useState(1);
   const [outfitPath, setOutfitPath] = useState<string | null>(null);
   const [outfitPreview, setOutfitPreview] = useState<string | null>(null);
@@ -224,35 +224,6 @@ function CreateInner() {
       if (error) throw error;
 
       const rows = (data || []) as SupabaseOutfitRow[];
-
-      // One-time migration: copy bundled seed images into Supabase Storage.
-      // Safe to run repeatedly; existing objects are skipped.
-      const byCategory = new Map<string, Set<string>>();
-      for (const category of ["soft", "playful", "afterdark"] as const) {
-        const { data: objects } = await supabase.storage.from("outfits").list(category, { limit: 100 });
-        byCategory.set(category, new Set((objects || []).map((o) => o.name)));
-      }
-
-      for (const row of rows) {
-        const filename = row.storage_path.split("/").pop() || `${row.slug}.jpg`;
-        const existing = byCategory.get(row.category);
-        if (existing?.has(filename)) continue;
-        const seedSrc = `/outfits/${row.category}/${row.slug}.jpg`;
-        try {
-          const seed = await fetch(seedSrc, { cache: "no-store" });
-          if (!seed.ok) continue;
-          const blob = await seed.blob();
-          const { error: uploadError } = await supabase.storage
-            .from("outfits")
-            .upload(row.storage_path, blob, {
-              contentType: blob.type || "image/jpeg",
-              upsert: false,
-            });
-          if (!uploadError) existing?.add(filename);
-        } catch {
-          // If a bundled seed is unavailable, keep loading any already-migrated outfits.
-        }
-      }
 
       const presets: OutfitPreset[] = rows.map((row) => {
         const { data: publicUrl } = supabase.storage.from("outfits").getPublicUrl(row.storage_path);
@@ -484,15 +455,19 @@ function CreateInner() {
     setNote("Reconnecting to your generation…");
     const supabase = createClient();
 
+    const pendingJobId = window.localStorage.getItem("tor:generation-job-id");
     for (let attempt = 0; attempt < 15; attempt++) {
-      const { data: rows } = await supabase
+      let query = supabase
         .from("generations")
-        .select("id,result_url,storage_path,kind,prompt,status,created_at")
+        .select("id,job_id,result_url,storage_path,kind,prompt,status,created_at,requested_count,completed_count")
         .eq("studio_id", recoveryStudioId)
-        .eq("status", "preview")
-        .gte("created_at", startedAt)
+        .in("status", ["processing", "preview", "failed"])
         .order("created_at", { ascending: false })
-        .limit(4);
+        .limit(8);
+      query = pendingJobId
+        ? query.eq("job_id", pendingJobId)
+        : query.gte("created_at", startedAt);
+      const { data: rows } = await query;
 
       if (rows?.length) {
         const recovered: PreviewItem[] = [];
@@ -519,6 +494,7 @@ function CreateInner() {
           setPreviews(recovered.reverse());
           setProgress(100);
           window.localStorage.removeItem("tor:generation-started-at");
+          window.localStorage.removeItem("tor:generation-job-id");
           setNote(
             recovered.length === 1
               ? "1 ready — recovered safely. Tap Keep to save it."
@@ -526,6 +502,20 @@ function CreateInner() {
           );
           return true;
         }
+        if (rows.some((row) => row.status === "failed")) {
+          window.localStorage.removeItem("tor:generation-started-at");
+          window.localStorage.removeItem("tor:generation-job-id");
+          setNote("Generation failed before an image was completed. Please try again.");
+          return false;
+        }
+        const job = rows[0];
+        const requested = Number(job.requested_count || 1);
+        const completed = Number(job.completed_count || 0);
+        setNote(
+          completed > 0
+            ? `${completed} of ${requested} ready — finalising your previews…`
+            : "Still generating — it is safe to leave. We will recover it when you return."
+        );
       }
 
       await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -570,7 +560,7 @@ function CreateInner() {
     setBusy(true);
     setGenerating(true);
     setPreviews([]);
-    const n = kind === "image" ? versions : 1;
+    const n = versions;
     setNote(
       n > 1
         ? `Making ${n} versions. You can leave the app — they will appear when you return.`
@@ -578,7 +568,9 @@ function CreateInner() {
     );
     const who = selected.join(",");
     const generationStartedAt = new Date(Date.now() - 5000).toISOString();
+    const generationJobId = crypto.randomUUID();
     window.localStorage.setItem("tor:generation-started-at", generationStartedAt);
+    window.localStorage.setItem("tor:generation-job-id", generationJobId);
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
@@ -591,6 +583,7 @@ function CreateInner() {
             : who,
           kind,
           versions: n,
+          jobId: generationJobId,
           outfitPath,
           outfitWearer,
         }),
@@ -599,6 +592,7 @@ function CreateInner() {
       if (!res.ok) {
         const msg = data.error || data.message || `Generation failed (${res.status})`;
         window.localStorage.removeItem("tor:generation-started-at");
+        window.localStorage.removeItem("tor:generation-job-id");
         setNote(msg);
         return;
       }
@@ -644,6 +638,7 @@ function CreateInner() {
       setPreviews(built);
       setProgress(100);
       window.localStorage.removeItem("tor:generation-started-at");
+      window.localStorage.removeItem("tor:generation-job-id");
       const partial =
         typeof data.requested === "number" && built.length < data.requested;
       setNote(
@@ -731,14 +726,17 @@ function CreateInner() {
   async function deleteOne(index: number) {
     const item = previews[index];
     if (!item) return;
+    if (!window.confirm("Delete this preview? This cannot be undone.")) return;
     setBusy(true);
     setNote("Deleting…");
     try {
-      await fetch("/api/library", {
+      const res = await fetch("/api/library", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ path: item.path, id: item.id }),
       });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(payload.error || `Delete failed (${res.status})`);
       setPreviews((prev) => prev.filter((_, i) => i !== index));
       setNote("Deleted.");
     } catch (err: unknown) {
@@ -899,21 +897,6 @@ function CreateInner() {
           ))}
         </div>
 
-        <div>
-          <div className="tor-select-wrap">
-            <span className="tor-select-label">Media</span>
-            <select
-              className="tor-select"
-              value={kind}
-              onChange={(e) => setKind(e.target.value)}
-            >
-              <option value="image">Image</option>
-              <option value="video">Video</option>
-            </select>
-          </div>
-        </div>
-
-        
         <div className="border-t border-[var(--line)] pt-4">
           <p className="text-sm font-semibold mb-1.5 text-[var(--text)]">Add me in this outfit</p>
           <p className="text-xs text-[var(--muted)] mb-2">
@@ -1043,7 +1026,7 @@ function CreateInner() {
           )}
         </div>
 
-        {kind === "image" && (
+        {(
           <div>
             <p className="tor-select-label" style={{ marginBottom: 8 }}>
               How many to make
@@ -1085,7 +1068,7 @@ function CreateInner() {
         >
           {busy
             ? "Making…"
-            : kind === "image" && versions > 1
+            : versions > 1
               ? `Make ${versions} versions`
               : "Make this scene"}
         </button>
