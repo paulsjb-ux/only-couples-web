@@ -1,6 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getSceneCore } from "@/lib/scene-cores";
+import {
+  AVOID_LINE,
+  FACE_LOCK,
+  GLOBAL_NEGATIVES,
+  PHOTO_LOOK,
+  VERSION_VARIANTS,
+  buildAfterDarkContinuityPrompt,
+  buildAfterDarkFluxPrompt,
+  buildAnatomyLock,
+  buildBodyLock,
+  buildLocationGuard,
+  buildOutfitEditPrompt,
+  buildOutfitLock,
+  buildSoloCleanupPrompt,
+  buildSoloGuard,
+  buildWhoLine,
+} from "@/lib/generation-prompts";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -114,48 +130,6 @@ function bodyLine(p: PersonRecord) {
   return bits.join(", ");
 }
 
-function anatomyLock(cast: { role?: string }[]) {
-  const roles = cast.map((p) => String(p.role || ""));
-  const men = roles.filter((r) => r.includes("husband") || r.includes("male")).length;
-  const women = roles.filter((r) => r.includes("wife") || r.includes("female")).length;
-  const total = men + women || cast.length;
-
-  const penisRule =
-    men === 0
-      ? "no penis anywhere in the image"
-      : men === 1
-        ? "exactly one penis, attached only to the man at his hips/groin, never attached to a woman, never growing from a chest or breasts, never floating, never between a woman's breasts as if it belongs to her"
-        : `exactly ${men} penises, one attached to each man at his hips/groin, none attached to a woman, no extra or anonymous shafts, no floating genitals`;
-
-  return [
-    "ANATOMY LOCK:",
-    "correct adult human anatomy only.",
-    `exactly ${total} people, no extra people.`,
-    penisRule,
-    "women have only female genitals (vulva), men have only male genitals (penis).",
-    "no extra limbs, no extra hands, no fused bodies, no body parts on the wrong person.",
-  ].join(" ");
-}
-
-const GLOBAL_NEGATIVES =
-  "wrong room, shower stall when not requested, bathroom tiles when not requested, steam mirror selfie when not requested, standing wet couple when not requested, different sex act than described, swapped positions, wrong number of people, extra person, extra limbs, fused bodies, deformed genitals, beauty-filter face, different hair than reference, watermark, text overlay, logo, identical twin faces";
-
-const VERSION_VARIANTS = [
-  "",
-  "CAMERA ONLY: slightly wider full-body framing; same people, same act, same room type as the scene description.",
-  "CAMERA ONLY: tighter crop on faces and torsos; same people, same act, same room type as the scene description.",
-  "LIGHT ONLY: warmer side light, softer shadows; same people, same act, same room type as the scene description.",
-];
-
-const SHOWER_SCENES = new Set([
-  "romance-shower",
-  "soft-shower-laugh",
-  "zen-shower-pose",
-  "zen-foam-shower",
-  "zen-carpet-kneel",
-  "zen-low-angle",
-]);
-
 export async function POST(req: NextRequest) {
   const key = process.env.ZENCREATOR_API_KEY;
   if (!key) {
@@ -198,11 +172,13 @@ export async function POST(req: NextRequest) {
     cast_count: number | null;
     location: string | null;
     is_solo: boolean;
+    prompt_version: number;
+    updated_at: string;
   } | null = null;
   if (sceneId) {
     const { data, error } = await supabase
       .from("scenes")
-      .select("id,tab,title,prompt,cast_count,location,is_solo")
+      .select("id,tab,title,prompt,cast_count,location,is_solo,prompt_version,updated_at")
       .eq("id", sceneId)
       .maybeSingle();
     if (error) console.error("Supabase scene metadata lookup failed", error);
@@ -285,8 +261,7 @@ export async function POST(req: NextRequest) {
       if (!error && file) {
         const bytes = await file.arrayBuffer();
         outfitAssetId = await zenUpload(zenKey, bytes, "outfit-ref.jpg");
-        outfitLock =
-          `OUTFIT LOCK: use the outfit reference only for clothing. Put the ${wearer} into that exact outfit — same garment, colour, fabric, cut, and details. The ${wearer}'s face and identity must come from their own face reference, never from any person shown in the outfit image. Do not invent different clothes.`;
+        outfitLock = buildOutfitLock(wearer);
       }
     } catch {
       // continue without outfit
@@ -301,11 +276,15 @@ export async function POST(req: NextRequest) {
 
   let core = sceneMeta?.prompt ? String(sceneMeta.prompt) : "";
 
+  if (sceneId && !core) {
+    return NextResponse.json(
+      { error: "This scene has no generation prompt configured." },
+      { status: 422 }
+    );
+  }
+
   if (!core) {
-    core =
-      getSceneCore(sceneId || (outfitPath ? "outfit-try-on" : "")) ||
-      sceneName ||
-      (outfitPath ? "Outfit try-on" : "erotic couple scene");
+    core = sceneName || (outfitPath ? "Outfit try-on" : "erotic couple scene");
   }
 
   // Scene table used to repeat LOOK; the wrapper owns look now.
@@ -326,38 +305,25 @@ export async function POST(req: NextRequest) {
     refParts.push(`reference ${assetIds.length} is the outfit reference for the ${wearer}`);
   }
   const refGuide = refParts.join("; ");
-  const whoLine =
-    isSolo
-      ? `WHO: exactly one adult — ${labels[0] || "the subject"}. ${refGuide}. Do not add anyone else.`
-      : `WHO: exactly ${refs.length} adults — ${labels.join(" and ")}. ${refGuide}. Do not add extra people or extra genitals. Do not change anyone's race, skin tone, age, or hair to match a stereotype in the scene text. The uploaded faces win.`;
-
-  const soloGuard = isSolo
-    ? "SOLO OVERRIDE: exactly one adult in the entire image. Do not add a partner, lover, second person, duplicate, reflection, background figure, extra face, hand, limb, shadow or partial body. Ignore any scene wording that implies another person; show the selected subject alone."
-    : "";
-
-  const faceLock =
-    "FACE LOCK: use the face photos as identity. Same bone structure, eyes, nose, mouth, skin tone, hair colour and style as the face references. Body photos are only for body shape and posture — do not change the face from the face references. Do not invent a different person. Do not beautify into a model.";
+  const whoLine = buildWhoLine({
+    isSolo,
+    labels,
+    referenceGuide: refGuide,
+    castCount: refs.length,
+  });
+  const soloGuard = buildSoloGuard(isSolo);
+  const faceLock = FACE_LOCK;
 
   const selectedPeople = peopleRows.filter((p) => wanted.includes(p.role || ""));
   const hasBodyHints = selectedPeople.some(
     (p) => p.age || p.body_shape || p.breasts || p.penis || p.look
   );
   const bodyNotes = selectedPeople.map(bodyLine).join(". ");
-  const bodyLock =
-    hasBodyHints && bodyNotes
-      ? `BODY NOTE: ${bodyNotes}. Treat these as shape hints the couple chose. Keep the faces from the face references. Do not replace the person. Do not ignore a face photo in favour of a generic body.`
-      : "";
-
-  const anatomy = anatomyLock(castPeople.length ? castPeople : refs);
-
-  const look =
-    "LOOK: vertical 3:4 photoreal photograph, natural skin texture, real fabric, sharp readable faces, no watermark, no text. Obey the camera, lens, lighting and room written in SCENE. Do not switch the lens to 85mm unless the scene says 85mm.";
-
-  const locationGuard = SHOWER_SCENES.has(sceneId)
-    ? "Setting: bathroom shower as described."
-    : "Setting: match the SCENE room. Not a shower unless the scene is a shower scene.";
-
-  const avoidLine = `AVOID: ${GLOBAL_NEGATIVES}`;
+  const bodyLock = buildBodyLock(bodyNotes, hasBodyHints);
+  const anatomy = buildAnatomyLock(castPeople.length ? castPeople : refs);
+  const look = PHOTO_LOOK;
+  const locationGuard = buildLocationGuard(sceneMeta?.location);
+  const avoidLine = AVOID_LINE;
 
   // Scene act comes before look so the shot list wins.
   const promptBase = [whoLine, faceLock, anatomy, outfitLock, `SCENE: ${core}`, soloGuard, bodyLock, locationGuard, look, avoidLine]
@@ -429,16 +395,7 @@ export async function POST(req: NextRequest) {
       const sourceBytes = await (await fetch(baseUrl)).arrayBuffer();
       const sourceAsset = await zenUpload(zenKey, sourceBytes, "after-dark-locked-base.jpg");
       const identityAssets = faceIdentityAssetIds.slice(0, 2);
-      const fluxPrompt = [
-        "AFTER DARK TRANSFORMATION: Reference 1 is the locked identity and scene photograph.",
-        "Preserve every adult's face, identity, hair, skin tone, body proportions and count from Reference 1.",
-        "Preserve the exact background, location, room, lighting, camera angle, crop and composition from Reference 1.",
-        `Change only the intimate action and necessary anatomy so it matches this instruction exactly: ${scenePrompt}`,
-        identityAssets.length
-          ? "References 2 and 3, when present, are identity references. The uploaded identities win."
-          : "",
-        "Do not invent different people or a different location. Do not add extra people, faces, limbs or genitals.",
-      ].filter(Boolean).join(" ");
+      const fluxPrompt = buildAfterDarkFluxPrompt(scenePrompt, identityAssets.length > 0);
 
       const result = await runLockedEditorPass(
         [sourceAsset, ...identityAssets],
@@ -471,12 +428,7 @@ export async function POST(req: NextRequest) {
       const sourceBytes = await (await fetch(sourceUrl)).arrayBuffer();
       const sourceAsset = await zenUpload(zenKey, sourceBytes, "after-dark-final-scene.jpg");
       const identityAssets = faceIdentityAssetIds.slice(0, 2);
-      const continuityPrompt = [
-        "FINAL IDENTITY CORRECTION ONLY.",
-        "Reference 1 is the finished After Dark image. Preserve its adult action, anatomy, pose, body positions, clothing, background, location, lighting, camera angle, crop and composition exactly.",
-        "References 2 and 3, when present, are the selected people's identity references. Restore their exact faces, bone structure, eyes, nose, mouth, skin tone, hair colour and hairstyle.",
-        "Change faces and identity only. Do not censor, cover, move, redraw or replace the bodies. Do not change the scene. Do not add or remove anyone.",
-      ].join(" ");
+      const continuityPrompt = buildAfterDarkContinuityPrompt();
       const result = await runLockedEditorPass(
         [sourceAsset, ...identityAssets],
         continuityPrompt,
@@ -606,12 +558,7 @@ export async function POST(req: NextRequest) {
 
     const sourceBytes = await (await fetch(sourceUrl)).arrayBuffer();
     const sourceAsset = await zenUpload(zenKey, sourceBytes, "identity-locked-scene.jpg");
-    const prompt = [
-      `EDIT ONLY THE CLOTHING ON THE ${wearer.toUpperCase()}.`,
-      `Reference 1 is the already-generated scene. Preserve every person's face, identity, body, pose, position, expression, anatomy, lighting, framing and background exactly.`,
-      `Reference 2 is the outfit reference. Dress only the ${wearer} in that exact garment — same colour, fabric, cut and visible details.`,
-      `Do not replace, redraw, beautify or change any face. Do not add or remove people. Do not change any other person's clothing.`,
-    ].join(" ");
+    const prompt = buildOutfitEditPrompt(wearer);
 
     const submit = await fetch(`${ZEN_BASE}/generations`, {
       method: "POST",
@@ -672,15 +619,7 @@ export async function POST(req: NextRequest) {
     const identityAsset = personAssetIds[0];
     const imageAssets = identityAsset ? [sourceAsset, identityAsset] : [sourceAsset];
     const subject = labels[0] || "the selected subject";
-    const prompt = [
-      "SOLO ENFORCEMENT EDIT: the finished image must contain exactly one adult person in total.",
-      `Keep only the ${subject}. Remove every other person completely, including partial bodies, faces, hands, limbs, reflections, shadows and background figures.`,
-      identityAsset
-        ? "Reference 1 is the scene to correct. Reference 2 is the only person's identity. Preserve that face exactly."
-        : "Reference 1 is the scene to correct. Preserve the remaining subject's face and identity exactly.",
-      "Reconstruct the original SCENE background naturally where anyone is removed. Preserve the original location, time of day, weather, lighting and framing exactly; never change a street, bathroom or other instructed setting into a bedroom. Preserve the selected subject's pose, clothing, anatomy and photographic realism.",
-      "Do not add a partner, lover, duplicate or implied second person. No one may touch, hold or appear beside the subject.",
-    ].join(" ");
+    const prompt = buildSoloCleanupPrompt(subject, Boolean(identityAsset));
 
     const submit = await fetch(`${ZEN_BASE}/generations`, {
       method: "POST",
