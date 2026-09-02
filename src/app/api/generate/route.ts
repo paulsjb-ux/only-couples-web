@@ -24,6 +24,20 @@ export const maxDuration = 300;
 const ZEN_BASE = "https://api.zencreator.pro/api/public/v1";
 const ENABLE_AFTER_DARK_FACE_CORRECTION = false;
 
+const IMAGE_MODELS = {
+  general: "GENERAL",
+  nanoBanana2: "NANO_BANANA_2",
+  seedream5: "SEEDREAM_5",
+  seedream5Pro: "SEEDREAM_5_PRO",
+  qwenImage: "QWEN_IMAGE",
+  qwenImagePro: "QWEN_IMAGE_PRO",
+  wan27: "WAN_2_7",
+  wan27Pro: "WAN_2_7_PRO",
+  sdxl: "SDXL",
+  fluxKleinNsfw: "FLUX_KLEIN_NSFW",
+  fluxKleinLora: "FLUX_KLEIN_LORA",
+} as const;
+
 type PersonRecord = {
   role: string;
   photo_path?: string;
@@ -475,11 +489,41 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  function selectBaseModels(promptText: string): string[] {
+    const lowerPrompt = promptText.toLowerCase();
+    const complexComposition = /(three people|three-person|multiple people|full body|head to toe|standing|watching|foreground|background|legs|hands|pose)/.test(lowerPrompt);
+    const stylizedScene = /(editorial|magazine|stylized|cinematic|fashion|artistic)/.test(lowerPrompt);
+
+    if (isAfterDark) {
+      if (wanted.length >= 3) {
+        return [IMAGE_MODELS.wan27Pro, IMAGE_MODELS.wan27, IMAGE_MODELS.seedream5Pro, IMAGE_MODELS.seedream5];
+      }
+      return assetIds.length
+        ? [IMAGE_MODELS.seedream5Pro, IMAGE_MODELS.seedream5]
+        : [IMAGE_MODELS.fluxKleinNsfw, IMAGE_MODELS.seedream5Pro, IMAGE_MODELS.seedream5];
+    }
+
+    if (outfitAssetId || isSolo) {
+      return [IMAGE_MODELS.nanoBanana2, IMAGE_MODELS.seedream5Pro, IMAGE_MODELS.general];
+    }
+    if (complexComposition) {
+      return [IMAGE_MODELS.wan27Pro, IMAGE_MODELS.wan27, IMAGE_MODELS.seedream5Pro, IMAGE_MODELS.qwenImagePro];
+    }
+    if (stylizedScene) {
+      return [IMAGE_MODELS.qwenImagePro, IMAGE_MODELS.qwenImage, IMAGE_MODELS.seedream5Pro, IMAGE_MODELS.general];
+    }
+    if (hasBodyHints) {
+      return [IMAGE_MODELS.seedream5Pro, IMAGE_MODELS.sdxl, IMAGE_MODELS.wan27Pro, IMAGE_MODELS.general];
+    }
+    return [IMAGE_MODELS.general, IMAGE_MODELS.seedream5Pro, IMAGE_MODELS.qwenImagePro];
+  }
+
   async function runOne(versionIndex: number): Promise<string | null> {
     const variant = VERSION_VARIANTS[versionIndex] || "";
     const prompt = variant ? `${promptBase} ${variant}` : promptBase;
     const tool = assetIds.length ? "image_editor" : "by_prompt";
-    const baseModel = isAfterDark && assetIds.length ? "SEEDREAM_5_PRO" : generationModel;
+    const modelCandidates = selectBaseModels(prompt);
+    const baseModel = modelCandidates[0] || generationModel;
     // image_editor rejects unknown fields (e.g. negative_prompt).
     // AVOID: stays in the prompt text; only by_prompt gets negative_prompt.
     const input = assetIds.length
@@ -504,38 +548,34 @@ export async function POST(req: NextRequest) {
     let fluxFailureCode: string | null = null;
     let fluxFailureType: string | null = null;
     let fluxFailureField: string | null = null;
-    let submit = await fetch(`${ZEN_BASE}/generations`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${zenKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ tool, input }),
-    });
-    let submitted = await submit.json().catch(() => ({}));
-    if (!submit.ok && isAfterDark && baseModel === "FLUX_KLEIN_NSFW" && [400, 404, 422].includes(submit.status)) {
-      const fluxError = asRecord(submitted.error);
-      const fluxDetails = asRecord(fluxError?.details);
-      fluxFailureStatus = submit.status;
-      fluxFailureCode = String(fluxError?.code || submitted.code || "") || null;
-      fluxFailureType = String(fluxError?.type || submitted.type || "") || null;
-      fluxFailureField = String(fluxError?.field || fluxDetails?.field || "") || null;
-      modelUsed = "SEEDREAM_5_PRO";
-      usedFallback = true;
-      submit = await fetch(`${ZEN_BASE}/generations`, {
+    let submit: Response | null = null;
+    let submitted: Awaited<ReturnType<Response["json"]>> = {};
+    for (let candidateIndex = 0; candidateIndex < modelCandidates.length; candidateIndex++) {
+      const candidate = modelCandidates[candidateIndex];
+      modelUsed = candidate;
+      usedFallback = candidateIndex > 0;
+      submit = await fetch(ZEN_BASE + "/generations", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${zenKey}`,
+          Authorization: "Bearer " + zenKey,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ tool, input: { ...input, model: "SEEDREAM_5_PRO" } }),
+        body: JSON.stringify({ tool, input: { ...input, model: candidate } }),
       });
       submitted = await submit.json().catch(() => ({}));
-    }
-    if (!submit.ok) {
-      throw new Error(submitted.error?.message || submitted.message || `Zen error ${submit.status}`);
-    }
+      if (submit.ok) break;
 
+      const modelError = asRecord(submitted.error);
+      const modelDetails = asRecord(modelError?.details);
+      fluxFailureStatus = submit.status;
+      fluxFailureCode = String(modelError?.code || submitted.code || "") || null;
+      fluxFailureType = String(modelError?.type || submitted.type || "") || null;
+      fluxFailureField = String(modelError?.field || modelDetails?.field || "") || null;
+      if (![400, 403, 404, 422].includes(submit.status)) break;
+    }
+    if (!submit || !submit.ok) {
+      throw new Error(submitted.error?.message || submitted.message || "Zen error " + (submit?.status || "unknown"));
+    }
     console.info("generation model route", {
       sceneId: sceneId || "free-play",
       sceneTab: sceneMeta?.tab || "none",
