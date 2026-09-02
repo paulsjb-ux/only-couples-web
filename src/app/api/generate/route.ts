@@ -218,7 +218,7 @@ export async function POST(req: NextRequest) {
   const isSolo = Boolean(sceneMeta?.is_solo || sceneMeta?.cast_count === 1 || requestedPeople.length === 1);
   const wanted = isSolo ? requestedPeople.slice(0, 1) : requestedPeople;
   const isAfterDark = String(sceneMeta?.tab || "").toLowerCase().replace(/[ -]/g, "") === "afterdark";
-  const generationModel = isAfterDark ? "FLUX_KLEIN_SPICY" : "SEEDREAM_5_PRO";
+  const generationModel = isAfterDark ? "FLUX_KLEIN_NSFW" : "SEEDREAM_5_PRO";
   const maxPersonReferences = isSolo ? 1 : 3;
 
   const peopleRows = (people || []) as PersonRecord[];
