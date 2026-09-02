@@ -199,6 +199,8 @@ export async function POST(req: NextRequest) {
   const wanted = isSolo ? requestedPeople.slice(0, 1) : requestedPeople;
   const isAfterDark = String(sceneMeta?.tab || "").toLowerCase().replace(/[ -]/g, "") === "afterdark";
   const generationModel = isAfterDark ? "FLUX_KLEIN_NSFW" : "SEEDREAM_5_PRO";
+  // Seedream handles three-person identity and anatomy more reliably; Flux remains best for one- and two-person After Dark scenes.
+  const shouldApplyAfterDarkFlux = isAfterDark && wanted.length <= 2;
   const maxPersonReferences = isSolo ? 1 : 3;
 
   const peopleRows = (people || []) as PersonRecord[];
@@ -577,7 +579,7 @@ export async function POST(req: NextRequest) {
       }
     }
     const baseUrl = urls[0] || null;
-    if (!baseUrl || !isAfterDark || !assetIds.length) return baseUrl;
+    if (!baseUrl || !shouldApplyAfterDarkFlux || !assetIds.length) return baseUrl;
     return applyAfterDarkFlux(baseUrl, prompt);
   }
 
