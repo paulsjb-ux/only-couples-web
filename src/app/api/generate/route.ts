@@ -22,6 +22,7 @@ export const runtime = "nodejs";
 export const maxDuration = 300;
 
 const ZEN_BASE = "https://api.zencreator.pro/api/public/v1";
+const ENABLE_AFTER_DARK_FACE_CORRECTION = false;
 
 type PersonRecord = {
   role: string;
@@ -705,7 +706,10 @@ export async function POST(req: NextRequest) {
       if (firstPass) {
         const outfitUrl = applyOutfitSecondPass ? await applyOutfitToGeneratedImage(firstPass) : firstPass;
         const cleanedUrl = outfitUrl && isSolo ? await enforceSoloGeneratedImage(outfitUrl) : outfitUrl;
-        const finalUrl = cleanedUrl ? await restoreAfterDarkContinuity(cleanedUrl) : cleanedUrl;
+        const finalUrl =
+          cleanedUrl && ENABLE_AFTER_DARK_FACE_CORRECTION
+            ? await restoreAfterDarkContinuity(cleanedUrl)
+            : cleanedUrl;
         return finalUrl
           ? { index: i, url: finalUrl, error: null }
           : { index: i, url: null, error: `v${i + 1}: final pass returned no url` };
