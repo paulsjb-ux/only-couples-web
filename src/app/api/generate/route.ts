@@ -35,7 +35,6 @@ const IMAGE_MODELS = {
   wan27Pro: "WAN_2_7_PRO",
   sdxl: "SDXL",
   fluxKleinNsfw: "FLUX_KLEIN_NSFW",
-  fluxKleinLora: "FLUX_KLEIN_LORA",
 } as const;
 
 type PersonRecord = {
