@@ -191,11 +191,12 @@ export async function POST(req: NextRequest) {
     is_solo: boolean;
     prompt_version: number;
     updated_at: string;
+    cast_roles: string[];
   } | null = null;
   if (sceneId) {
     const { data, error } = await supabase
       .from("scenes")
-      .select("id,tab,title,prompt,cast_count,location,is_solo,prompt_version,updated_at")
+      .select("id,tab,title,prompt,cast_count,location,is_solo,prompt_version,updated_at,cast_roles")
       .eq("id", sceneId)
       .maybeSingle();
     if (error) console.error("Supabase scene metadata lookup failed", error);
@@ -207,12 +208,20 @@ export async function POST(req: NextRequest) {
     : who === "couple"
       ? ["wife", "husband"]
       : [who].filter(Boolean);
+  const virtualScene = sceneId === "outfit-try-on" || sceneId === "who-wore-it-best";
+  if (sceneId && !sceneMeta && !virtualScene) {
+    return NextResponse.json({ error: "This scene is unavailable. Return to Scenes and choose it again." }, { status: 404 });
+  }
 
-  const isSolo = Boolean(sceneMeta?.is_solo || sceneMeta?.cast_count === 1 || requestedPeople.length === 1);
-  const wanted = isSolo ? requestedPeople.slice(0, 1) : requestedPeople;
+  const configuredRoles = Array.isArray(sceneMeta?.cast_roles) ? sceneMeta.cast_roles : [];
+  if (sceneMeta && configuredRoles.length !== Number(sceneMeta.cast_count)) {
+    console.error("Invalid scene cast metadata", { sceneId, castCount: sceneMeta.cast_count, configuredRoles });
+    return NextResponse.json({ error: "This scene has invalid cast configuration." }, { status: 422 });
+  }
+  const wanted = sceneMeta ? configuredRoles : requestedPeople;
+  const isSolo = Boolean(sceneMeta ? sceneMeta.is_solo : wanted.length === 1);
   const isAfterDark = String(sceneMeta?.tab || "").toLowerCase().replace(/[ -]/g, "") === "afterdark";
   const generationModel = isAfterDark ? "FLUX_KLEIN_NSFW" : "SEEDREAM_5_PRO";
-  // Seedream handles three-person identity and anatomy more reliably; Flux remains best for one- and two-person After Dark scenes.
   const shouldApplyAfterDarkFlux = isAfterDark && wanted.length <= 2;
   const maxPersonReferences = isSolo ? 1 : 3;
 
@@ -220,6 +229,13 @@ export async function POST(req: NextRequest) {
   const castPeople = peopleRows.filter((p) => wanted.includes(p.role || ""));
   castPeople.sort((a, b) => wanted.indexOf(a.role || "") - wanted.indexOf(b.role || ""));
   const refs = castPeople.filter((p) => p.photo_path);
+  const missingRoles = wanted.filter((role) => !refs.some((person) => person.role === role));
+  if (missingRoles.length) {
+    return NextResponse.json(
+      { error: "Add a photo for: " + missingRoles.map((role) => role.replace(/_/g, " ")).join(", ") },
+      { status: 422 }
+    );
+  }
 
   type PathItem = { role: string; kind: "face" | "body" | "angle"; path: string };
   const chosen: PathItem[] = [];
@@ -260,7 +276,11 @@ export async function POST(req: NextRequest) {
 
   let outfitAssetId: string | null = null;
   let outfitLock = "";
-  const wearer = (outfitWearer || wanted[0] || "wife").replace(/_/g, " ");
+  const wearerRole = outfitWearer || wanted[0] || "wife";
+  if (outfitPath && !wanted.includes(wearerRole)) {
+    return NextResponse.json({ error: "The outfit wearer must be part of this scene." }, { status: 422 });
+  }
+  const wearer = wearerRole.replace(/_/g, " ");
 
   if (outfitPath) {
     try {
@@ -313,9 +333,12 @@ export async function POST(req: NextRequest) {
     p.role.replace(/_/g, " ")
   );
   core = core
-    .replace(/\{p1\}/g, labels[0] || "the woman")
-    .replace(/\{p2\}/g, labels[1] || "the man")
-    .replace(/\{p3\}/g, labels[2] || "the third person");
+    .replace(/\{p1\}/g, labels[0] || "")
+    .replace(/\{p2\}/g, labels[1] || "")
+    .replace(/\{p3\}/g, labels[2] || "");
+  if (/\{p\d+\}/i.test(core)) {
+    return NextResponse.json({ error: "This scene has unresolved cast placeholders." }, { status: 422 });
+  }
 
   const refParts = chosen.map(
     (c, i) => `reference ${i + 1} is the ${c.role.replace(/_/g, " ")} ${c.kind} photo`
@@ -361,10 +384,17 @@ export async function POST(req: NextRequest) {
     completed_count: 0,
   });
   if (jobInsertError) {
-    return NextResponse.json(
-      { error: "Could not create a durable generation job" },
-      { status: 500 }
-    );
+    const { data: existing } = await supabase
+      .from("generations")
+      .select("id,status")
+      .eq("studio_id", studioId)
+      .eq("job_id", jobId)
+      .limit(1);
+    if (existing?.length) {
+      return NextResponse.json({ status: existing[0].status || "processing", jobId, items: [] }, { status: 202 });
+    }
+    console.error("generation job insert failed", jobInsertError);
+    return NextResponse.json({ error: "Could not create a durable generation job" }, { status: 500 });
   }
 
   async function runLockedEditorPass(
@@ -781,18 +811,31 @@ export async function POST(req: NextRequest) {
     let path: string | null = null;
     try {
       const img = await fetch(itemUrl);
+      if (!img.ok) throw new Error("Generated image download failed " + img.status);
+      const contentType = img.headers.get("content-type") || "";
+      if (!contentType.startsWith("image/")) throw new Error("Generation provider returned a non-image result");
       const bytes = await img.arrayBuffer();
       path = `${studioId}/preview/${Date.now()}-${i}-${Math.random().toString(36).slice(2, 7)}.jpg`;
-      await supabase.storage.from("library").upload(path, bytes, {
-        contentType: "image/jpeg",
-        upsert: true,
+      const { error: uploadError } = await supabase.storage.from("library").upload(path, bytes, {
+        contentType: contentType || "image/jpeg",
+        upsert: false,
       });
+      if (uploadError) throw uploadError;
       const { data: signed } = await supabase.storage
         .from("library")
         .createSignedUrl(path, 60 * 60 * 24);
       if (signed?.signedUrl) itemUrl = signed.signedUrl;
-    } catch {
-      // keep Zen URL
+    } catch (error: unknown) {
+      console.error("preview persistence failed", { jobId, error: errorMessage(error) });
+      await supabase
+        .from("generations")
+        .update({ status: "failed", completed_count: i })
+        .eq("id", jobId)
+        .eq("studio_id", studioId);
+      return NextResponse.json(
+        { error: "The image was created but could not be stored safely. Please try again." },
+        { status: 502 }
+      );
     }
 
     items.push({
@@ -805,30 +848,27 @@ export async function POST(req: NextRequest) {
   const itemsOut: { url: string; path: string | null; id: string | null }[] = [];
   for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
     const it = items[itemIndex];
-    let id: string | null = null;
-    if (it.path || it.url) {
-      try {
-        const row: Record<string, unknown> = {
-          job_id: jobId,
-          studio_id: studioId,
-          kind: "image",
-          prompt,
-          result_url: it.url,
-          status: "preview",
-          requested_count: versions,
-          completed_count: items.length,
-        };
-        if (it.path) row.storage_path = it.path;
-        const mutation = itemIndex === 0
-          ? supabase.from("generations").update(row).eq("id", jobId).eq("studio_id", studioId)
-          : supabase.from("generations").insert(row);
-        const { data: ins } = await mutation.select("id").single();
-        id = ins?.id || null;
-      } catch {
-        /* optional */
-      }
+    const row: Record<string, unknown> = {
+      job_id: jobId,
+      studio_id: studioId,
+      kind: "image",
+      prompt,
+      result_url: it.url,
+      storage_path: it.path,
+      status: "preview",
+      requested_count: versions,
+      completed_count: items.length,
+    };
+    const mutation = itemIndex === 0
+      ? supabase.from("generations").update(row).eq("id", jobId).eq("studio_id", studioId)
+      : supabase.from("generations").insert(row);
+    const { data: stored, error: storeError } = await mutation.select("id").single();
+    if (storeError || !stored?.id) {
+      console.error("generation result row persistence failed", { jobId, itemIndex, storeError });
+      await supabase.from("generations").update({ status: "failed" }).eq("id", jobId).eq("studio_id", studioId);
+      return NextResponse.json({ error: "The image was stored but its Library record could not be created." }, { status: 500 });
     }
-    itemsOut.push({ ...it, id });
+    itemsOut.push({ ...it, id: stored.id });
   }
 
   return NextResponse.json({
