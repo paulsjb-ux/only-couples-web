@@ -369,7 +369,7 @@ export async function POST(req: NextRequest) {
         input: {
           image_assets: imageAssets.slice(0, 3),
           prompt: passPrompt,
-          ratio: "3:4",
+          ratio: sceneId === "spicy-cuckold" ? "4:3" : "3:4",
           number_of_images: 1,
           model,
         },
@@ -484,14 +484,14 @@ export async function POST(req: NextRequest) {
       ? {
           image_assets: assetIds.slice(0, 3),
           prompt,
-          ratio: "3:4",
+          ratio: sceneId === "spicy-cuckold" ? "4:3" : "3:4",
           number_of_images: 1,
           model: baseModel,
         }
       : {
           positive_prompt: prompt,
           negative_prompt: GLOBAL_NEGATIVES,
-          ratio: "3:4",
+          ratio: sceneId === "spicy-cuckold" ? "4:3" : "3:4",
           batch_size: 1,
           model: baseModel,
         };
@@ -599,7 +599,7 @@ export async function POST(req: NextRequest) {
         input: {
           image_assets: [sourceAsset, outfitAssetId],
           prompt,
-          ratio: "3:4",
+          ratio: sceneId === "spicy-cuckold" ? "4:3" : "3:4",
           number_of_images: 1,
           model: "SEEDREAM_5_PRO",
         },
@@ -660,7 +660,7 @@ export async function POST(req: NextRequest) {
         input: {
           image_assets: imageAssets,
           prompt,
-          ratio: "3:4",
+          ratio: sceneId === "spicy-cuckold" ? "4:3" : "3:4",
           number_of_images: 1,
           model: "SEEDREAM_5_PRO",
         },
