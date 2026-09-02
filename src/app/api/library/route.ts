@@ -280,10 +280,16 @@ export async function DELETE(req: NextRequest) {
   const id = body.id ? String(body.id) : null;
 
   if (id) {
-    await supabase.from("generations").delete().eq("id", id).eq("studio_id", studioId);
+    const { error } = await supabase
+      .from("generations")
+      .delete()
+      .eq("id", id)
+      .eq("studio_id", studioId);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   }
   if (path && path.startsWith(`${studioId}/`)) {
-    await supabase.storage.from("library").remove([path]);
+    const { error } = await supabase.storage.from("library").remove([path]);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true });
