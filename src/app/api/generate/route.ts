@@ -415,7 +415,10 @@ export async function POST(req: NextRequest) {
     try {
       const sourceBytes = await (await fetch(baseUrl)).arrayBuffer();
       const sourceAsset = await zenUpload(zenKey, sourceBytes, "after-dark-locked-base.jpg");
-      const identityAssets = faceIdentityAssetIds.slice(0, 2);
+      const identityAssets =
+        sceneId === "spicy-cuckold" && faceIdentityAssetIds.length >= 3
+          ? faceIdentityAssetIds.slice(1, 3)
+          : faceIdentityAssetIds.slice(0, 2);
       const fluxPrompt = buildAfterDarkFluxPrompt(scenePrompt, identityAssets.length > 0);
 
       const result = await runLockedEditorPass(
@@ -448,7 +451,10 @@ export async function POST(req: NextRequest) {
     try {
       const sourceBytes = await (await fetch(sourceUrl)).arrayBuffer();
       const sourceAsset = await zenUpload(zenKey, sourceBytes, "after-dark-final-scene.jpg");
-      const identityAssets = faceIdentityAssetIds.slice(0, 2);
+      const identityAssets =
+        sceneId === "spicy-cuckold" && faceIdentityAssetIds.length >= 3
+          ? faceIdentityAssetIds.slice(1, 3)
+          : faceIdentityAssetIds.slice(0, 2);
       const continuityPrompt = buildAfterDarkContinuityPrompt();
       const result = await runLockedEditorPass(
         [sourceAsset, ...identityAssets],
