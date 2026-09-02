@@ -230,11 +230,13 @@ export default function LibraryPage() {
     if (!confirm("Remove this from your private album?")) return;
     setBusy(true);
     try {
-      await fetch("/api/library", {
+      const res = await fetch("/api/library", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, path: path || undefined }),
       });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(payload.error || `Delete failed (${res.status})`);
       setItems((prev) => prev.filter((x) => x.id !== id));
       if (lightbox?.id === id) setLightbox(null);
       setNote("Removed.");
