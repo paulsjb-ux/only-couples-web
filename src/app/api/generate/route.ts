@@ -253,11 +253,14 @@ export async function POST(req: NextRequest) {
   }
 
   const personAssetIds: string[] = [];
+  const faceIdentityAssetIds: string[] = [];
   for (const item of chosen) {
     const { data: file, error } = await supabase.storage.from("people").download(item.path);
     if (error || !file) continue;
     const bytes = await file.arrayBuffer();
-    personAssetIds.push(await zenUpload(zenKey, bytes, `${item.role}-${item.kind}.jpg`));
+    const uploadedAsset = await zenUpload(zenKey, bytes, `${item.role}-${item.kind}.jpg`);
+    personAssetIds.push(uploadedAsset);
+    if (item.kind === "face") faceIdentityAssetIds.push(uploadedAsset);
   }
 
   let outfitAssetId: string | null = null;
@@ -361,10 +364,140 @@ export async function POST(req: NextRequest) {
     .filter(Boolean)
     .join(" ");
 
+  async function runLockedEditorPass(
+    imageAssets: string[],
+    passPrompt: string,
+    model: string,
+    errorLabel: string
+  ): Promise<string | null> {
+    const submit = await fetch(`${ZEN_BASE}/generations`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${zenKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        tool: "image_editor",
+        input: {
+          image_assets: imageAssets.slice(0, 3),
+          prompt: passPrompt,
+          ratio: "3:4",
+          number_of_images: 1,
+          model,
+        },
+      }),
+    });
+    const submitted = await submit.json().catch(() => ({}));
+    if (!submit.ok) {
+      throw new Error(
+        submitted.error?.message || submitted.message || `${errorLabel} failed ${submit.status}`
+      );
+    }
+
+    let urls = extractUrls(submitted);
+    const genId = submitted.id || submitted.generation_id || submitted.data?.id;
+    if (!urls.length && genId) {
+      for (let i = 0; i < 40; i++) {
+        await new Promise((r) => setTimeout(r, 2500));
+        const poll = await fetch(`${ZEN_BASE}/generations/${genId}`, {
+          headers: { Authorization: `Bearer ${zenKey}` },
+        });
+        const polled = await poll.json().catch(() => ({}));
+        urls = extractUrls(polled);
+        if (!urls.length) {
+          try {
+            const resultRes = await fetch(`${ZEN_BASE}/generations/${genId}/result`, {
+              headers: { Authorization: `Bearer ${zenKey}` },
+            });
+            urls = extractUrls(await resultRes.json().catch(() => ({})));
+          } catch {
+            // ignore
+          }
+        }
+        if (urls.length) break;
+        const status = String(polled.status || polled.state || "").toLowerCase();
+        if (["failed", "error", "cancelled"].includes(status)) {
+          throw new Error(polled.error || polled.message || `${errorLabel} failed`);
+        }
+      }
+    }
+    return urls[0] || null;
+  }
+
+  async function applyAfterDarkFlux(baseUrl: string, scenePrompt: string): Promise<string> {
+    try {
+      const sourceBytes = await (await fetch(baseUrl)).arrayBuffer();
+      const sourceAsset = await zenUpload(zenKey, sourceBytes, "after-dark-locked-base.jpg");
+      const identityAssets = faceIdentityAssetIds.slice(0, 2);
+      const fluxPrompt = [
+        "AFTER DARK TRANSFORMATION: Reference 1 is the locked identity and scene photograph.",
+        "Preserve every adult's face, identity, hair, skin tone, body proportions and count from Reference 1.",
+        "Preserve the exact background, location, room, lighting, camera angle, crop and composition from Reference 1.",
+        `Change only the intimate action and necessary anatomy so it matches this instruction exactly: ${scenePrompt}`,
+        identityAssets.length
+          ? "References 2 and 3, when present, are identity references. The uploaded identities win."
+          : "",
+        "Do not invent different people or a different location. Do not add extra people, faces, limbs or genitals.",
+      ].filter(Boolean).join(" ");
+
+      const result = await runLockedEditorPass(
+        [sourceAsset, ...identityAssets],
+        fluxPrompt,
+        "FLUX_KLEIN_NSFW",
+        "After Dark Flux transform"
+      );
+      console.info("generation model route", {
+        sceneId: sceneId || "free-play",
+        sceneTab: sceneMeta?.tab || "none",
+        pass: "after_dark_transform",
+        requestedModel: "FLUX_KLEIN_NSFW",
+        modelUsed: result ? "FLUX_KLEIN_NSFW" : "SEEDREAM_5_PRO",
+        usedFallback: !result,
+        tool: "image_editor",
+      });
+      return result || baseUrl;
+    } catch (error: unknown) {
+      console.warn("After Dark Flux transform failed; using locked base", {
+        sceneId: sceneId || "free-play",
+        error: errorMessage(error),
+      });
+      return baseUrl;
+    }
+  }
+
+  async function restoreAfterDarkContinuity(sourceUrl: string): Promise<string> {
+    if (!isAfterDark || !personAssetIds.length) return sourceUrl;
+    try {
+      const sourceBytes = await (await fetch(sourceUrl)).arrayBuffer();
+      const sourceAsset = await zenUpload(zenKey, sourceBytes, "after-dark-final-scene.jpg");
+      const identityAssets = faceIdentityAssetIds.slice(0, 2);
+      const continuityPrompt = [
+        "FINAL IDENTITY CORRECTION ONLY.",
+        "Reference 1 is the finished After Dark image. Preserve its adult action, anatomy, pose, body positions, clothing, background, location, lighting, camera angle, crop and composition exactly.",
+        "References 2 and 3, when present, are the selected people's identity references. Restore their exact faces, bone structure, eyes, nose, mouth, skin tone, hair colour and hairstyle.",
+        "Change faces and identity only. Do not censor, cover, move, redraw or replace the bodies. Do not change the scene. Do not add or remove anyone.",
+      ].join(" ");
+      const result = await runLockedEditorPass(
+        [sourceAsset, ...identityAssets],
+        continuityPrompt,
+        "SEEDREAM_5_PRO",
+        "After Dark identity correction"
+      );
+      return result || sourceUrl;
+    } catch (error: unknown) {
+      console.warn("After Dark identity correction failed; using Flux result", {
+        sceneId: sceneId || "free-play",
+        error: errorMessage(error),
+      });
+      return sourceUrl;
+    }
+  }
+
   async function runOne(versionIndex: number): Promise<string | null> {
     const variant = VERSION_VARIANTS[versionIndex] || "";
     const prompt = variant ? `${promptBase} ${variant}` : promptBase;
     const tool = assetIds.length ? "image_editor" : "by_prompt";
+    const baseModel = isAfterDark && assetIds.length ? "SEEDREAM_5_PRO" : generationModel;
     // image_editor rejects unknown fields (e.g. negative_prompt).
     // AVOID: stays in the prompt text; only by_prompt gets negative_prompt.
     const input = assetIds.length
@@ -373,17 +506,17 @@ export async function POST(req: NextRequest) {
           prompt,
           ratio: "3:4",
           number_of_images: 1,
-          model: generationModel,
+          model: baseModel,
         }
       : {
           positive_prompt: prompt,
           negative_prompt: GLOBAL_NEGATIVES,
           ratio: "3:4",
           batch_size: 1,
-          model: generationModel,
+          model: baseModel,
         };
 
-    let modelUsed = generationModel;
+    let modelUsed = baseModel;
     let usedFallback = false;
     let fluxFailureStatus: number | null = null;
     let fluxFailureCode: string | null = null;
@@ -398,7 +531,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({ tool, input }),
     });
     let submitted = await submit.json().catch(() => ({}));
-    if (!submit.ok && isAfterDark && [400, 404, 422].includes(submit.status)) {
+    if (!submit.ok && isAfterDark && baseModel === "FLUX_KLEIN_NSFW" && [400, 404, 422].includes(submit.status)) {
       const fluxError = asRecord(submitted.error);
       const fluxDetails = asRecord(fluxError?.details);
       fluxFailureStatus = submit.status;
@@ -424,7 +557,8 @@ export async function POST(req: NextRequest) {
     console.info("generation model route", {
       sceneId: sceneId || "free-play",
       sceneTab: sceneMeta?.tab || "none",
-      requestedModel: generationModel,
+      pass: isAfterDark && assetIds.length ? "identity_scene_base" : "direct",
+      requestedModel: baseModel,
       modelUsed,
       usedFallback,
       fluxFailureStatus,
@@ -462,7 +596,9 @@ export async function POST(req: NextRequest) {
         }
       }
     }
-    return urls[0] || null;
+    const baseUrl = urls[0] || null;
+    if (!baseUrl || !isAfterDark || !assetIds.length) return baseUrl;
+    return applyAfterDarkFlux(baseUrl, prompt);
   }
 
   async function applyOutfitToGeneratedImage(sourceUrl: string): Promise<string | null> {
@@ -604,7 +740,8 @@ export async function POST(req: NextRequest) {
       const firstPass = await runOne(i);
       if (firstPass) {
         const outfitUrl = applyOutfitSecondPass ? await applyOutfitToGeneratedImage(firstPass) : firstPass;
-        const finalUrl = outfitUrl && isSolo ? await enforceSoloGeneratedImage(outfitUrl) : outfitUrl;
+        const cleanedUrl = outfitUrl && isSolo ? await enforceSoloGeneratedImage(outfitUrl) : outfitUrl;
+        const finalUrl = cleanedUrl ? await restoreAfterDarkContinuity(cleanedUrl) : cleanedUrl;
         if (finalUrl) urls.push(finalUrl);
         else errors.push(`v${i + 1}: outfit pass returned no url`);
       } else {
