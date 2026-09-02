@@ -430,7 +430,7 @@ export async function POST(req: NextRequest) {
     let urls = extractUrls(submitted);
     const genId = submitted.id || submitted.generation_id || submitted.data?.id;
     if (!urls.length && genId) {
-      for (let i = 0; i < 24; i++) {
+      for (let i = 0; i < 80; i++) {
         await new Promise((r) => setTimeout(r, 2500));
         const poll = await fetch(`${ZEN_BASE}/generations/${genId}`, {
           headers: { Authorization: `Bearer ${zenKey}` },
@@ -525,7 +525,7 @@ export async function POST(req: NextRequest) {
 
     if (isAfterDark) {
       if (wanted.length >= 3) {
-        return [IMAGE_MODELS.wan27Pro, IMAGE_MODELS.wan27, IMAGE_MODELS.seedream5Pro, IMAGE_MODELS.seedream5];
+        return [IMAGE_MODELS.seedream5Pro, IMAGE_MODELS.wan27Pro, IMAGE_MODELS.wan27, IMAGE_MODELS.seedream5];
       }
       return assetIds.length
         ? [IMAGE_MODELS.seedream5Pro, IMAGE_MODELS.seedream5]
@@ -533,25 +533,25 @@ export async function POST(req: NextRequest) {
     }
 
     if (outfitAssetId || isSolo) {
-      return [IMAGE_MODELS.nanoBanana2, IMAGE_MODELS.seedream5Pro, IMAGE_MODELS.general];
+      return [IMAGE_MODELS.seedream5Pro, IMAGE_MODELS.nanoBanana2, IMAGE_MODELS.general];
     }
     if (complexComposition) {
-      return [IMAGE_MODELS.wan27Pro, IMAGE_MODELS.wan27, IMAGE_MODELS.seedream5Pro, IMAGE_MODELS.qwenImagePro];
+      return [IMAGE_MODELS.seedream5Pro, IMAGE_MODELS.wan27Pro, IMAGE_MODELS.wan27, IMAGE_MODELS.qwenImagePro];
     }
     if (stylizedScene) {
-      return [IMAGE_MODELS.qwenImagePro, IMAGE_MODELS.qwenImage, IMAGE_MODELS.seedream5Pro, IMAGE_MODELS.general];
+      return [IMAGE_MODELS.seedream5Pro, IMAGE_MODELS.qwenImagePro, IMAGE_MODELS.qwenImage, IMAGE_MODELS.general];
     }
     if (hasBodyHints) {
       return [IMAGE_MODELS.seedream5Pro, IMAGE_MODELS.sdxl, IMAGE_MODELS.wan27Pro, IMAGE_MODELS.general];
     }
-    return [IMAGE_MODELS.general, IMAGE_MODELS.seedream5Pro, IMAGE_MODELS.qwenImagePro];
+    return [IMAGE_MODELS.seedream5Pro, IMAGE_MODELS.general, IMAGE_MODELS.qwenImagePro];
   }
 
   async function runOne(versionIndex: number): Promise<string | null> {
     const variant = VERSION_VARIANTS[versionIndex] || "";
     const prompt = variant ? `${promptBase} ${variant}` : promptBase;
     const tool = assetIds.length ? "image_editor" : "by_prompt";
-    const modelCandidates = selectBaseModels(prompt);
+    const modelCandidates = selectBaseModels(core);
     const baseModel = modelCandidates[0] || generationModel;
     // image_editor rejects unknown fields (e.g. negative_prompt).
     // AVOID: stays in the prompt text; only by_prompt gets negative_prompt.
@@ -622,7 +622,7 @@ export async function POST(req: NextRequest) {
     let urls = extractUrls(submitted);
     const genId = submitted.id || submitted.generation_id || submitted.data?.id;
     if (!urls.length && genId) {
-      const maxPolls = 24;
+      const maxPolls = 80;
       for (let i = 0; i < maxPolls; i++) {
         await new Promise((r) => setTimeout(r, 2500));
         const poll = await fetch(`${ZEN_BASE}/generations/${genId}`, {
@@ -685,7 +685,7 @@ export async function POST(req: NextRequest) {
     let urls = extractUrls(submitted);
     const genId = submitted.id || submitted.generation_id || submitted.data?.id;
     if (!urls.length && genId) {
-      for (let i = 0; i < 24; i++) {
+      for (let i = 0; i < 80; i++) {
         await new Promise((r) => setTimeout(r, 2500));
         const poll = await fetch(`${ZEN_BASE}/generations/${genId}`, {
           headers: { Authorization: `Bearer ${zenKey}` },
@@ -746,7 +746,7 @@ export async function POST(req: NextRequest) {
     let urls = extractUrls(submitted);
     const genId = submitted.id || submitted.generation_id || submitted.data?.id;
     if (!urls.length && genId) {
-      for (let i = 0; i < 24; i++) {
+      for (let i = 0; i < 80; i++) {
         await new Promise((r) => setTimeout(r, 2500));
         const poll = await fetch(`${ZEN_BASE}/generations/${genId}`, {
           headers: { Authorization: `Bearer ${zenKey}` },
