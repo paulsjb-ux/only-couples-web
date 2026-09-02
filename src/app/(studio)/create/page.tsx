@@ -137,6 +137,8 @@ function CreateInner() {
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const generateInFlightRef = useRef(false);
+  const saveInFlightRef = useRef(new Set<string>());
+  const [sceneReady, setSceneReady] = useState(!sceneId);
   const recoveryInFlightRef = useRef(false);
   const [note, setNote] = useState("");
   const [studioId, setStudioId] = useState<string | null>(null);
@@ -245,6 +247,22 @@ function CreateInner() {
     const supabase = createClient();
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return;
+    if (sceneId) {
+      const { data: configuredScene, error: sceneError } = await supabase
+        .from("scenes")
+        .select("id,cast_roles")
+        .eq("id", sceneId)
+        .maybeSingle();
+      const roles = Array.isArray(configuredScene?.cast_roles) ? configuredScene.cast_roles : [];
+      if (sceneError || !configuredScene || !roles.length) {
+        setSceneReady(false);
+        setNote("This scene is unavailable. Return to Scenes and choose it again.");
+        return;
+      }
+      setSelected(roles);
+      setOutfitWearer((current) => roles.includes(current) ? current : roles[0]);
+      setSceneReady(true);
+    }
     const { data: memberships } = await supabase
       .from("studio_members")
       .select("studio_id")
@@ -524,6 +542,10 @@ function CreateInner() {
   }
 
   async function generate() {
+    if (!sceneReady) {
+      setNote("This scene is not ready. Return to Scenes and choose it again.");
+      return;
+    }
     // Synchronous guard: one user action can create only one /api/generate request.
     // Do not rely on `busy` alone because React state updates on the next render.
     if (generateInFlightRef.current) return;
@@ -673,6 +695,9 @@ function CreateInner() {
       setNote("No image URL to keep");
       return;
     }
+    const saveKey = item.id || item.path || item.url;
+    if (saveInFlightRef.current.has(saveKey)) return;
+    saveInFlightRef.current.add(saveKey);
     setBusy(true);
     setNote("Keeping in your album…");
     try {
@@ -719,6 +744,7 @@ function CreateInner() {
       const msg = err instanceof Error ? err.message : "Save failed";
       setNote(msg);
     } finally {
+      saveInFlightRef.current.delete(saveKey);
       setBusy(false);
     }
   }
@@ -1058,7 +1084,7 @@ function CreateInner() {
         <button
           className="btn btn-studio-primary w-full"
           onClick={generate}
-          disabled={busy}
+          disabled={busy || !sceneReady}
           style={{
             position: "sticky",
             bottom: 12,
@@ -1110,6 +1136,7 @@ function CreateInner() {
                 key={r.key}
                 type="button"
                 onClick={() => toggleRole(r.key)}
+                disabled={Boolean(sceneId)}
                 className={`tor-chip${on ? " tor-chip-on" : ""}${!hasFace && on ? " tor-chip-warn" : ""}`}
                 style={{ width: "100%" }}
               >
@@ -1120,7 +1147,7 @@ function CreateInner() {
           })}
         </div>
         <p className="tor-help" style={{ marginTop: 10 }}>
-          Tap to add or remove. Each selected role needs a photo.
+          {sceneId ? "This template uses its configured cast. Each role needs a photo." : "Tap to add or remove. Each selected role needs a photo."}
         </p>
 
         <p style={{ fontSize: 14, fontWeight: 600, margin: "20px 0 10px", color: "#1a1614" }}>
@@ -1138,6 +1165,7 @@ function CreateInner() {
                 key={s.label}
                 type="button"
                 onClick={() => setSelected(s.roles)}
+                disabled={Boolean(sceneId)}
                 className={`tor-chip${on ? " tor-chip-on" : ""}`}
                 style={{ width: "100%" }}
               >
