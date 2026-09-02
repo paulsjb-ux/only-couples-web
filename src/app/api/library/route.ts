@@ -135,12 +135,40 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const url = body.url ? String(body.url) : "";
   const sourceId = body.id ? String(body.id) : null;
-  const path = body.path ? String(body.path) : null;
+  let path = body.path ? String(body.path) : null;
   const kind = String(body.kind || "image");
   const prompt = String(body.prompt || "");
 
   if (!url && !path) {
     return NextResponse.json({ error: "Missing url" }, { status: 400 });
+  }
+
+  if (path && !path.startsWith(studioId + "/")) {
+    return NextResponse.json({ error: "Invalid library path" }, { status: 403 });
+  }
+
+  if (sourceId) {
+    const { data: source, error: sourceError } = await supabase
+      .from("generations")
+      .select("id,status,storage_path,result_url")
+      .eq("id", sourceId)
+      .eq("studio_id", studioId)
+      .maybeSingle();
+    if (sourceError || !source) {
+      return NextResponse.json({ error: "Preview not found" }, { status: 404 });
+    }
+    path = source.storage_path || path;
+    if (path && !path.startsWith(studioId + "/")) {
+      return NextResponse.json({ error: "Invalid preview path" }, { status: 403 });
+    }
+    if (source.status === "kept") {
+      let existingUrl = source.result_url || url;
+      if (path) {
+        const { data: signed } = await supabase.storage.from("library").createSignedUrl(path, 60 * 60 * 24 * 30);
+        if (signed?.signedUrl) existingUrl = signed.signedUrl;
+      }
+      return NextResponse.json({ ok: true, id: source.id, path, url: existingUrl, alreadyKept: true });
+    }
   }
 
   const keptPath = `${studioId}/kept/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
@@ -155,6 +183,7 @@ export async function POST(req: NextRequest) {
         const { error: copyErr } = await supabase.storage.from("library").copy(path, dest);
         if (!copyErr) {
           storagePath = dest;
+          await supabase.storage.from("library").remove([path]);
         }
       } else if (path.includes("/kept/")) {
         storagePath = path;
@@ -182,9 +211,18 @@ export async function POST(req: NextRequest) {
       storagePath = keptPath;
     } catch (e) {
       console.error("keep upload failed", e);
-      // Last resort: save URL only (will expire) — still insert so row exists
-      storagePath = path;
+      return NextResponse.json(
+        { error: "The image could not be stored permanently. Please try Keep again." },
+        { status: 502 }
+      );
     }
+  }
+
+  if (!storagePath) {
+    return NextResponse.json(
+      { error: "The image could not be stored permanently. Please try Keep again." },
+      { status: 502 }
+    );
   }
 
   // 3) Fresh long-lived signed URL
@@ -219,49 +257,9 @@ export async function POST(req: NextRequest) {
     : supabase.from("generations").insert(row).select("id").single();
 
   const { data, error } = await mutation;
-
   if (error) {
-    // Retry without optional columns
-    const fallbackRow = {
-      studio_id: studioId,
-      kind,
-      prompt,
-      result_url: finalUrl,
-      status: "kept",
-    };
-    const fallbackMutation = sourceId
-      ? supabase
-          .from("generations")
-          .update(fallbackRow)
-          .eq("id", sourceId)
-          .eq("studio_id", studioId)
-          .select("id")
-          .single()
-      : supabase.from("generations").insert(fallbackRow).select("id").single();
-    const { data: data2, error: err2 } = await fallbackMutation;
-    if (err2 && sourceId) {
-      // The preview may have completed after the browser navigated away, leaving
-      // an ID the current session cannot update. Insert the durable kept row
-      // instead of reporting failure after the storage copy already succeeded.
-      const { data: inserted, error: insertError } = await supabase
-        .from("generations")
-        .insert(fallbackRow)
-        .select("id")
-        .single();
-      if (insertError) {
-        console.error("keep row update and insert failed", { update: err2, insert: insertError });
-        return NextResponse.json({ error: insertError.message }, { status: 500 });
-      }
-      return NextResponse.json({ ok: true, id: inserted?.id, path: storagePath, url: finalUrl });
-    }
-    if (err2) return NextResponse.json({ error: err2.message }, { status: 500 });
-    return NextResponse.json({
-      ok: true,
-      id: data2?.id,
-      path: storagePath,
-      url: finalUrl,
-      warning: "storage_path column missing — add it in Supabase for durable library",
-    });
+    console.error("keep row mutation failed", error);
+    return NextResponse.json({ error: "The image was stored but could not be added to Library." }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true, id: data?.id, path: storagePath, url: finalUrl });
