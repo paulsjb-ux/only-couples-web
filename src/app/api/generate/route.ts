@@ -385,6 +385,10 @@ export async function POST(req: NextRequest) {
 
     let modelUsed = generationModel;
     let usedFallback = false;
+    let fluxFailureStatus: number | null = null;
+    let fluxFailureCode: string | null = null;
+    let fluxFailureType: string | null = null;
+    let fluxFailureField: string | null = null;
     let submit = await fetch(`${ZEN_BASE}/generations`, {
       method: "POST",
       headers: {
@@ -395,6 +399,12 @@ export async function POST(req: NextRequest) {
     });
     let submitted = await submit.json().catch(() => ({}));
     if (!submit.ok && isAfterDark && [400, 404, 422].includes(submit.status)) {
+      const fluxError = asRecord(submitted.error);
+      const fluxDetails = asRecord(fluxError?.details);
+      fluxFailureStatus = submit.status;
+      fluxFailureCode = String(fluxError?.code || submitted.code || "") || null;
+      fluxFailureType = String(fluxError?.type || submitted.type || "") || null;
+      fluxFailureField = String(fluxError?.field || fluxDetails?.field || "") || null;
       modelUsed = "SEEDREAM_5_PRO";
       usedFallback = true;
       submit = await fetch(`${ZEN_BASE}/generations`, {
@@ -417,6 +427,10 @@ export async function POST(req: NextRequest) {
       requestedModel: generationModel,
       modelUsed,
       usedFallback,
+      fluxFailureStatus,
+      fluxFailureCode,
+      fluxFailureType,
+      fluxFailureField,
       tool,
     });
 
