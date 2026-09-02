@@ -137,6 +137,7 @@ function CreateInner() {
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const generateInFlightRef = useRef(false);
+  const recoveryInFlightRef = useRef(false);
   const [note, setNote] = useState("");
   const [studioId, setStudioId] = useState<string | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
@@ -155,6 +156,49 @@ function CreateInner() {
       previewRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, [previews]);
+
+  useEffect(() => {
+    if (!studioId) return;
+
+    const recoverWhenVisible = () => {
+      if (document.visibilityState === "hidden" || recoveryInFlightRef.current) return;
+      const startedAt = window.localStorage.getItem("tor:generation-started-at");
+      if (!startedAt) return;
+
+      recoveryInFlightRef.current = true;
+      setBusy(true);
+      setGenerating(true);
+      setNote("Reconnecting to your generation…");
+
+      void recoverLatestPreview(startedAt, studioId)
+        .then((found) => {
+          if (!found) {
+            setNote("Still generating — it is safe to leave. We will recover it when you return.");
+          }
+        })
+        .finally(() => {
+          recoveryInFlightRef.current = false;
+          generateInFlightRef.current = false;
+          setGenerating(false);
+          setBusy(false);
+        });
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") recoverWhenVisible();
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("focus", recoverWhenVisible);
+    window.addEventListener("pageshow", recoverWhenVisible);
+    recoverWhenVisible();
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("focus", recoverWhenVisible);
+      window.removeEventListener("pageshow", recoverWhenVisible);
+    };
+  }, [studioId]);
 
   useEffect(() => {
     if (!generating) return;
@@ -238,12 +282,6 @@ function CreateInner() {
     const sid = memberships?.[0]?.studio_id as string | undefined;
     if (!sid) return;
     setStudioId(sid);
-    const pendingStartedAt = window.localStorage.getItem("tor:generation-started-at");
-    if (pendingStartedAt) {
-      void recoverLatestPreview(pendingStartedAt, sid).then((found) => {
-        if (found) window.localStorage.removeItem("tor:generation-started-at");
-      });
-    }
     const { data: people } = await supabase.from("people").select("*").eq("studio_id", sid);
     const next: FaceRow[] = [];
     for (const person of people || []) {
@@ -443,7 +481,7 @@ function CreateInner() {
   async function recoverLatestPreview(startedAt: string, studioOverride?: string): Promise<boolean> {
     const recoveryStudioId = studioOverride || studioId;
     if (!recoveryStudioId) return false;
-    setNote("Image completed — recovering it safely…");
+    setNote("Reconnecting to your generation…");
     const supabase = createClient();
 
     for (let attempt = 0; attempt < 15; attempt++) {
@@ -535,8 +573,8 @@ function CreateInner() {
     const n = kind === "image" ? versions : 1;
     setNote(
       n > 1
-        ? `Making ${n} versions. This can take a couple of minutes…`
-        : "Making the image. This can take a minute…"
+        ? `Making ${n} versions. You can leave the app — they will appear when you return.`
+        : "Making the image. You can leave the app — it will appear when you return."
     );
     const who = selected.join(",");
     const generationStartedAt = new Date(Date.now() - 5000).toISOString();
@@ -621,11 +659,10 @@ function CreateInner() {
     } catch (err: unknown) {
       const recovered = await recoverLatestPreview(generationStartedAt);
       if (!recovered) {
-        setNote(
-          err instanceof Error
-            ? err.message
-            : "The connection ended before the image could be recovered. Please try again."
-        );
+        console.info("Generation connection paused; recovery remains pending", {
+          message: err instanceof Error ? err.message : String(err),
+        });
+        setNote("Connection paused — generation is continuing. Reopen this page to recover it.");
       }
     } finally {
       generateInFlightRef.current = false;
